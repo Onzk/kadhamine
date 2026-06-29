@@ -1,0 +1,179 @@
+{
+  "app": {
+    "name": "TalentTchad",
+    "tagline": "Gɔtə talent tchadien"
+  },
+  "common": {
+    "loading": "Kəla ngəla...",
+    "error": "Fɔl gəle",
+    "retry": "Kəla sɔ",
+    "cancel": "Kəla",
+    "confirm": "Səgə",
+    "save": "Kəla səgə",
+    "delete": "Kəla fɔl",
+    "edit": "Kəla sɔ",
+    "search": "Kəla sɔ",
+    "seeAll": "Kəla kəla",
+    "back": "Kəla sɔ",
+    "next": "Kəla taa",
+    "done": "Kəla",
+    "or": "ka",
+    "from": "Kəla",
+    "negotiable": "Kəla sɔ",
+    "verified": "Kəla səgə",
+    "premium": "Premium",
+    "available": "Kəla",
+    "busy": "Kəla",
+    "unavailable": "Kəla fɔl"
+  },
+  "auth": {
+    "login": "Kəla sɔ",
+    "register": "Kəla səgə",
+    "logout": "Kəla fɔl",
+    "email": "Email",
+    "password": "Kəla sɔ",
+    "confirmPassword": "Kəla səgə",
+    "forgotPassword": "Kəla fɔl?",
+    "noAccount": "Kəla fɔl?",
+    "hasAccount": "Kəla səgə?",
+    "signUp": "Kəla səgə",
+    "signIn": "Kəla sɔ",
+    "welcomeBack": "Kəla!",
+    "createAccount": "Kəla səgə",
+    "chooseRole": "Mbi...",
+    "client": "Kəla",
+    "provider": "Talent",
+    "clientDesc": "Mbi kəla sɔ",
+    "providerDesc": "Mbi kəla səgə"
+  },
+  "onboarding": {
+    "welcome": "Kəla TalentTchad",
+    "subtitle": "Marketplace talent tchadien",
+    "step1Title": "Kəla talent",
+    "step1Desc": "Kəla sɔ kategori, region ka skill",
+    "step2Title": "Kəla səgə",
+    "step2Desc": "Airtel Money, Moov Money via FedaPay",
+    "step3Title": "Kəla trust",
+    "step3Desc": "Review official kəla payment integrated",
+    "getStarted": "Kəla"
+  },
+  "home": {
+    "greeting": "Kəla",
+    "featured": "Service featured",
+    "categories": "Kategori",
+    "nearYou": "Kəla ngəla",
+    "topRated": "Top rated",
+    "searchPlaceholder": "Kəla sɔ service..."
+  },
+  "search": {
+    "title": "Kəla sɔ",
+    "filters": "Filter",
+    "sortBy": "Sort",
+    "rating": "Rating",
+    "priceAsc": "Price ↑",
+    "priceDesc": "Price ↓",
+    "popular": "Popular",
+    "recent": "Recent",
+    "verifiedOnly": "Verified",
+    "premiumOnly": "Premium",
+    "noResults": "Kəla fɔl",
+    "tryDifferent": "Kəla filter sɔ"
+  },
+  "service": {
+    "details": "Service details",
+    "order": "Order",
+    "contact": "Contact",
+    "reviews": "Reviews",
+    "portfolio": "Portfolio",
+    "delivery": "Delivery",
+    "days": "days",
+    "provider": "Provider",
+    "trustScore": "Trust score"
+  },
+  "orders": {
+    "title": "Orders",
+    "pending": "Pending",
+    "accepted": "Accepted",
+    "inProgress": "In progress",
+    "completed": "Completed",
+    "cancelled": "Cancelled",
+    "rejected": "Rejected",
+    "accept": "Accept",
+    "reject": "Reject",
+    "start": "Start",
+    "complete": "Complete",
+    "validate": "Validate",
+    "cancel": "Cancel",
+    "empty": "Kəla fɔl"
+  },
+  "payment": {
+    "title": "Payment",
+    "method": "Payment method",
+    "fedapay": "FedaPay",
+    "airtel": "Airtel Money",
+    "moov": "Moov Money",
+    "offPlatform": "Off platform",
+    "offPlatformWarning": "⚠️ Off platform payment = no official review",
+    "integratedBenefit": "✓ Integrated payment = official review",
+    "amount": "Amount",
+    "commission": "Commission",
+    "pay": "Pay now",
+    "held": "Held",
+    "released": "Released"
+  },
+  "reviews": {
+    "title": "Reviews",
+    "leaveReview": "Leave review",
+    "rating": "Rating",
+    "comment": "Comment",
+    "submit": "Submit",
+    "officialOnly": "Official review",
+    "respond": "Respond"
+  },
+  "profile": {
+    "title": "Profile",
+    "edit": "Edit profile",
+    "settings": "Settings",
+    "language": "Language",
+    "theme": "Theme",
+    "notifications": "Notifications",
+    "verification": "Verification",
+    "premium": "Go Premium",
+    "dashboard": "Dashboard",
+    "myServices": "My services",
+    "earnings": "Earnings",
+    "stats": "Stats"
+  },
+  "messages": {
+    "title": "Messages",
+    "empty": "Kəla fɔl",
+    "typeMessage": "Type message...",
+    "send": "Send"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "Kəla fɔl",
+    "markAllRead": "Mark all read"
+  },
+  "tabs": {
+    "home": "Home",
+    "search": "Search",
+    "orders": "Orders",
+    "messages": "Messages",
+    "profile": "Profile"
+  },
+  "badges": {
+    "beginner": "Débutant",
+    "confirmed": "Confirmé",
+    "expert": "Expert",
+    "top_talent": "Top Talent",
+    "verified": "Vérifié",
+    "premium": "Premium"
+  },
+  "setup": {
+    "title": "Setup required",
+    "convex": "Configure Convex",
+    "step1": "Run npx convex dev",
+    "step2": "Add EXPO_PUBLIC_CONVEX_URL to .env"
+  }
+}

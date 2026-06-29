@@ -1,0 +1,179 @@
+{
+  "app": {
+    "name": "TalentTchad",
+    "tagline": "Connectez les talents tchadiens"
+  },
+  "common": {
+    "loading": "Chargement...",
+    "error": "Une erreur est survenue",
+    "retry": "Réessayer",
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "search": "Rechercher",
+    "seeAll": "Voir tout",
+    "back": "Retour",
+    "next": "Suivant",
+    "done": "Terminé",
+    "or": "ou",
+    "from": "À partir de",
+    "negotiable": "Négociable",
+    "verified": "Vérifié",
+    "premium": "Premium",
+    "available": "Disponible",
+    "busy": "Occupé",
+    "unavailable": "Indisponible"
+  },
+  "auth": {
+    "login": "Connexion",
+    "register": "Inscription",
+    "logout": "Déconnexion",
+    "email": "Email",
+    "password": "Mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "forgotPassword": "Mot de passe oublié ?",
+    "noAccount": "Pas encore de compte ?",
+    "hasAccount": "Déjà un compte ?",
+    "signUp": "S'inscrire",
+    "signIn": "Se connecter",
+    "welcomeBack": "Bon retour !",
+    "createAccount": "Créer un compte",
+    "chooseRole": "Je suis...",
+    "client": "Client",
+    "provider": "Prestataire",
+    "clientDesc": "Je cherche des services",
+    "providerDesc": "Je propose mes compétences"
+  },
+  "onboarding": {
+    "welcome": "Bienvenue sur TalentTchad",
+    "subtitle": "La marketplace des jeunes talents tchadiens",
+    "step1Title": "Trouvez des talents",
+    "step1Desc": "Recherchez par catégorie, région ou compétence",
+    "step2Title": "Payez en sécurité",
+    "step2Desc": "Airtel Money, Moov Money via FedaPay",
+    "step3Title": "Construisez la confiance",
+    "step3Desc": "Les avis officiels récompensent les paiements intégrés",
+    "getStarted": "Commencer"
+  },
+  "home": {
+    "greeting": "Bonjour",
+    "featured": "Services en vedette",
+    "categories": "Catégories",
+    "nearYou": "Près de vous",
+    "topRated": "Mieux notés",
+    "searchPlaceholder": "Rechercher un service..."
+  },
+  "search": {
+    "title": "Recherche",
+    "filters": "Filtres",
+    "sortBy": "Trier par",
+    "rating": "Note",
+    "priceAsc": "Prix croissant",
+    "priceDesc": "Prix décroissant",
+    "popular": "Popularité",
+    "recent": "Récents",
+    "verifiedOnly": "Vérifiés uniquement",
+    "premiumOnly": "Premium uniquement",
+    "noResults": "Aucun résultat trouvé",
+    "tryDifferent": "Essayez d'autres filtres"
+  },
+  "service": {
+    "details": "Détails du service",
+    "order": "Commander",
+    "contact": "Contacter",
+    "reviews": "Avis",
+    "portfolio": "Portfolio",
+    "delivery": "Délai de livraison",
+    "days": "jours",
+    "provider": "Prestataire",
+    "trustScore": "Score de confiance"
+  },
+  "orders": {
+    "title": "Commandes",
+    "pending": "En attente",
+    "accepted": "Acceptée",
+    "inProgress": "En cours",
+    "completed": "Terminée",
+    "cancelled": "Annulée",
+    "rejected": "Refusée",
+    "accept": "Accepter",
+    "reject": "Refuser",
+    "start": "Démarrer",
+    "complete": "Terminer",
+    "validate": "Valider la prestation",
+    "cancel": "Annuler",
+    "empty": "Aucune commande"
+  },
+  "payment": {
+    "title": "Paiement",
+    "method": "Méthode de paiement",
+    "fedapay": "FedaPay",
+    "airtel": "Airtel Money",
+    "moov": "Moov Money",
+    "offPlatform": "Paiement hors plateforme",
+    "offPlatformWarning": "⚠️ Les paiements hors plateforme ne permettent PAS de laisser un avis officiel. Votre note n'améliorera pas la réputation du prestataire.",
+    "integratedBenefit": "✓ Paiement intégré = avis officiel + réputation",
+    "amount": "Montant",
+    "commission": "Commission plateforme",
+    "pay": "Payer maintenant",
+    "held": "Paiement conservé",
+    "released": "Paiement libéré"
+  },
+  "reviews": {
+    "title": "Avis",
+    "leaveReview": "Laisser un avis",
+    "rating": "Note",
+    "comment": "Commentaire",
+    "submit": "Publier",
+    "officialOnly": "Avis officiel (paiement intégré)",
+    "respond": "Répondre"
+  },
+  "profile": {
+    "title": "Profil",
+    "edit": "Modifier le profil",
+    "settings": "Paramètres",
+    "language": "Langue",
+    "theme": "Thème",
+    "notifications": "Notifications",
+    "verification": "Vérification d'identité",
+    "premium": "Passer Premium",
+    "dashboard": "Tableau de bord",
+    "myServices": "Mes services",
+    "earnings": "Revenus",
+    "stats": "Statistiques"
+  },
+  "messages": {
+    "title": "Messages",
+    "empty": "Aucune conversation",
+    "typeMessage": "Écrire un message...",
+    "send": "Envoyer"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "Aucune notification",
+    "markAllRead": "Tout marquer comme lu"
+  },
+  "tabs": {
+    "home": "Accueil",
+    "search": "Recherche",
+    "orders": "Commandes",
+    "messages": "Messages",
+    "profile": "Profil"
+  },
+  "badges": {
+    "beginner": "Débutant",
+    "confirmed": "Confirmé",
+    "expert": "Expert",
+    "top_talent": "Top Talent",
+    "verified": "Vérifié",
+    "premium": "Premium"
+  },
+  "setup": {
+    "title": "Configuration requise",
+    "convex": "Configurez Convex pour démarrer",
+    "step1": "Exécutez npx convex dev",
+    "step2": "Ajoutez EXPO_PUBLIC_CONVEX_URL dans .env"
+  }
+}

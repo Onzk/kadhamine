@@ -1,15 +1,47 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
-import { useColorScheme } from 'react-native';
+import '@/global.css';
+import { ConvexAuthProvider } from '@convex-dev/auth/react';
+import { ConvexReactClient } from 'convex/react';
+import { Slot } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+import { AuthProvider } from '@/providers/AuthProvider';
+import { I18nProvider } from '@/providers/I18nProvider';
+import { ThemeProvider, useAppTheme } from '@/providers/ThemeProvider';
+import { convexAuthStorage } from '@/services/authStorage';
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+const convexUrl = process.env.EXPO_PUBLIC_CONVEX_URL || '';
+const convex = new ConvexReactClient(convexUrl, {
+  unsavedChangesWarning: false,
+});
+
+function RootContent() {
+  const { isDark } = useAppTheme();
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <AnimatedSplashOverlay />
-      <AppTabs />
-    </ThemeProvider>
+      <AuthProvider>
+        <Slot />
+      </AuthProvider>
+    </>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <ConvexAuthProvider client={convex} storage={convexAuthStorage}>
+          <ThemeProvider>
+            <I18nProvider>
+              <RootContent />
+            </I18nProvider>
+          </ThemeProvider>
+        </ConvexAuthProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }

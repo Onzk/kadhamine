@@ -1,0 +1,179 @@
+{
+  "app": {
+    "name": "TalentTchad",
+    "tagline": "ربط المواهب التشادية"
+  },
+  "common": {
+    "loading": "جاري التحميل...",
+    "error": "حدث خطأ",
+    "retry": "إعادة المحاولة",
+    "cancel": "إلغاء",
+    "confirm": "تأكيد",
+    "save": "حفظ",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "search": "بحث",
+    "seeAll": "عرض الكل",
+    "back": "رجوع",
+    "next": "التالي",
+    "done": "تم",
+    "or": "أو",
+    "from": "ابتداءً من",
+    "negotiable": "قابل للتفاوض",
+    "verified": "موثق",
+    "premium": "بريميوم",
+    "available": "متاح",
+    "busy": "مشغول",
+    "unavailable": "غير متاح"
+  },
+  "auth": {
+    "login": "تسجيل الدخول",
+    "register": "التسجيل",
+    "logout": "تسجيل الخروج",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "confirmPassword": "تأكيد كلمة المرور",
+    "forgotPassword": "نسيت كلمة المرور؟",
+    "noAccount": "ليس لديك حساب؟",
+    "hasAccount": "لديك حساب بالفعل؟",
+    "signUp": "إنشاء حساب",
+    "signIn": "دخول",
+    "welcomeBack": "مرحباً بعودتك!",
+    "createAccount": "إنشاء حساب",
+    "chooseRole": "أنا...",
+    "client": "عميل",
+    "provider": "مقدم خدمة",
+    "clientDesc": "أبحث عن خدمات",
+    "providerDesc": "أقدم مهاراتي"
+  },
+  "onboarding": {
+    "welcome": "مرحباً بك في TalentTchad",
+    "subtitle": "سوق المواهب الشابة التشادية",
+    "step1Title": "اعثر على المواهب",
+    "step1Desc": "ابحث حسب الفئة أو المنطقة أو المهارة",
+    "step2Title": "ادفع بأمان",
+    "step2Desc": "Airtel Money و Moov Money عبر FedaPay",
+    "step3Title": "ابنِ الثقة",
+    "step3Desc": "التقييمات الرسمية تكافئ الدفع عبر التطبيق",
+    "getStarted": "ابدأ"
+  },
+  "home": {
+    "greeting": "مرحباً",
+    "featured": "خدمات مميزة",
+    "categories": "الفئات",
+    "nearYou": "بالقرب منك",
+    "topRated": "الأعلى تقييماً",
+    "searchPlaceholder": "ابحث عن خدمة..."
+  },
+  "search": {
+    "title": "بحث",
+    "filters": "فلاتر",
+    "sortBy": "ترتيب حسب",
+    "rating": "التقييم",
+    "priceAsc": "السعر تصاعدياً",
+    "priceDesc": "السعر تنازلياً",
+    "popular": "الشعبية",
+    "recent": "الأحدث",
+    "verifiedOnly": "الموثقون فقط",
+    "premiumOnly": "بريميوم فقط",
+    "noResults": "لا توجد نتائج",
+    "tryDifferent": "جرب فلاتر أخرى"
+  },
+  "service": {
+    "details": "تفاصيل الخدمة",
+    "order": "طلب",
+    "contact": "تواصل",
+    "reviews": "التقييمات",
+    "portfolio": "معرض الأعمال",
+    "delivery": "مدة التسليم",
+    "days": "أيام",
+    "provider": "مقدم الخدمة",
+    "trustScore": "درجة الثقة"
+  },
+  "orders": {
+    "title": "الطلبات",
+    "pending": "قيد الانتظار",
+    "accepted": "مقبول",
+    "inProgress": "قيد التنفيذ",
+    "completed": "مكتمل",
+    "cancelled": "ملغى",
+    "rejected": "مرفوض",
+    "accept": "قبول",
+    "reject": "رفض",
+    "start": "بدء",
+    "complete": "إنهاء",
+    "validate": "تأكيد الخدمة",
+    "cancel": "إلغاء",
+    "empty": "لا توجد طلبات"
+  },
+  "payment": {
+    "title": "الدفع",
+    "method": "طريقة الدفع",
+    "fedapay": "FedaPay",
+    "airtel": "Airtel Money",
+    "moov": "Moov Money",
+    "offPlatform": "دفع خارج المنصة",
+    "offPlatformWarning": "⚠️ الدفع خارج المنصة لا يسمح بترك تقييم رسمي.",
+    "integratedBenefit": "✓ الدفع عبر التطبيق = تقييم رسمي + سمعة",
+    "amount": "المبلغ",
+    "commission": "عمولة المنصة",
+    "pay": "ادفع الآن",
+    "held": "الدفع محفوظ",
+    "released": "الدفع محرر"
+  },
+  "reviews": {
+    "title": "التقييمات",
+    "leaveReview": "اترك تقييماً",
+    "rating": "التقييم",
+    "comment": "تعليق",
+    "submit": "نشر",
+    "officialOnly": "تقييم رسمي (دفع عبر التطبيق)",
+    "respond": "رد"
+  },
+  "profile": {
+    "title": "الملف الشخصي",
+    "edit": "تعديل الملف",
+    "settings": "الإعدادات",
+    "language": "اللغة",
+    "theme": "المظهر",
+    "notifications": "الإشعارات",
+    "verification": "التحقق من الهوية",
+    "premium": "الترقية إلى بريميوم",
+    "dashboard": "لوحة التحكم",
+    "myServices": "خدماتي",
+    "earnings": "الأرباح",
+    "stats": "الإحصائيات"
+  },
+  "messages": {
+    "title": "الرسائل",
+    "empty": "لا توجد محادثات",
+    "typeMessage": "اكتب رسالة...",
+    "send": "إرسال"
+  },
+  "notifications": {
+    "title": "الإشعارات",
+    "empty": "لا توجد إشعارات",
+    "markAllRead": "تحديد الكل كمقروء"
+  },
+  "tabs": {
+    "home": "الرئيسية",
+    "search": "بحث",
+    "orders": "الطلبات",
+    "messages": "الرسائل",
+    "profile": "الملف"
+  },
+  "badges": {
+    "beginner": "مبتدئ",
+    "confirmed": "مؤكد",
+    "expert": "خبير",
+    "top_talent": "أفضل موهبة",
+    "verified": "موثق",
+    "premium": "بريميوم"
+  },
+  "setup": {
+    "title": "الإعداد مطلوب",
+    "convex": "قم بإعداد Convex للبدء",
+    "step1": "نفذ npx convex dev",
+    "step2": "أضف EXPO_PUBLIC_CONVEX_URL في .env"
+  }
+}

@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "tchad-talent",
-    "slug": "tchad-talent",
+    "name": "TalentTchad",
+    "slug": "talenttchad",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -11,6 +11,7 @@
       "icon": "./assets/expo.icon"
     },
     "android": {
+      "package": "com.tchadtalent.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -25,10 +26,30 @@
     },
     "plugins": [
       "expo-router",
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "TalentTchad utilise votre position pour trouver des talents proches."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "TalentTchad utilise la caméra pour votre portfolio et la vérification d'identité."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "TalentTchad accède à vos photos pour le portfolio.",
+          "cameraPermission": "TalentTchad utilise la caméra pour le portfolio."
+        }
+      ],
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#002664",
           "android": {
             "image": "./assets/images/splash-icon.png",
             "imageWidth": 76
@@ -39,6 +60,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "0d56aa6d-0118-446b-b07c-21d65f52c70a"
+      }
     }
   }
 }
