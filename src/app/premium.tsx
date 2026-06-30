@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Crown, Check } from 'lucide-react-native';
 
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -41,7 +40,7 @@ export default function PremiumScreen() {
   const isActive = active && active.endDate > Date.now();
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }} edges={['top']}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <ScreenHeader title={t('profile.premium')} showBack />
 
       <ScrollView contentContainerStyle={{ padding: 16 }}>
@@ -91,9 +90,12 @@ export default function PremiumScreen() {
               borderColor: colors.success + '40',
             }}
           >
-            <Text style={{ color: colors.success, fontWeight: '600' }}>
-              ✓ Premium actif jusqu'au {new Date(active.endDate).toLocaleDateString('fr-FR')}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Check size={18} color={colors.success} />
+            <Text style={{ color: colors.success, fontWeight: '600', flex: 1 }}>
+              Premium actif jusqu'au {new Date(active.endDate).toLocaleDateString('fr-FR')}
             </Text>
+          </View>
           </View>
         )}
 
@@ -134,6 +136,6 @@ export default function PremiumScreen() {
           />
         ) : null}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

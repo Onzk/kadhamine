@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import { useQuery } from 'convex/react';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Badge } from '@/components/ui/Badge';
@@ -14,7 +13,7 @@ export default function AdminPaymentsScreen() {
   const payments = useQuery(api.admin.listPayments, { limit: 50 });
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }} edges={['top']}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <ScreenHeader title="Paiements" showBack />
 
       <ScrollView contentContainerStyle={{ padding: 16 }}>
@@ -53,6 +52,6 @@ export default function AdminPaymentsScreen() {
           </View>
         ))}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

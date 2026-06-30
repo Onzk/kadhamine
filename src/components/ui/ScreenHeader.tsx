@@ -1,9 +1,9 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useAppTheme } from '@/providers/ThemeProvider';
+import { fontFamily } from '@/theme/typography';
 
 interface ScreenHeaderProps {
   title: string;
@@ -14,13 +14,12 @@ interface ScreenHeaderProps {
 
 export function ScreenHeader({ title, subtitle, showBack, rightAction }: ScreenHeaderProps) {
   const { colors } = useAppTheme();
-  const insets = useSafeAreaInsets();
   const router = useRouter();
 
   return (
     <View
       style={{
-        paddingTop: insets.top + 8,
+        paddingTop: 12,
         paddingBottom: 12,
         paddingHorizontal: 16,
         backgroundColor: colors.canvas,
@@ -47,9 +46,9 @@ export function ScreenHeader({ title, subtitle, showBack, rightAction }: ScreenH
             </Pressable>
           )}
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 22, fontWeight: '700', color: colors.ink }}>{title}</Text>
+            <Text style={{ fontSize: 22, fontWeight: '700', color: colors.ink, fontFamily: fontFamily('bold') }}>{title}</Text>
             {subtitle && (
-              <Text style={{ fontSize: 13, color: colors.muted, marginTop: 2 }}>{subtitle}</Text>
+              <Text style={{ fontSize: 13, color: colors.muted, marginTop: 2, fontFamily: fontFamily('regular') }}>{subtitle}</Text>
             )}
           </View>
         </View>

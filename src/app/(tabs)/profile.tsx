@@ -15,7 +15,6 @@ import {
   LayoutDashboard,
   Images,
 } from 'lucide-react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -35,6 +34,65 @@ export default function ProfileScreen() {
   const profile = user?.profile;
   const isProvider = user?.role === 'provider';
   const isAdmin = user?.role === 'admin';
+  const isGuest = !user;
+
+  if (isGuest) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.canvas }}>
+        <ScrollView contentContainerStyle={{ padding: 28, paddingTop: 48 }}>
+          <Text style={{ fontSize: 32, fontWeight: '700', color: colors.ink, marginBottom: 12 }}>
+            {t('auth.guestTitle')}
+          </Text>
+          <Text style={{ fontSize: 15, color: colors.body, lineHeight: 22, marginBottom: 32 }}>
+            {t('auth.guestSubtitle')}
+          </Text>
+          <Button
+            title={t('auth.signIn')}
+            onPress={() => router.push('/(auth)/login')}
+            fullWidth
+            style={{ marginBottom: 12 }}
+          />
+          <Button
+            title={t('auth.signUp')}
+            variant="outline"
+            onPress={() => router.push('/(auth)/register')}
+            fullWidth
+          />
+          <View style={{ marginTop: 32 }}>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.muted, marginBottom: 8, textTransform: 'uppercase' }}>
+              {t('profile.language')}
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {SUPPORTED_LANGUAGES.map((lang) => (
+                <Pressable
+                  key={lang.code}
+                  onPress={() => setLanguage(lang.code)}
+                  style={{
+                    paddingHorizontal: 14,
+                    paddingVertical: 8,
+                    borderRadius: 9999,
+                    backgroundColor: language === lang.code ? colors.primary : colors.surfaceCard,
+                    borderWidth: 1,
+                    borderColor: language === lang.code ? colors.primary : colors.border,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      fontWeight: '500',
+                      color: language === lang.code ? colors.onPrimary : colors.body,
+                    }}
+                  >
+                    {lang.nativeLabel}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
 
   const menuItems = [
     ...(isProvider
@@ -53,7 +111,7 @@ export default function ProfileScreen() {
   ];
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }} edges={['top']}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
         <View
           style={{
@@ -203,6 +261,6 @@ export default function ProfileScreen() {
           />
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

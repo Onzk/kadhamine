@@ -48,8 +48,10 @@ module.exports = {
         chip: '9999px',
       },
       fontFamily: {
-        sans: ['System'],
-        display: ['Georgia', 'serif'],
+        sans: ['PlusJakartaSans_400Regular'],
+        medium: ['PlusJakartaSans_500Medium'],
+        semibold: ['PlusJakartaSans_600SemiBold'],
+        bold: ['PlusJakartaSans_700Bold'],
       },
       spacing: {
         safe: '16px',

@@ -6,8 +6,10 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { AppSafeArea } from '@/components/AppSafeArea';
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { AuthProvider } from '@/providers/AuthProvider';
+import { FontProvider } from '@/providers/FontProvider';
 import { I18nProvider } from '@/providers/I18nProvider';
 import { ThemeProvider, useAppTheme } from '@/providers/ThemeProvider';
 import { convexAuthStorage } from '@/services/authStorage';
@@ -24,7 +26,9 @@ function RootContent() {
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <AnimatedSplashOverlay />
       <AuthProvider>
-        <Slot />
+        <AppSafeArea>
+          <Slot />
+        </AppSafeArea>
       </AuthProvider>
     </>
   );
@@ -36,9 +40,11 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <ConvexAuthProvider client={convex} storage={convexAuthStorage}>
           <ThemeProvider>
-            <I18nProvider>
-              <RootContent />
-            </I18nProvider>
+            <FontProvider>
+              <I18nProvider>
+                <RootContent />
+              </I18nProvider>
+            </FontProvider>
           </ThemeProvider>
         </ConvexAuthProvider>
       </SafeAreaProvider>

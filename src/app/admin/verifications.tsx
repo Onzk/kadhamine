@@ -2,7 +2,6 @@ import React from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import { useQuery, useMutation } from 'convex/react';
 import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Button } from '@/components/ui/Button';
@@ -15,7 +14,7 @@ export default function AdminVerificationsScreen() {
   const review = useMutation(api.admin.reviewVerification);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }} edges={['top']}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <ScreenHeader title="Vérifications d'identité" showBack />
 
       <ScrollView contentContainerStyle={{ padding: 16 }}>
@@ -59,6 +58,6 @@ export default function AdminVerificationsScreen() {
           </View>
         ))}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

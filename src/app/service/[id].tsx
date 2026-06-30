@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
 import { Image } from 'expo-image';
 import { BadgeCheck, MessageCircle, Star } from 'lucide-react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Id } from '../../../convex/_generated/dataModel';
 
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -15,6 +14,7 @@ import { StarRating } from '@/components/ui/StarRating';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { formatPrice } from '@/types';
 import { BrandColors } from '@/theme/tokens';
+import { CategoryPlaceholder } from '@/components/ui/CategoryPlaceholder';
 import { api } from '../../../convex/_generated/api';
 
 export default function ServiceDetailScreen() {
@@ -36,9 +36,9 @@ export default function ServiceDetailScreen() {
 
   if (!data) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
+      <View style={{ flex: 1, backgroundColor: colors.canvas }}>
         <ScreenHeader title={t('common.loading')} showBack />
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -57,7 +57,7 @@ export default function ServiceDetailScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }} edges={['top']}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <ScreenHeader title={t('service.details')} showBack />
 
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
@@ -66,7 +66,7 @@ export default function ServiceDetailScreen() {
             <Image source={{ uri: service.photos[0] }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
           ) : (
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ fontSize: 64 }}>{category?.icon ?? '🔧'}</Text>
+              <CategoryPlaceholder size={64} />
             </View>
           )}
         </View>
@@ -202,6 +202,6 @@ export default function ServiceDetailScreen() {
         />
         <Button title={t('service.order')} onPress={handleOrder} style={{ flex: 1 }} />
       </View>
-    </SafeAreaView>
+    </View>
   );
 }

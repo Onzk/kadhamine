@@ -5,6 +5,7 @@ import { Star, BadgeCheck, Crown } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { Card } from '@/components/ui/Card';
+import { CategoryPlaceholder } from '@/components/ui/CategoryPlaceholder';
 import { formatPrice, formatRating } from '@/types';
 
 interface ServiceCardProps {
@@ -48,7 +49,7 @@ export function ServiceCard({
           <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
         ) : (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ fontSize: 40 }}>{categoryIcon ?? '🔧'}</Text>
+            <CategoryPlaceholder size={40} />
           </View>
         )}
         {isPremium && (

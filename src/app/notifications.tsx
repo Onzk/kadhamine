@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Bell } from 'lucide-react-native';
 
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -16,7 +16,7 @@ export default function NotificationsScreen() {
   const markAllRead = useMutation(api.notifications.markAllRead);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }} edges={['top']}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <ScreenHeader
         title={t('notifications.title')}
         showBack
@@ -35,7 +35,7 @@ export default function NotificationsScreen() {
             {t('common.loading')}
           </Text>
         ) : notifications.length === 0 ? (
-          <EmptyState icon="🔔" title={t('notifications.empty')} />
+          <EmptyState icon={Bell} title={t('notifications.empty')} />
         ) : (
           notifications.map((n) => (
             <View
@@ -59,6 +59,6 @@ export default function NotificationsScreen() {
           ))
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

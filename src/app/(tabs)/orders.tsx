@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Lock, ClipboardList } from 'lucide-react-native';
 
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -26,9 +27,10 @@ export default function OrdersScreen() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
   const { user } = useAuth();
+  const router = useRouter();
 
   const role = user?.role === 'provider' ? 'provider' : 'client';
-  const orders = useQuery(api.orders.listMine, { role });
+  const orders = useQuery(api.orders.listMine, user ? { role } : 'skip');
   const respond = useMutation(api.orders.respond);
   const startProgress = useMutation(api.orders.startProgress);
   const complete = useMutation(api.orders.complete);
@@ -39,16 +41,24 @@ export default function OrdersScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }} edges={['top']}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <ScreenHeader title={t('orders.title')} />
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 24 }}>
-        {orders === undefined ? (
+        {!user ? (
+          <EmptyState
+            icon={Lock}
+            title="Connexion requise"
+            description="Connectez-vous pour voir et gérer vos commandes."
+            actionLabel={t('auth.signIn')}
+            onAction={() => router.push('/(auth)/login')}
+          />
+        ) : orders === undefined ? (
           <Text style={{ color: colors.muted, textAlign: 'center', marginTop: 32 }}>
             {t('common.loading')}
           </Text>
         ) : orders.length === 0 ? (
-          <EmptyState icon="📋" title={t('orders.empty')} />
+          <EmptyState icon={ClipboardList} title={t('orders.empty')} />
         ) : (
           orders.map(({ order, service, payment }) => (
             <View
@@ -136,6 +146,6 @@ export default function OrdersScreen() {
           ))
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

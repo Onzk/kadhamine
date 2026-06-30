@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Wrench } from 'lucide-react-native';
 import type { Id } from '../../../convex/_generated/dataModel';
 
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -49,7 +49,7 @@ export default function ProviderServicesScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }} edges={['top']}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <ScreenHeader title={t('profile.myServices')} showBack />
 
       <ScrollView contentContainerStyle={{ padding: 16 }}>
@@ -102,7 +102,7 @@ export default function ProviderServicesScreen() {
 
         {!services || services.length === 0 ? (
           <EmptyState
-            icon="🔧"
+            icon={Wrench}
             title="Aucun service"
             description="Créez votre premier service pour commencer à recevoir des commandes."
           />
@@ -129,6 +129,6 @@ export default function ProviderServicesScreen() {
           ))
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

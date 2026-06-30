@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useAction } from 'convex/react';
 import * as WebBrowser from 'expo-web-browser';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Smartphone, CreditCard, AlertTriangle } from 'lucide-react-native';
 import type { Id } from '../../../convex/_generated/dataModel';
 
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -17,11 +17,13 @@ import { BrandColors } from '@/theme/tokens';
 import { api } from '../../../convex/_generated/api';
 import type { PaymentMethod } from '@/types';
 
-const PAYMENT_METHODS: { id: PaymentMethod; label: string; icon: string }[] = [
-  { id: 'airtel_money', label: 'Airtel Money', icon: '📱' },
-  { id: 'moov_money', label: 'Moov Money', icon: '📱' },
-  { id: 'fedapay', label: 'FedaPay', icon: '💳' },
-  { id: 'off_platform', label: 'Hors plateforme', icon: '⚠️' },
+import type { LucideIcon } from 'lucide-react-native';
+
+const PAYMENT_METHODS: { id: PaymentMethod; label: string; icon: LucideIcon }[] = [
+  { id: 'airtel_money', label: 'Airtel Money', icon: Smartphone },
+  { id: 'moov_money', label: 'Moov Money', icon: Smartphone },
+  { id: 'fedapay', label: 'FedaPay', icon: CreditCard },
+  { id: 'off_platform', label: 'Hors plateforme', icon: AlertTriangle },
 ];
 
 export default function CheckoutScreen() {
@@ -102,7 +104,7 @@ export default function CheckoutScreen() {
   const commission = method === 'off_platform' ? 0 : Math.round(amount * 0.1);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }} edges={['top']}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <ScreenHeader title={t('payment.title')} showBack />
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
@@ -144,6 +146,7 @@ export default function CheckoutScreen() {
         {PAYMENT_METHODS.map((pm) => {
           const selected = method === pm.id;
           const isOffPlatform = pm.id === 'off_platform';
+          const Icon = pm.icon;
           return (
             <Pressable
               key={pm.id}
@@ -167,7 +170,9 @@ export default function CheckoutScreen() {
                   : colors.border,
               }}
             >
-              <Text style={{ fontSize: 24, marginRight: 12 }}>{pm.icon}</Text>
+              <View style={{ marginRight: 12 }}>
+                <Icon size={22} color={isOffPlatform ? colors.error : colors.ink} />
+              </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 15, fontWeight: '600', color: colors.ink }}>
                   {pm.id === 'off_platform' ? t('payment.offPlatform') : pm.label}
@@ -210,6 +215,6 @@ export default function CheckoutScreen() {
           fullWidth
         />
       </View>
-    </SafeAreaView>
+    </View>
   );
 }

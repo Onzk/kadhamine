@@ -8,6 +8,8 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { useAppTheme } from '@/providers/ThemeProvider';
+import { fontFamily } from '@/theme/typography';
+import { Radius } from '@/theme/tokens';
 
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'accent';
 
@@ -34,7 +36,7 @@ export function Button({
   const variants: Record<ButtonVariant, { bg: string; text: string; border?: string }> = {
     primary: { bg: colors.primary, text: colors.onPrimary },
     secondary: { bg: colors.surfaceStrong, text: colors.ink },
-    outline: { bg: 'transparent', text: colors.primary, border: colors.primary },
+    outline: { bg: 'transparent', text: colors.ink, border: colors.border },
     ghost: { bg: 'transparent', text: colors.body },
     danger: { bg: colors.error, text: '#FFFFFF' },
     accent: { bg: colors.accent, text: colors.onAccent },
@@ -52,9 +54,9 @@ export function Button({
           alignItems: 'center',
           justifyContent: 'center',
           gap: 8,
-          height: 48,
-          paddingHorizontal: 20,
-          borderRadius: 12,
+          height: 52,
+          paddingHorizontal: 24,
+          borderRadius: Radius.pill,
           backgroundColor: v.bg,
           borderWidth: v.border ? 1.5 : 0,
           borderColor: v.border,
@@ -70,7 +72,16 @@ export function Button({
       ) : (
         <>
           {icon}
-          <Text style={{ color: v.text, fontSize: 15, fontWeight: '600' } as TextStyle}>
+          <Text
+            style={
+              {
+                color: v.text,
+                fontSize: 15,
+                fontWeight: '600',
+                fontFamily: fontFamily('semiBold'),
+              } as TextStyle
+            }
+          >
             {title}
           </Text>
         </>

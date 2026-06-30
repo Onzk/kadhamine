@@ -3,8 +3,7 @@ import { View, TextInput, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from 'convex/react';
-import { Search } from 'lucide-react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Search as SearchIcon } from 'lucide-react-native';
 import type { Id } from '../../../convex/_generated/dataModel';
 
 import { ServiceCard } from '@/components/cards/ServiceCard';
@@ -43,7 +42,7 @@ export default function SearchScreen() {
   });
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }} edges={['top']}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <ScreenHeader title={t('search.title')} />
 
       <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
@@ -60,7 +59,7 @@ export default function SearchScreen() {
             gap: 10,
           }}
         >
-          <Search size={18} color={colors.muted} />
+          <SearchIcon size={18} color={colors.muted} />
           <TextInput
             value={search}
             onChangeText={setSearch}
@@ -126,7 +125,7 @@ export default function SearchScreen() {
           </>
         ) : services.length === 0 ? (
           <EmptyState
-            icon="🔍"
+            icon={SearchIcon}
             title={t('search.noResults')}
             description={t('search.tryDifferent')}
           />
@@ -153,6 +152,6 @@ export default function SearchScreen() {
           ))
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

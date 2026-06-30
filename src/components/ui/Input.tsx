@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, TextInput, Text, type TextInputProps } from 'react-native';
 import { useAppTheme } from '@/providers/ThemeProvider';
+import { fontFamily } from '@/theme/typography';
+import { Radius } from '@/theme/tokens';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -14,7 +16,15 @@ export function Input({ label, error, leftIcon, style, ...props }: InputProps) {
   return (
     <View className="mb-4">
       {label && (
-        <Text style={{ color: colors.body, fontSize: 13, fontWeight: '500', marginBottom: 6 }}>
+        <Text
+          style={{
+            color: colors.muted,
+            fontSize: 13,
+            fontWeight: '500',
+            marginBottom: 8,
+            fontFamily: fontFamily('medium'),
+          }}
+        >
           {label}
         </Text>
       )}
@@ -22,12 +32,12 @@ export function Input({ label, error, leftIcon, style, ...props }: InputProps) {
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          backgroundColor: colors.canvasSoft,
+          backgroundColor: colors.surface,
           borderWidth: 1,
           borderColor: error ? colors.error : colors.border,
-          borderRadius: 12,
-          paddingHorizontal: 14,
-          minHeight: 48,
+          borderRadius: Radius.pill,
+          paddingHorizontal: 16,
+          minHeight: 52,
         }}
       >
         {leftIcon && <View style={{ marginRight: 10 }}>{leftIcon}</View>}
@@ -38,7 +48,8 @@ export function Input({ label, error, leftIcon, style, ...props }: InputProps) {
               flex: 1,
               color: colors.ink,
               fontSize: 15,
-              paddingVertical: 12,
+              paddingVertical: 14,
+              fontFamily: fontFamily('regular'),
             },
             style,
           ]}
@@ -46,7 +57,16 @@ export function Input({ label, error, leftIcon, style, ...props }: InputProps) {
         />
       </View>
       {error && (
-        <Text style={{ color: colors.error, fontSize: 12, marginTop: 4 }}>{error}</Text>
+        <Text
+          style={{
+            color: colors.error,
+            fontSize: 12,
+            marginTop: 6,
+            fontFamily: fontFamily('regular'),
+          }}
+        >
+          {error}
+        </Text>
       )}
     </View>
   );

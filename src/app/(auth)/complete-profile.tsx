@@ -3,7 +3,6 @@ import { View, Text, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useMutation } from 'convex/react';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -56,7 +55,7 @@ export default function CompleteProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <ScrollView contentContainerStyle={{ padding: 24 }}>
         <Text style={{ fontSize: 24, fontWeight: '700', color: colors.ink, marginBottom: 8 }}>
           Complétez votre profil
@@ -116,6 +115,6 @@ export default function CompleteProfileScreen() {
 
         <Button title={t('common.confirm')} onPress={handleSubmit} loading={loading} fullWidth />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

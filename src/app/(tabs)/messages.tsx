@@ -3,10 +3,11 @@ import { View, Text, Pressable, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from 'convex/react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { MessageCircle, Lock } from 'lucide-react-native';
 
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { api } from '../../../convex/_generated/api';
 
@@ -14,19 +15,28 @@ export default function MessagesScreen() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
   const router = useRouter();
-  const conversations = useQuery(api.messages.list);
+  const { user } = useAuth();
+  const conversations = useQuery(api.messages.list, user ? {} : 'skip');
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }} edges={['top']}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <ScreenHeader title={t('messages.title')} />
 
       <ScrollView contentContainerStyle={{ padding: 16 }}>
-        {conversations === undefined ? (
+        {!user ? (
+          <EmptyState
+            icon={Lock}
+            title="Connexion requise"
+            description="Connectez-vous pour discuter avec les prestataires."
+            actionLabel={t('auth.signIn')}
+            onAction={() => router.push('/(auth)/login')}
+          />
+        ) : conversations === undefined ? (
           <Text style={{ color: colors.muted, textAlign: 'center', marginTop: 32 }}>
             {t('common.loading')}
           </Text>
         ) : conversations.length === 0 ? (
-          <EmptyState icon="💬" title={t('messages.empty')} />
+          <EmptyState icon={MessageCircle} title={t('messages.empty')} />
         ) : (
           conversations.map((conv) => (
             <Pressable
@@ -54,6 +64,6 @@ export default function MessagesScreen() {
           ))
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

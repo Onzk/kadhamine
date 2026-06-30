@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Button } from '@/components/ui/Button';
@@ -68,7 +67,7 @@ export default function VerificationScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }} edges={['top']}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <ScreenHeader title={t('profile.verification')} showBack />
 
       <ScrollView contentContainerStyle={{ padding: 16 }}>
@@ -76,7 +75,7 @@ export default function VerificationScreen() {
           <Badge label="En attente de validation" variant="accent" />
         )}
         {status?.status === 'approved' && (
-          <Badge label="Identité vérifiée ✓" variant="verified" />
+          <Badge label="Identité vérifiée" variant="verified" />
         )}
         {status?.status === 'rejected' && (
           <Badge label="Demande refusée — réessayez" variant="danger" />
@@ -151,6 +150,6 @@ export default function VerificationScreen() {
           <Button title="Soumettre pour vérification" onPress={handleSubmit} loading={loading} fullWidth />
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

@@ -1,15 +1,15 @@
 import React, { useEffect } from 'react';
-import { View, Text, ScrollView, Pressable, TextInput } from 'react-native';
+import { View, Pressable, TextInput, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
 import { FlashList } from '@shopify/flash-list';
-import { Search, Bell, Moon, Sun, MapPin } from 'lucide-react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Search, Bell, Moon, Sun, MapPin, Hand, Wrench } from 'lucide-react-native';
 
 import { ServiceCard } from '@/components/cards/ServiceCard';
 import { CategoryChip } from '@/components/ui/CategoryChip';
 import { ServiceCardSkeleton } from '@/components/ui/Skeleton';
+import { Text } from '@/components/ui/ThemedText';
 import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { BrandColors } from '@/theme/tokens';
@@ -34,14 +34,17 @@ export default function HomeScreen() {
   const firstName = user?.profile?.firstName ?? '';
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }} edges={['top']}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <View>
-            <Text style={{ fontSize: 14, color: colors.muted }}>{t('home.greeting')}</Text>
-            <Text style={{ fontSize: 24, fontWeight: '700', color: colors.ink }}>
-              {firstName || 'TalentTchad'} 👋
-            </Text>
+            <Text style={{ fontSize: 14, color: colors.muted }} weight="medium">{t('home.greeting')}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={{ fontSize: 24, color: colors.ink }} weight="bold">
+                {firstName || 'TalentTchad'}
+              </Text>
+              <Hand size={22} color={colors.accent} style={{ marginLeft: 6 }} />
+            </View>
           </View>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <Pressable
@@ -189,8 +192,8 @@ export default function HomeScreen() {
             </>
           ) : featured.length === 0 ? (
             <View style={{ alignItems: 'center', paddingVertical: 32 }}>
-              <Text style={{ fontSize: 40, marginBottom: 12 }}>🔧</Text>
-              <Text style={{ color: colors.muted, textAlign: 'center' }}>
+              <Wrench size={40} color={colors.muted} strokeWidth={1.5} />
+              <Text style={{ color: colors.muted, textAlign: 'center', marginTop: 12 }}>
                 Aucun service pour le moment.{'\n'}Soyez le premier prestataire !
               </Text>
             </View>
@@ -220,6 +223,6 @@ export default function HomeScreen() {
           )}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

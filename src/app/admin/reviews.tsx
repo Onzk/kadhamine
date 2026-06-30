@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import { useQuery, useMutation } from 'convex/react';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { StarRating } from '@/components/ui/StarRating';
@@ -15,7 +14,7 @@ export default function AdminReviewsScreen() {
   const moderate = useMutation(api.admin.moderateReview);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }} edges={['top']}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <ScreenHeader title="Modération des avis" showBack />
 
       <ScrollView contentContainerStyle={{ padding: 16 }}>
@@ -60,6 +59,6 @@ export default function AdminReviewsScreen() {
           </View>
         ))}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

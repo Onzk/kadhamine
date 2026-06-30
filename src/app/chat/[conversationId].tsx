@@ -3,7 +3,6 @@ import { View, Text, TextInput, KeyboardAvoidingView, Platform } from 'react-nat
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Id } from '../../../convex/_generated/dataModel';
 
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -46,7 +45,7 @@ export default function ChatScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }} edges={['top']}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <ScreenHeader title={t('messages.title')} showBack />
 
       <KeyboardAvoidingView
@@ -104,6 +103,6 @@ export default function ChatScreen() {
           <Button title={t('messages.send')} onPress={handleSend} loading={sending} />
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }

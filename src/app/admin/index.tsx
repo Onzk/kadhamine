@@ -2,7 +2,6 @@ import React from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from 'convex/react';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Users,
   AlertTriangle,
@@ -32,7 +31,7 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }} edges={['top']}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <ScreenHeader title="Administration" showBack />
 
       <ScrollView contentContainerStyle={{ padding: 16 }}>
@@ -114,6 +113,6 @@ export default function AdminDashboard() {
           </Pressable>
         ))}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

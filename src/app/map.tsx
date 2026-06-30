@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { View, Text, Platform, Pressable, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from 'convex/react';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { MapPin, Navigation } from 'lucide-react-native';
 
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -41,7 +40,7 @@ export default function MapScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }} edges={['top']}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <ScreenHeader title="Carte des talents" showBack />
 
       <View style={{ paddingHorizontal: 16, paddingBottom: 8, flexDirection: 'row', gap: 8 }}>
@@ -129,6 +128,6 @@ export default function MapScreen() {
           </View>
         </View>
       )}
-    </SafeAreaView>
+    </View>
   );
 }

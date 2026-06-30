@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Cloud } from 'lucide-react-native';
 
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useAppTheme } from '@/providers/ThemeProvider';
@@ -11,7 +11,7 @@ export default function SetupScreen() {
   const { colors } = useAppTheme();
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <ScreenHeader title={t('setup.title')} />
       <ScrollView contentContainerStyle={{ padding: 24 }}>
         <View
@@ -23,7 +23,7 @@ export default function SetupScreen() {
             borderColor: colors.border,
           }}
         >
-          <Text style={{ fontSize: 40, marginBottom: 16 }}>☁️</Text>
+          <Cloud size={40} color={colors.primary} strokeWidth={1.5} style={{ marginBottom: 16 }} />
           <Text style={{ fontSize: 18, fontWeight: '600', color: colors.ink, marginBottom: 12 }}>
             {t('setup.convex')}
           </Text>
@@ -47,6 +47,6 @@ export default function SetupScreen() {
           </Text>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

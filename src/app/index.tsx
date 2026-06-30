@@ -23,12 +23,12 @@ export default function Index() {
     );
   }
 
-  if (!isAuthenticated) {
-    return <Redirect href="/(auth)/login" />;
+  if (isAuthenticated && !user?.profile) {
+    return <Redirect href="/(auth)/complete-profile" />;
   }
 
-  if (!user?.profile) {
-    return <Redirect href="/(auth)/complete-profile" />;
+  if (isAuthenticated && user?.profile) {
+    return <Redirect href="/(tabs)" />;
   }
 
   return <Redirect href="/(tabs)" />;

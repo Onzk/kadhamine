@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Plus, Trash2, Image as ImageIcon } from 'lucide-react-native';
 
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -96,7 +95,7 @@ export default function PortfolioScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.canvas }} edges={['top']}>
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <ScreenHeader title={t('service.portfolio')} showBack />
 
       <ScrollView contentContainerStyle={{ padding: 16 }}>
@@ -168,6 +167,6 @@ export default function PortfolioScreen() {
           </View>
         ))}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
