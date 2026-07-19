@@ -5,7 +5,8 @@ import { Inbox } from 'lucide-react-native';
 
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { Button } from '@/components/ui/Button';
-import { fontFamily } from '@/theme/typography';
+import { textStyle } from '@/theme/typography';
+import { Radius, Spacing } from '@/theme/tokens';
 
 interface EmptyStateProps {
   icon?: LucideIcon;
@@ -29,51 +30,40 @@ export function EmptyState({
       style={{
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 48,
-        paddingHorizontal: 24,
+        paddingVertical: Spacing.fifteen,
+        paddingHorizontal: Spacing.seven,
       }}
     >
       <View
         style={{
           width: 72,
           height: 72,
-          borderRadius: 36,
-          backgroundColor: colors.surfaceStrong,
+          borderRadius: Radius.lg,
+          backgroundColor: colors.surfaceCard,
+          borderWidth: 1,
+          borderColor: colors.border,
           alignItems: 'center',
           justifyContent: 'center',
-          marginBottom: 16,
+          marginBottom: Spacing.four,
         }}
       >
         <Icon size={32} color={colors.muted} strokeWidth={1.5} />
       </View>
-      <Text
-        style={{
-          fontSize: 17,
-          fontWeight: '600',
-          color: colors.ink,
-          textAlign: 'center',
-          marginBottom: 8,
-          fontFamily: fontFamily('semiBold'),
-        }}
-      >
+      <Text style={[textStyle('featureHeading'), { color: colors.ink, textAlign: 'center', marginBottom: Spacing.two }]}>
         {title}
       </Text>
       {description && (
         <Text
-          style={{
-            fontSize: 14,
-            color: colors.muted,
-            textAlign: 'center',
-            lineHeight: 20,
-            marginBottom: 20,
-            fontFamily: fontFamily('regular'),
-          }}
+          style={[
+            textStyle('body'),
+            { color: colors.muted, textAlign: 'center', marginBottom: Spacing.five },
+          ]}
         >
           {description}
         </Text>
       )}
       {actionLabel && onAction && (
-        <Button title={actionLabel} onPress={onAction} variant="outline" />
+        <Button title={actionLabel} onPress={onAction} variant="primary" />
       )}
     </View>
   );

@@ -2,7 +2,7 @@ import { Tabs } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Home, Search, ClipboardList, MessageCircle, User } from 'lucide-react-native';
 import { useAppTheme } from '@/providers/ThemeProvider';
-import { fontFamily } from '@/theme/typography';
+import { textStyle } from '@/theme/typography';
 
 export default function TabsLayout() {
   const { t } = useTranslation();
@@ -21,7 +21,7 @@ export default function TabsLayout() {
           height: 52,
           paddingTop: 6,
         },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '500', fontFamily: fontFamily('medium') },
+        tabBarLabelStyle: { ...textStyle('micro'), color: undefined },
       }}
     >
       <Tabs.Screen

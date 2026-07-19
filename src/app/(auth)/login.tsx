@@ -26,7 +26,8 @@ import {
   AppleIcon,
 } from '@/components/auth/AuthField';
 import { useAppTheme } from '@/providers/ThemeProvider';
-import { fontFamily } from '@/theme/typography';
+import { Radius, Spacing } from '@/theme/tokens';
+import { textStyle } from '@/theme/typography';
 
 const REMEMBER_EMAIL_KEY = 'talenttchad_remember_email';
 
@@ -97,31 +98,30 @@ export default function LoginScreen() {
       <ScrollView
         contentContainerStyle={{
           flexGrow: 1,
-          paddingHorizontal: 28,
-          paddingTop: 16,
-          paddingBottom: 32,
+          paddingHorizontal: Spacing.eight,
+          paddingTop: Spacing.four,
+          paddingBottom: Spacing.nine,
         }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         <Pressable
           onPress={handleGuest}
-          style={{ alignSelf: 'flex-start', marginBottom: 24, flexDirection: 'row', alignItems: 'center', gap: 6 }}
+          style={{
+            alignSelf: 'flex-start',
+            marginBottom: Spacing.seven,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: Spacing.oneHalf,
+          }}
         >
           <ArrowLeft size={20} color={colors.ink} />
-          <Text
-            style={{
-              fontSize: 14,
-              color: colors.muted,
-              fontWeight: '500',
-              fontFamily: fontFamily('medium'),
-            }}
-          >
+          <Text style={[textStyle('caption'), { color: colors.muted }]}>
             {t('auth.continueWithoutAccount')}
           </Text>
         </Pressable>
 
-        <View style={{ alignItems: 'center', marginBottom: 28 }}>
+        <View style={{ alignItems: 'center', marginBottom: Spacing.eight }}>
           <Image
             source={require('@/assets/images/logo.png')}
             style={{ width: 80, height: 80 }}
@@ -129,32 +129,19 @@ export default function LoginScreen() {
           />
         </View>
 
-        <Text
-          style={{
-            fontSize: 32,
-            fontWeight: '700',
-            color: colors.ink,
-            letterSpacing: -0.5,
-            marginBottom: 12,
-            fontFamily: fontFamily('bold'),
-          }}
-        >
+        <Text style={[textStyle('productDisplay'), { color: colors.ink, marginBottom: Spacing.three }]}>
           {t('auth.welcomeBack')}
         </Text>
         <Text
-          style={{
-            fontSize: 15,
-            color: colors.body,
-            lineHeight: 22,
-            marginBottom: 36,
-            maxWidth: 320,
-            fontFamily: fontFamily('regular'),
-          }}
+          style={[
+            textStyle('body'),
+            { color: colors.body, marginBottom: Spacing.nine, maxWidth: 320 },
+          ]}
         >
           {t('auth.loginSubtitle')}
         </Text>
 
-        <View style={{ flexDirection: 'row', gap: 12 }}>
+        <View style={{ flexDirection: 'row', gap: Spacing.three }}>
           <SocialAuthButton
             label="Google"
             icon={<GoogleIcon />}
@@ -173,18 +160,14 @@ export default function LoginScreen() {
           <View
             style={{
               backgroundColor: colors.error + '12',
-              borderRadius: 12,
-              padding: 12,
-              marginBottom: 16,
+              borderRadius: Radius.sm,
+              padding: Spacing.three,
+              marginBottom: Spacing.four,
               borderWidth: 1,
               borderColor: colors.error + '30',
             }}
           >
-            <Text
-              style={{ color: colors.error, fontSize: 13, fontFamily: fontFamily('regular') }}
-            >
-              {error}
-            </Text>
+            <Text style={[textStyle('caption'), { color: colors.error }]}>{error}</Text>
           </View>
         ) : null}
 
@@ -214,32 +197,21 @@ export default function LoginScreen() {
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-            marginBottom: 28,
+            marginBottom: Spacing.eight,
             marginTop: -4,
           }}
         >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.two }}>
             <Switch
               value={rememberMe}
               onValueChange={setRememberMe}
               trackColor={{ false: colors.switchTrackOff, true: colors.switchTrackOn }}
               thumbColor={colors.surface}
             />
-            <Text
-              style={{ fontSize: 13, color: colors.body, fontFamily: fontFamily('regular') }}
-            >
-              {t('auth.rememberMe')}
-            </Text>
+            <Text style={[textStyle('caption'), { color: colors.body }]}>{t('auth.rememberMe')}</Text>
           </View>
           <Pressable onPress={() => Alert.alert('Mot de passe oublié', t('auth.forgotPasswordSoon'))}>
-            <Text
-              style={{
-                fontSize: 13,
-                color: colors.ink,
-                fontWeight: '600',
-                fontFamily: fontFamily('semiBold'),
-              }}
-            >
+            <Text style={[textStyle('button'), { color: colors.link, textDecorationLine: 'underline' }]}>
               {t('auth.forgotPassword')}
             </Text>
           </Pressable>
@@ -247,7 +219,7 @@ export default function LoginScreen() {
 
         <AuthPrimaryButton title={t('auth.signIn')} onPress={handleLogin} loading={loading} />
 
-        <View style={{ marginTop: 16 }}>
+        <View style={{ marginTop: Spacing.four }}>
           <AuthGhostButton title={t('auth.continueWithoutAccount')} onPress={handleGuest} />
         </View>
 
@@ -255,23 +227,14 @@ export default function LoginScreen() {
           style={{
             flexDirection: 'row',
             justifyContent: 'center',
-            marginTop: 32,
-            gap: 4,
+            marginTop: Spacing.nine,
+            gap: Spacing.one,
           }}
         >
-          <Text style={{ color: colors.muted, fontSize: 14, fontFamily: fontFamily('regular') }}>
-            {t('auth.noAccount')}
-          </Text>
+          <Text style={[textStyle('body'), { color: colors.muted }]}>{t('auth.noAccount')}</Text>
           <Link href="/(auth)/register" asChild>
             <Pressable>
-              <Text
-                style={{
-                  color: colors.ink,
-                  fontSize: 14,
-                  fontWeight: '700',
-                  fontFamily: fontFamily('bold'),
-                }}
-              >
+              <Text style={[textStyle('button'), { color: colors.link, textDecorationLine: 'underline' }]}>
                 {t('auth.signUp')}
               </Text>
             </Pressable>

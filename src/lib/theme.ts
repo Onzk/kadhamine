@@ -1,0 +1,83 @@
+import { DarkTheme, DefaultTheme, type Theme } from 'expo-router/react-navigation';
+
+export const THEME = {
+  light: {
+    background: 'hsl(0 0% 100%)',
+    foreground: 'hsl(0 0% 13%)',
+    card: 'hsl(40 14% 93%)',
+    cardForeground: 'hsl(0 0% 13%)',
+    popover: 'hsl(0 0% 100%)',
+    popoverForeground: 'hsl(0 0% 13%)',
+    primary: 'hsl(240 9% 10%)',
+    primaryForeground: 'hsl(0 0% 100%)',
+    secondary: 'hsl(40 14% 93%)',
+    secondaryForeground: 'hsl(0 0% 13%)',
+    muted: 'hsl(240 4% 60%)',
+    mutedForeground: 'hsl(240 4% 60%)',
+    accent: 'hsl(10 100% 67%)',
+    accentForeground: 'hsl(240 9% 10%)',
+    destructive: 'hsl(0 100% 35%)',
+    border: 'hsl(0 0% 95%)',
+    input: 'hsl(240 7% 84%)',
+    ring: 'hsl(228 76% 59%)',
+    radius: '0.5rem',
+  },
+  dark: {
+    background: 'hsl(168 100% 12%)',
+    foreground: 'hsl(0 0% 98%)',
+    card: 'hsl(168 60% 10%)',
+    cardForeground: 'hsl(0 0% 98%)',
+    popover: 'hsl(168 60% 10%)',
+    popoverForeground: 'hsl(0 0% 98%)',
+    primary: 'hsl(0 0% 98%)',
+    primaryForeground: 'hsl(240 9% 10%)',
+    secondary: 'hsl(168 40% 16%)',
+    secondaryForeground: 'hsl(0 0% 98%)',
+    muted: 'hsl(240 4% 60%)',
+    mutedForeground: 'hsl(240 4% 60%)',
+    accent: 'hsl(10 100% 67%)',
+    accentForeground: 'hsl(240 9% 10%)',
+    destructive: 'hsl(0 84% 70%)',
+    border: 'hsl(168 30% 20%)',
+    input: 'hsl(168 30% 20%)',
+    ring: 'hsl(228 76% 59%)',
+    radius: '0.5rem',
+  },
+} as const;
+
+export const NAV_THEME: Record<'light' | 'dark', Theme> = {
+  light: {
+    ...DefaultTheme,
+    colors: {
+      background: THEME.light.background,
+      border: THEME.light.border,
+      card: THEME.light.card,
+      notification: THEME.light.destructive,
+      primary: THEME.light.primary,
+      text: THEME.light.foreground,
+    },
+    fonts: {
+      bold: { fontFamily: 'Inter_500Medium', fontWeight: '500' },
+      medium: { fontFamily: 'Inter_500Medium', fontWeight: '500' },
+      regular: { fontFamily: 'Inter_400Regular', fontWeight: '400' },
+      heavy: { fontFamily: 'Inter_500Medium', fontWeight: '500' },
+    },
+  },
+  dark: {
+    ...DarkTheme,
+    colors: {
+      background: THEME.dark.background,
+      border: THEME.dark.border,
+      card: THEME.dark.card,
+      notification: THEME.dark.destructive,
+      primary: THEME.dark.primary,
+      text: THEME.dark.foreground,
+    },
+    fonts: {
+      bold: { fontFamily: 'Inter_500Medium', fontWeight: '500' },
+      medium: { fontFamily: 'Inter_500Medium', fontWeight: '500' },
+      regular: { fontFamily: 'Inter_400Regular', fontWeight: '400' },
+      heavy: { fontFamily: 'Inter_500Medium', fontWeight: '500' },
+    },
+  },
+};

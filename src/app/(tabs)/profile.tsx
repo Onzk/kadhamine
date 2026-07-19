@@ -115,7 +115,7 @@ export default function ProfileScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
         <View
           style={{
-            backgroundColor: BrandColors.blue,
+            backgroundColor: BrandColors.enterpriseGreen,
             padding: 24,
             paddingTop: 16,
             borderBottomLeftRadius: 24,
@@ -127,13 +127,13 @@ export default function ProfileScreen() {
               width: 72,
               height: 72,
               borderRadius: 36,
-              backgroundColor: BrandColors.yellow,
+              backgroundColor: BrandColors.coral,
               alignItems: 'center',
               justifyContent: 'center',
               marginBottom: 12,
             }}
           >
-            <Text style={{ fontSize: 28, fontWeight: '700', color: BrandColors.blue }}>
+            <Text style={{ fontSize: 28, fontWeight: '700', color: BrandColors.enterpriseGreen }}>
               {profile?.firstName?.[0] ?? '?'}
             </Text>
           </View>
@@ -156,19 +156,19 @@ export default function ProfileScreen() {
           {isProvider && profile && (
             <View style={{ flexDirection: 'row', gap: 24, marginTop: 16 }}>
               <View>
-                <Text style={{ fontSize: 20, fontWeight: '700', color: BrandColors.yellow }}>
+                <Text style={{ fontSize: 20, fontWeight: '700', color: BrandColors.coral }}>
                   {profile.averageRating.toFixed(1)}
                 </Text>
                 <Text style={{ fontSize: 12, color: '#FFFFFFAA' }}>Note</Text>
               </View>
               <View>
-                <Text style={{ fontSize: 20, fontWeight: '700', color: BrandColors.yellow }}>
+                <Text style={{ fontSize: 20, fontWeight: '700', color: BrandColors.coral }}>
                   {profile.completedOrders}
                 </Text>
                 <Text style={{ fontSize: 12, color: '#FFFFFFAA' }}>Prestations</Text>
               </View>
               <View>
-                <Text style={{ fontSize: 20, fontWeight: '700', color: BrandColors.yellow }}>
+                <Text style={{ fontSize: 20, fontWeight: '700', color: BrandColors.coral }}>
                   {profile.trustScore}
                 </Text>
                 <Text style={{ fontSize: 12, color: '#FFFFFFAA' }}>Confiance</Text>

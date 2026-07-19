@@ -1,23 +1,39 @@
 import React from 'react';
 import { View, Text, Pressable, type ViewProps } from 'react-native';
 import { useAppTheme } from '@/providers/ThemeProvider';
+import { Radius, Spacing } from '@/theme/tokens';
 
 interface CardProps extends ViewProps {
   onPress?: () => void;
   padded?: boolean;
+  variant?: 'default' | 'stone' | 'bordered';
 }
 
-export function Card({ children, onPress, padded = true, style, ...props }: CardProps) {
+export function Card({
+  children,
+  onPress,
+  padded = true,
+  variant = 'default',
+  style,
+  ...props
+}: CardProps) {
   const { colors } = useAppTheme();
+
+  const backgrounds = {
+    default: colors.surface,
+    stone: colors.surfaceCard,
+    bordered: colors.surface,
+  };
+
   const content = (
     <View
       style={[
         {
-          backgroundColor: colors.surfaceCard,
-          borderRadius: 16,
+          backgroundColor: backgrounds[variant],
+          borderRadius: Radius.lg,
           borderWidth: 1,
           borderColor: colors.border,
-          padding: padded ? 16 : 0,
+          padding: padded ? Spacing.four : 0,
           overflow: 'hidden',
         },
         style,
@@ -30,7 +46,7 @@ export function Card({ children, onPress, padded = true, style, ...props }: Card
 
   if (onPress) {
     return (
-      <Pressable onPress={onPress} style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}>
+      <Pressable onPress={onPress} style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1 })}>
         {content}
       </Pressable>
     );

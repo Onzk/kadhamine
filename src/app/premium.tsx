@@ -46,7 +46,7 @@ export default function PremiumScreen() {
       <ScrollView contentContainerStyle={{ padding: 16 }}>
         <View
           style={{
-            backgroundColor: BrandColors.blue,
+            backgroundColor: BrandColors.enterpriseGreen,
             borderRadius: 20,
             padding: 24,
             marginBottom: 24,
@@ -61,10 +61,10 @@ export default function PremiumScreen() {
               width: 120,
               height: 120,
               borderRadius: 60,
-              backgroundColor: BrandColors.yellow + '40',
+              backgroundColor: BrandColors.coral + '40',
             }}
           />
-          <Crown size={40} color={BrandColors.yellow} />
+          <Crown size={40} color={BrandColors.coral} />
           <Text style={{ fontSize: 26, fontWeight: '700', color: '#FFFFFF', marginTop: 12 }}>
             TalentTchad Premium
           </Text>
@@ -72,7 +72,7 @@ export default function PremiumScreen() {
             Boostez votre visibilité et attirez plus de clients
           </Text>
           {plan && (
-            <Text style={{ fontSize: 32, fontWeight: '700', color: BrandColors.yellow, marginTop: 16 }}>
+            <Text style={{ fontSize: 32, fontWeight: '700', color: BrandColors.coral, marginTop: 16 }}>
               {formatPrice(plan.price)}
               <Text style={{ fontSize: 14, fontWeight: '400' }}> / mois</Text>
             </Text>
@@ -110,12 +110,12 @@ export default function PremiumScreen() {
                 width: 28,
                 height: 28,
                 borderRadius: 14,
-                backgroundColor: BrandColors.yellow + '30',
+                backgroundColor: BrandColors.coral + '30',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <Check size={16} color={BrandColors.blue} />
+              <Check size={16} color={BrandColors.enterpriseGreen} />
             </View>
             <Text style={{ fontSize: 15, color: colors.body, flex: 1 }}>{benefit}</Text>
           </View>

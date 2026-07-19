@@ -25,8 +25,8 @@ import {
   AppleIcon,
 } from '@/components/auth/AuthField';
 import { useAppTheme } from '@/providers/ThemeProvider';
-import { fontFamily } from '@/theme/typography';
-import { Radius } from '@/theme/tokens';
+import { textStyle } from '@/theme/typography';
+import { Radius, Spacing } from '@/theme/tokens';
 import { api } from '../../../convex/_generated/api';
 
 type Role = 'client' | 'provider';
@@ -132,27 +132,10 @@ export default function RegisterScreen() {
           />
         </View>
 
-        <Text
-          style={{
-            fontSize: 32,
-            fontWeight: '700',
-            color: colors.ink,
-            letterSpacing: -0.5,
-            marginBottom: 12,
-            fontFamily: fontFamily('bold'),
-          }}
-        >
+        <Text style={[textStyle('productDisplay'), { color: colors.ink, marginBottom: Spacing.three }]}>
           {t('auth.createAccount')}
         </Text>
-        <Text
-          style={{
-            fontSize: 15,
-            color: colors.body,
-            lineHeight: 22,
-            marginBottom: 24,
-            fontFamily: fontFamily('regular'),
-          }}
-        >
+        <Text style={[textStyle('body'), { color: colors.body, marginBottom: Spacing.seven }]}>
           {t('auth.chooseRole')}
         </Text>
 
@@ -175,15 +158,7 @@ export default function RegisterScreen() {
                 }}
               >
                 <Icon size={24} color={selected ? colors.ink : colors.muted} />
-                <Text
-                  style={{
-                    fontSize: 14,
-                    fontWeight: '600',
-                    color: selected ? colors.ink : colors.body,
-                    marginTop: 8,
-                    fontFamily: fontFamily('semiBold'),
-                  }}
-                >
+                <Text style={[textStyle('button'), { color: selected ? colors.ink : colors.body, marginTop: Spacing.two }]}>
                   {t(`auth.${r}`)}
                 </Text>
               </Pressable>
@@ -217,7 +192,7 @@ export default function RegisterScreen() {
               borderColor: colors.error + '30',
             }}
           >
-            <Text style={{ color: colors.error, fontSize: 13, fontFamily: fontFamily('regular') }}>
+            <Text style={[textStyle('caption'), { color: colors.error }]}>
               {error}
             </Text>
           </View>
@@ -264,7 +239,7 @@ export default function RegisterScreen() {
             trackColor={{ false: colors.switchTrackOff, true: colors.switchTrackOn }}
             thumbColor={colors.surface}
           />
-          <Text style={{ fontSize: 13, color: colors.body, flex: 1, fontFamily: fontFamily('regular') }}>
+          <Text style={[textStyle('caption'), { color: colors.body, flex: 1 }]}>
             J'accepte les{' '}
             <Text style={{ fontWeight: '700', color: colors.ink }}>Conditions & Politique de confidentialité</Text>
           </Text>
@@ -273,19 +248,12 @@ export default function RegisterScreen() {
         <AuthPrimaryButton title={t('auth.signUp')} onPress={handleRegister} loading={loading} />
 
         <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 32, gap: 4 }}>
-          <Text style={{ color: colors.muted, fontSize: 14, fontFamily: fontFamily('regular') }}>
+          <Text style={[textStyle('body'), { color: colors.muted }]}>
             {t('auth.hasAccount')}
           </Text>
           <Link href="/(auth)/login" asChild>
             <Pressable>
-              <Text
-                style={{
-                  color: colors.ink,
-                  fontSize: 14,
-                  fontWeight: '700',
-                  fontFamily: fontFamily('bold'),
-                }}
-              >
+              <Text style={[textStyle('button'), { color: colors.link, textDecorationLine: 'underline' }]}>
                 {t('auth.signIn')}
               </Text>
             </Pressable>

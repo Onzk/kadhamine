@@ -8,10 +8,10 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { useAppTheme } from '@/providers/ThemeProvider';
-import { fontFamily } from '@/theme/typography';
+import { fontFamily, textStyle } from '@/theme/typography';
 import { Radius } from '@/theme/tokens';
 
-type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'accent';
+type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'accent' | 'link';
 
 interface ButtonProps extends PressableProps {
   title: string;
@@ -33,16 +33,43 @@ export function Button({
 }: ButtonProps) {
   const { colors } = useAppTheme();
 
-  const variants: Record<ButtonVariant, { bg: string; text: string; border?: string }> = {
-    primary: { bg: colors.primary, text: colors.onPrimary },
-    secondary: { bg: colors.surfaceStrong, text: colors.ink },
-    outline: { bg: 'transparent', text: colors.ink, border: colors.border },
-    ghost: { bg: 'transparent', text: colors.body },
-    danger: { bg: colors.error, text: '#FFFFFF' },
-    accent: { bg: colors.accent, text: colors.onAccent },
+  if (variant === 'link' || variant === 'secondary') {
+    return (
+      <Pressable
+        disabled={disabled || loading}
+        onPress={props.onPress}
+        style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1, alignSelf: fullWidth ? 'stretch' : 'flex-start' }, style as ViewStyle]}
+        {...props}
+      >
+        {loading ? (
+          <ActivityIndicator color={colors.link} size="small" />
+        ) : (
+          <Text
+            style={[
+              textStyle('button'),
+              {
+                color: colors.link,
+                textDecorationLine: 'underline',
+                textAlign: fullWidth ? 'center' : 'left',
+              },
+            ]}
+          >
+            {title}
+          </Text>
+        )}
+      </Pressable>
+    );
+  }
+
+  const variants: Record<Exclude<ButtonVariant, 'link' | 'secondary'>, { bg: string; text: string; border?: string; radius: number }> = {
+    primary: { bg: colors.primary, text: colors.onPrimary, radius: Radius.pill },
+    outline: { bg: 'transparent', text: colors.ink, border: colors.borderHairline, radius: Radius.xl },
+    ghost: { bg: 'transparent', text: colors.body, radius: Radius.sm },
+    danger: { bg: colors.error, text: '#ffffff', radius: Radius.pill },
+    accent: { bg: colors.accent, text: colors.onAccent, radius: Radius.pill },
   };
 
-  const v = variants[variant];
+  const v = variants[variant as Exclude<ButtonVariant, 'link' | 'secondary'>];
   const isDisabled = disabled || loading;
 
   return (
@@ -54,13 +81,14 @@ export function Button({
           alignItems: 'center',
           justifyContent: 'center',
           gap: 8,
-          height: 52,
+          minHeight: 44,
+          paddingVertical: 12,
           paddingHorizontal: 24,
-          borderRadius: Radius.pill,
+          borderRadius: v.radius,
           backgroundColor: v.bg,
-          borderWidth: v.border ? 1.5 : 0,
+          borderWidth: v.border ? 1 : 0,
           borderColor: v.border,
-          opacity: isDisabled ? 0.5 : pressed ? 0.85 : 1,
+          opacity: isDisabled ? 0.5 : pressed ? 0.88 : 1,
           width: fullWidth ? '100%' : undefined,
         } as ViewStyle,
         style as ViewStyle,
@@ -72,18 +100,7 @@ export function Button({
       ) : (
         <>
           {icon}
-          <Text
-            style={
-              {
-                color: v.text,
-                fontSize: 15,
-                fontWeight: '600',
-                fontFamily: fontFamily('semiBold'),
-              } as TextStyle
-            }
-          >
-            {title}
-          </Text>
+          <Text style={[textStyle('button'), { color: v.text } as TextStyle]}>{title}</Text>
         </>
       )}
     </Pressable>

@@ -37,7 +37,7 @@ export default function AdminDashboard() {
       <ScrollView contentContainerStyle={{ padding: 16 }}>
         <View
           style={{
-            backgroundColor: BrandColors.blue,
+            backgroundColor: BrandColors.enterpriseGreen,
             borderRadius: 16,
             padding: 20,
             marginBottom: 20,
@@ -47,7 +47,7 @@ export default function AdminDashboard() {
           <Text style={{ color: '#FFFFFF', fontSize: 28, fontWeight: '700', marginTop: 4 }}>
             {formatPrice(stats?.totalRevenue ?? 0)}
           </Text>
-          <Text style={{ color: BrandColors.yellow, fontSize: 13, marginTop: 8 }}>
+          <Text style={{ color: BrandColors.coral, fontSize: 13, marginTop: 8 }}>
             Volume: {formatPrice(stats?.totalVolume ?? 0)}
           </Text>
         </View>

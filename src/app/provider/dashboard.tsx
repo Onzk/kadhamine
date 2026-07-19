@@ -37,7 +37,7 @@ export default function ProviderDashboardScreen() {
                 borderColor: colors.border,
               }}
             >
-              <Text style={{ fontSize: 28, fontWeight: '700', color: BrandColors.blue }}>
+              <Text style={{ fontSize: 28, fontWeight: '700', color: BrandColors.enterpriseGreen }}>
                 {stat.value}
               </Text>
               <Text style={{ fontSize: 13, color: colors.muted, marginTop: 4 }}>{stat.label}</Text>

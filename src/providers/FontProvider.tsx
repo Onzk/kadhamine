@@ -1,22 +1,21 @@
 import React, { useEffect } from 'react';
 import { View, Image, StyleSheet } from 'react-native';
+import { Inter_400Regular, Inter_500Medium } from '@expo-google-fonts/inter';
 import {
-  useFonts,
-  PlusJakartaSans_400Regular,
-  PlusJakartaSans_500Medium,
-  PlusJakartaSans_600SemiBold,
-  PlusJakartaSans_700Bold,
-} from '@expo-google-fonts/plus-jakarta-sans';
+  SpaceGrotesk_400Regular,
+  SpaceGrotesk_500Medium,
+} from '@expo-google-fonts/space-grotesk';
+import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export function FontProvider({ children }: { children: React.ReactNode }) {
   const [loaded] = useFonts({
-    PlusJakartaSans_400Regular,
-    PlusJakartaSans_500Medium,
-    PlusJakartaSans_600SemiBold,
-    PlusJakartaSans_700Bold,
+    Inter_400Regular,
+    Inter_500Medium,
+    SpaceGrotesk_400Regular,
+    SpaceGrotesk_500Medium,
   });
 
   useEffect(() => {
@@ -39,7 +38,7 @@ export function FontProvider({ children }: { children: React.ReactNode }) {
 const styles = StyleSheet.create({
   loading: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',
   },

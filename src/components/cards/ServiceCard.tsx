@@ -7,6 +7,8 @@ import { useAppTheme } from '@/providers/ThemeProvider';
 import { Card } from '@/components/ui/Card';
 import { CategoryPlaceholder } from '@/components/ui/CategoryPlaceholder';
 import { formatPrice, formatRating } from '@/types';
+import { Radius, Spacing } from '@/theme/tokens';
+import { textStyle } from '@/theme/typography';
 
 interface ServiceCardProps {
   title: string;
@@ -36,15 +38,22 @@ export function ServiceCard({
   city,
   isVerified,
   isPremium,
-  categoryIcon,
   onPress,
 }: ServiceCardProps) {
   const { colors } = useAppTheme();
   const { t } = useTranslation();
 
   return (
-    <Card onPress={onPress} padded={false} style={{ marginBottom: 12 }}>
-      <View style={{ height: 140, backgroundColor: colors.canvasSoft }}>
+    <Card onPress={onPress} padded={false} variant="stone" style={{ marginBottom: Spacing.three }}>
+      <View
+        style={{
+          height: 140,
+          backgroundColor: colors.canvasSoft,
+          borderTopLeftRadius: Radius.lg,
+          borderTopRightRadius: Radius.lg,
+          overflow: 'hidden',
+        }}
+      >
         {photo ? (
           <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
         ) : (
@@ -56,49 +65,42 @@ export function ServiceCard({
           <View
             style={{
               position: 'absolute',
-              top: 8,
-              right: 8,
+              top: Spacing.two,
+              right: Spacing.two,
               backgroundColor: colors.accent,
-              borderRadius: 8,
-              paddingHorizontal: 8,
-              paddingVertical: 4,
+              borderRadius: Radius.sm,
+              paddingHorizontal: Spacing.two,
+              paddingVertical: Spacing.one,
               flexDirection: 'row',
               alignItems: 'center',
-              gap: 4,
+              gap: Spacing.one,
             }}
           >
             <Crown size={12} color={colors.onAccent} />
-            <Text style={{ fontSize: 10, fontWeight: '700', color: colors.onAccent }}>
-              {t('common.premium')}
-            </Text>
+            <Text style={[textStyle('micro'), { color: colors.onAccent }]}>{t('common.premium')}</Text>
           </View>
         )}
       </View>
 
-      <View style={{ padding: 14 }}>
-        <Text
-          numberOfLines={1}
-          style={{ fontSize: 16, fontWeight: '600', color: colors.ink, marginBottom: 4 }}
-        >
+      <View style={{ padding: Spacing.four }}>
+        <Text numberOfLines={1} style={[textStyle('featureHeading'), { color: colors.ink, marginBottom: Spacing.one }]}>
           {title}
         </Text>
-        <Text numberOfLines={2} style={{ fontSize: 13, color: colors.body, marginBottom: 10 }}>
+        <Text numberOfLines={2} style={[textStyle('caption'), { color: colors.body, marginBottom: Spacing.twoHalf }]}>
           {description}
         </Text>
 
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.oneHalf }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
               <Star size={14} color={colors.accent} fill={colors.accent} />
-              <Text style={{ fontSize: 13, fontWeight: '600', color: colors.ink }}>
-                {formatRating(rating)}
-              </Text>
-              <Text style={{ fontSize: 12, color: colors.muted }}>({reviewCount})</Text>
+              <Text style={[textStyle('caption'), { color: colors.ink }]}>{formatRating(rating)}</Text>
+              <Text style={[textStyle('micro'), { color: colors.muted }]}>({reviewCount})</Text>
             </View>
-            {isVerified && <BadgeCheck size={14} color={colors.primary} />}
+            {isVerified && <BadgeCheck size={14} color={colors.link} />}
           </View>
 
-          <Text style={{ fontSize: 14, fontWeight: '700', color: colors.primary }}>
+          <Text style={[textStyle('body'), { color: colors.ink }]}>
             {pricingType === 'negotiable'
               ? t('common.negotiable')
               : price
@@ -107,7 +109,7 @@ export function ServiceCard({
           </Text>
         </View>
 
-        <Text style={{ fontSize: 12, color: colors.muted, marginTop: 6 }}>
+        <Text style={[textStyle('micro'), { color: colors.muted, marginTop: Spacing.oneHalf }]}>
           {providerName} · {city}
         </Text>
       </View>

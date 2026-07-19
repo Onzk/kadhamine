@@ -1,15 +1,45 @@
 import React from 'react';
 import { Text as RNText, TextInput as RNTextInput, type TextProps, type TextInputProps } from 'react-native';
-import { fontFamily, type FontWeight } from '@/theme/typography';
+import { fontFamily, textStyle, type TypeScaleRole } from '@/theme/typography';
 
-type ThemedTextProps = TextProps & { weight?: FontWeight };
+type ThemedTextProps = TextProps & {
+  variant?: TypeScaleRole;
+  display?: boolean;
+};
 
-export function Text({ style, weight = 'regular', ...props }: ThemedTextProps) {
-  return <RNText style={[{ fontFamily: fontFamily(weight) }, style]} {...props} />;
+export function Text({ style, variant, display, ...props }: ThemedTextProps) {
+  const base = variant
+    ? {
+        ...textStyle(variant),
+        ...(display ? { fontFamily: fontFamily('display') } : {}),
+      }
+    : { fontFamily: fontFamily(display ? 'display' : 'body') };
+  return <RNText style={[base, style]} {...props} />;
 }
 
 export function TextInput({ style, ...props }: TextInputProps) {
+  return <RNTextInput style={[{ fontFamily: fontFamily('body') }, style]} {...props} />;
+}
+
+interface TextLinkProps {
+  title: string;
+  onPress?: () => void;
+  color?: string;
+}
+
+export function TextLink({ title, onPress, color }: TextLinkProps) {
   return (
-    <RNTextInput style={[{ fontFamily: fontFamily('regular') }, style]} {...props} />
+    <RNText
+      onPress={onPress}
+      style={[
+        textStyle('button'),
+        {
+          color: color ?? '#1863dc',
+          textDecorationLine: 'underline',
+        },
+      ]}
+    >
+      {title}
+    </RNText>
   );
 }

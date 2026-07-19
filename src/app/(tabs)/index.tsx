@@ -12,7 +12,8 @@ import { ServiceCardSkeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/ThemedText';
 import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
-import { BrandColors } from '@/theme/tokens';
+import { BrandColors, Radius, Spacing } from '@/theme/tokens';
+import { textStyle } from '@/theme/typography';
 import { api } from '../../../convex/_generated/api';
 
 export default function HomeScreen() {
@@ -38,9 +39,9 @@ export default function HomeScreen() {
       <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <View>
-            <Text style={{ fontSize: 14, color: colors.muted }} weight="medium">{t('home.greeting')}</Text>
+            <Text style={{ color: colors.muted }} variant="caption">{t('home.greeting')}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={{ fontSize: 24, color: colors.ink }} weight="bold">
+              <Text style={{ color: colors.ink }} variant="cardHeading" display>
                 {firstName || 'TalentTchad'}
               </Text>
               <Hand size={22} color={colors.accent} style={{ marginLeft: 6 }} />
@@ -52,7 +53,7 @@ export default function HomeScreen() {
               style={{
                 width: 40,
                 height: 40,
-                borderRadius: 12,
+                borderRadius: Radius.sm,
                 backgroundColor: colors.surfaceCard,
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -67,7 +68,7 @@ export default function HomeScreen() {
               style={{
                 width: 40,
                 height: 40,
-                borderRadius: 12,
+                borderRadius: Radius.sm,
                 backgroundColor: colors.surfaceCard,
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -82,7 +83,7 @@ export default function HomeScreen() {
               style={{
                 width: 40,
                 height: 40,
-                borderRadius: 12,
+                borderRadius: Radius.sm,
                 backgroundColor: colors.surfaceCard,
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -101,11 +102,11 @@ export default function HomeScreen() {
             flexDirection: 'row',
             alignItems: 'center',
             backgroundColor: colors.surfaceCard,
-            borderRadius: 14,
-            paddingHorizontal: 14,
+            borderRadius: Radius.sm,
+            paddingHorizontal: Spacing.four,
             height: 48,
             borderWidth: 1,
-            borderColor: colors.border,
+            borderColor: colors.borderHairline,
             gap: 10,
           }}
         >
@@ -117,40 +118,28 @@ export default function HomeScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         <View
           style={{
-            marginHorizontal: 16,
-            marginBottom: 20,
-            backgroundColor: BrandColors.blue,
-            borderRadius: 16,
-            padding: 20,
-            overflow: 'hidden',
+            marginHorizontal: Spacing.four,
+            marginBottom: Spacing.five,
+            backgroundColor: BrandColors.enterpriseGreen,
+            borderRadius: Radius.lg,
+            padding: Spacing.five,
           }}
         >
-          <View
-            style={{
-              position: 'absolute',
-              right: -20,
-              top: -20,
-              width: 100,
-              height: 100,
-              borderRadius: 50,
-              backgroundColor: BrandColors.yellow + '30',
-            }}
-          />
-          <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFFFFF', marginBottom: 6 }}>
+          <Text style={[textStyle('featureHeading'), { color: colors.onDark, marginBottom: Spacing.oneHalf }]}>
             {t('payment.integratedBenefit')}
           </Text>
-          <Text style={{ fontSize: 13, color: '#FFFFFFCC', lineHeight: 18 }}>
+          <Text style={[textStyle('caption'), { color: '#ffffffcc', lineHeight: 19.6 }]}>
             {t('payment.offPlatformWarning')}
           </Text>
         </View>
 
         <View style={{ marginBottom: 20 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 12 }}>
-            <Text style={{ fontSize: 17, fontWeight: '600', color: colors.ink }}>
+            <Text style={[textStyle('featureHeading'), { color: colors.ink }]}>
               {t('home.categories')}
             </Text>
             <Pressable onPress={() => router.push('/map' as never)}>
-              <Text style={{ fontSize: 13, color: colors.primary, fontWeight: '600' }}>
+              <Text style={[textStyle('button'), { color: colors.link }]}>
                 {t('home.nearYou')} →
               </Text>
             </Pressable>

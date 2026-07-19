@@ -1,62 +1,88 @@
+const { hairlineWidth } = require('nativewind/theme');
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: 'class',
   content: ['./src/**/*.{js,jsx,ts,tsx}'],
   presets: [require('nativewind/preset')],
   theme: {
     extend: {
       colors: {
+        border: 'hsl(var(--border))',
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
+        primary: {
+          DEFAULT: 'hsl(var(--primary))',
+          foreground: 'hsl(var(--primary-foreground))',
+        },
+        secondary: {
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))',
+        },
+        destructive: {
+          DEFAULT: 'hsl(var(--destructive))',
+          foreground: 'hsl(var(--destructive-foreground))',
+        },
+        muted: {
+          DEFAULT: 'hsl(var(--muted))',
+          foreground: 'hsl(var(--muted-foreground))',
+        },
+        accent: {
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))',
+        },
+        popover: {
+          DEFAULT: 'hsl(var(--popover))',
+          foreground: 'hsl(var(--popover-foreground))',
+        },
+        card: {
+          DEFAULT: 'hsl(var(--card))',
+          foreground: 'hsl(var(--card-foreground))',
+        },
         brand: {
-          blue: '#002664',
-          'blue-light': '#003d99',
-          'blue-dark': '#001a4d',
-          yellow: '#FECB00',
-          'yellow-light': '#FFE566',
-          red: '#C60C30',
-          'red-light': '#E8354F',
+          black: '#000000',
+          'near-black': '#17171c',
+          green: '#003c33',
+          navy: '#071829',
+          blue: '#1863dc',
+          coral: '#ff7759',
+          'soft-coral': '#ffad9b',
         },
-        canvas: {
-          DEFAULT: '#F8F9FC',
-          dark: '#0A0E1A',
-        },
-        surface: {
-          DEFAULT: '#FFFFFF',
-          dark: '#141B2D',
-          card: '#FFFFFF',
-          'card-dark': '#1A2235',
-        },
-        border: {
-          DEFAULT: '#E2E8F0',
-          dark: '#2A3548',
-        },
-        ink: {
-          DEFAULT: '#0F172A',
-          secondary: '#475569',
-          muted: '#94A3B8',
-          dark: '#F1F5F9',
-          'secondary-dark': '#CBD5E1',
-          'muted-dark': '#64748B',
-        },
-        success: '#16A34A',
-        warning: '#FECB00',
-        error: '#C60C30',
-        info: '#002664',
       },
       borderRadius: {
-        card: '16px',
-        button: '12px',
-        input: '12px',
-        chip: '9999px',
+        lg: 'var(--radius)',
+        md: 'calc(var(--radius) - 2px)',
+        sm: 'calc(var(--radius) - 4px)',
+        xs: '4px',
+        xl: '30px',
+        pill: '32px',
+      },
+      borderWidth: {
+        hairline: hairlineWidth(),
       },
       fontFamily: {
-        sans: ['PlusJakartaSans_400Regular'],
-        medium: ['PlusJakartaSans_500Medium'],
-        semibold: ['PlusJakartaSans_600SemiBold'],
-        bold: ['PlusJakartaSans_700Bold'],
+        display: ['SpaceGrotesk_400Regular'],
+        body: ['Inter_400Regular'],
+        'body-medium': ['Inter_500Medium'],
+        mono: ['SpaceGrotesk_400Regular'],
       },
-      spacing: {
-        safe: '16px',
+      keyframes: {
+        'accordion-down': {
+          from: { height: '0' },
+          to: { height: 'var(--radix-accordion-content-height)' },
+        },
+        'accordion-up': {
+          from: { height: 'var(--radix-accordion-content-height)' },
+          to: { height: '0' },
+        },
+      },
+      animation: {
+        'accordion-down': 'accordion-down 0.2s ease-out',
+        'accordion-up': 'accordion-up 0.2s ease-out',
       },
     },
   },
-  plugins: [],
+  plugins: [require('tailwindcss-animate')],
 };

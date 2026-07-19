@@ -132,12 +132,12 @@ export default function ServiceDetailScreen() {
 
           <View
             style={{
-              backgroundColor: BrandColors.yellow + '20',
+              backgroundColor: BrandColors.coral + '20',
               borderRadius: 12,
               padding: 14,
               marginBottom: 20,
               borderWidth: 1,
-              borderColor: BrandColors.yellow + '60',
+              borderColor: BrandColors.coral + '60',
             }}
           >
             <Text style={{ fontSize: 13, color: colors.ink, lineHeight: 18 }}>

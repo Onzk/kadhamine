@@ -8,7 +8,7 @@ import { useAppTheme } from '@/providers/ThemeProvider';
 const DURATION = 1200;
 
 export function AnimatedSplashOverlay() {
-  const { colors, isDark } = useAppTheme();
+  const { colors } = useAppTheme();
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
@@ -21,7 +21,7 @@ export function AnimatedSplashOverlay() {
   return (
     <Animated.View
       exiting={FadeOut.duration(350).easing(Easing.out(Easing.cubic))}
-      style={[styles.overlay, { backgroundColor: isDark ? colors.canvas : '#F5F5F5' }]}
+      style={[styles.overlay, { backgroundColor: colors.canvas }]}
     >
       <Animated.View entering={FadeIn.duration(450).easing(Easing.out(Easing.cubic))} style={styles.logoWrap}>
         <Image

@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, TextInput, Text, type TextInputProps } from 'react-native';
 import { useAppTheme } from '@/providers/ThemeProvider';
-import { fontFamily } from '@/theme/typography';
-import { Radius } from '@/theme/tokens';
+import { fontFamily, textStyle } from '@/theme/typography';
+import { Radius, Spacing } from '@/theme/tokens';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -14,17 +14,9 @@ export function Input({ label, error, leftIcon, style, ...props }: InputProps) {
   const { colors } = useAppTheme();
 
   return (
-    <View className="mb-4">
+    <View style={{ marginBottom: Spacing.five }}>
       {label && (
-        <Text
-          style={{
-            color: colors.muted,
-            fontSize: 13,
-            fontWeight: '500',
-            marginBottom: 8,
-            fontFamily: fontFamily('medium'),
-          }}
-        >
+        <Text style={[textStyle('caption'), { color: colors.muted, marginBottom: Spacing.two }]}>
           {label}
         </Text>
       )}
@@ -34,22 +26,22 @@ export function Input({ label, error, leftIcon, style, ...props }: InputProps) {
           alignItems: 'center',
           backgroundColor: colors.surface,
           borderWidth: 1,
-          borderColor: error ? colors.error : colors.border,
-          borderRadius: Radius.pill,
-          paddingHorizontal: 16,
-          minHeight: 52,
+          borderColor: error ? colors.error : colors.borderHairline,
+          borderRadius: Radius.sm,
+          paddingHorizontal: Spacing.four,
+          minHeight: 48,
         }}
       >
-        {leftIcon && <View style={{ marginRight: 10 }}>{leftIcon}</View>}
+        {leftIcon && <View style={{ marginRight: Spacing.twoHalf }}>{leftIcon}</View>}
         <TextInput
           placeholderTextColor={colors.muted}
           style={[
+            textStyle('body'),
             {
               flex: 1,
               color: colors.ink,
-              fontSize: 15,
-              paddingVertical: 14,
-              fontFamily: fontFamily('regular'),
+              paddingVertical: Spacing.three,
+              fontFamily: fontFamily('body'),
             },
             style,
           ]}
@@ -57,14 +49,7 @@ export function Input({ label, error, leftIcon, style, ...props }: InputProps) {
         />
       </View>
       {error && (
-        <Text
-          style={{
-            color: colors.error,
-            fontSize: 12,
-            marginTop: 6,
-            fontFamily: fontFamily('regular'),
-          }}
-        >
+        <Text style={[textStyle('micro'), { color: colors.error, marginTop: Spacing.oneHalf }]}>
           {error}
         </Text>
       )}

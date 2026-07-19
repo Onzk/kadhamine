@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useMemo, useState, useCallback } from 'react';
+import { View } from 'react-native';
 import { useColorScheme } from 'react-native';
 import { LightTheme, DarkTheme, type ThemeColors } from '@/theme/tokens';
 
@@ -33,7 +34,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     [colors, isDark, mode, toggle],
   );
 
-  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+  return (
+    <ThemeContext.Provider value={value}>
+      <View className={isDark ? 'dark flex-1' : 'flex-1'} style={{ flex: 1 }}>
+        {children}
+      </View>
+    </ThemeContext.Provider>
+  );
 }
 
 export function useAppTheme() {

@@ -1,6 +1,8 @@
 import React from 'react';
 import { Pressable, Text } from 'react-native';
 import { useAppTheme } from '@/providers/ThemeProvider';
+import { fontFamily, textStyle } from '@/theme/typography';
+import { Radius, Spacing } from '@/theme/tokens';
 
 interface CategoryChipProps {
   label: string;
@@ -9,7 +11,7 @@ interface CategoryChipProps {
   onPress?: () => void;
 }
 
-export function CategoryChip({ label, icon, selected, onPress }: CategoryChipProps) {
+export function CategoryChip({ label, selected, onPress }: CategoryChipProps) {
   const { colors } = useAppTheme();
 
   return (
@@ -18,24 +20,24 @@ export function CategoryChip({ label, icon, selected, onPress }: CategoryChipPro
       style={({ pressed }) => ({
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
-        paddingHorizontal: 14,
-        paddingVertical: 10,
-        borderRadius: 9999,
-        backgroundColor: selected ? colors.primary : colors.surfaceCard,
+        paddingHorizontal: Spacing.four,
+        paddingVertical: Spacing.twoHalf,
+        borderRadius: selected ? Radius.sm : Radius.xl,
+        backgroundColor: selected ? colors.accent : colors.accentSoft + '40',
         borderWidth: 1,
-        borderColor: selected ? colors.primary : colors.border,
-        opacity: pressed ? 0.85 : 1,
-        marginRight: 8,
+        borderColor: colors.accent,
+        opacity: pressed ? 0.88 : 1,
+        marginRight: Spacing.two,
       })}
     >
-      {icon && <Text style={{ fontSize: 16 }}>{icon}</Text>}
       <Text
-        style={{
-          fontSize: 13,
-          fontWeight: selected ? '600' : '500',
-          color: selected ? colors.onPrimary : colors.body,
-        }}
+        style={[
+          textStyle('caption'),
+          {
+            fontFamily: fontFamily('body', 'medium'),
+            color: selected ? colors.onAccent : colors.ink,
+          },
+        ]}
       >
         {label}
       </Text>

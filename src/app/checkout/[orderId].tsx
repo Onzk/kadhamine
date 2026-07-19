@@ -190,7 +190,7 @@ export default function CheckoutScreen() {
         {method !== 'off_platform' && (
           <View
             style={{
-              backgroundColor: BrandColors.blue + '10',
+              backgroundColor: BrandColors.actionBlue + '10',
               borderRadius: 12,
               padding: 14,
               marginTop: 8,

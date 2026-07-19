@@ -3,8 +3,8 @@ import { View, Text, TextInput, Pressable, type TextInputProps } from 'react-nat
 import { Eye, EyeOff } from 'lucide-react-native';
 
 import { useAppTheme } from '@/providers/ThemeProvider';
-import { fontFamily } from '@/theme/typography';
-import { Radius } from '@/theme/tokens';
+import { fontFamily, textStyle } from '@/theme/typography';
+import { Radius, Spacing } from '@/theme/tokens';
 
 interface AuthFieldProps extends TextInputProps {
   label: string;
@@ -26,16 +26,8 @@ export function AuthField({
   const { colors } = useAppTheme();
 
   return (
-    <View style={{ marginBottom: 20 }}>
-      <Text
-        style={{
-          fontSize: 13,
-          color: colors.muted,
-          marginBottom: 8,
-          fontWeight: '500',
-          fontFamily: fontFamily('medium'),
-        }}
-      >
+    <View style={{ marginBottom: Spacing.five }}>
+      <Text style={[textStyle('caption'), { color: colors.muted, marginBottom: Spacing.two }]}>
         {label}
       </Text>
       <View
@@ -44,22 +36,22 @@ export function AuthField({
           alignItems: 'center',
           backgroundColor: colors.surface,
           borderWidth: 1,
-          borderColor: error ? colors.error : colors.border,
-          borderRadius: Radius.pill,
-          paddingHorizontal: 16,
-          minHeight: 52,
+          borderColor: error ? colors.error : colors.borderHairline,
+          borderRadius: Radius.sm,
+          paddingHorizontal: Spacing.four,
+          minHeight: 48,
         }}
       >
         <TextInput
           placeholderTextColor={colors.muted}
           secureTextEntry={isPassword && !showPassword}
           style={[
+            textStyle('body'),
             {
               flex: 1,
-              fontSize: 15,
               color: colors.ink,
-              paddingVertical: 14,
-              fontFamily: fontFamily('regular'),
+              paddingVertical: Spacing.three,
+              fontFamily: fontFamily('body'),
             },
             style,
           ]}
@@ -76,14 +68,7 @@ export function AuthField({
         )}
       </View>
       {error ? (
-        <Text
-          style={{
-            fontSize: 12,
-            color: colors.error,
-            marginTop: 6,
-            fontFamily: fontFamily('regular'),
-          }}
-        >
+        <Text style={[textStyle('micro'), { color: colors.error, marginTop: Spacing.oneHalf }]}>
           {error}
         </Text>
       ) : null}
@@ -108,20 +93,15 @@ export function AuthPrimaryButton({ title, onPress, loading, disabled }: AuthPri
       style={({ pressed }) => ({
         backgroundColor: colors.primary,
         borderRadius: Radius.pill,
-        height: 54,
+        minHeight: 44,
+        paddingVertical: 12,
+        paddingHorizontal: 24,
         alignItems: 'center',
         justifyContent: 'center',
         opacity: disabled || loading ? 0.5 : pressed ? 0.88 : 1,
       })}
     >
-      <Text
-        style={{
-          color: colors.onPrimary,
-          fontSize: 16,
-          fontWeight: '600',
-          fontFamily: fontFamily('semiBold'),
-        }}
-      >
+      <Text style={[textStyle('button'), { color: colors.onPrimary }]}>
         {loading ? 'Chargement...' : title}
       </Text>
     </Pressable>
@@ -132,27 +112,8 @@ export function AuthGhostButton({ title, onPress }: { title: string; onPress: ()
   const { colors } = useAppTheme();
 
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => ({
-        borderRadius: Radius.pill,
-        height: 54,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 1,
-        borderColor: colors.border,
-        backgroundColor: colors.surface,
-        opacity: pressed ? 0.88 : 1,
-      })}
-    >
-      <Text
-        style={{
-          color: colors.ink,
-          fontSize: 15,
-          fontWeight: '600',
-          fontFamily: fontFamily('semiBold'),
-        }}
-      >
+    <Pressable onPress={onPress} style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1, alignItems: 'center' })}>
+      <Text style={[textStyle('button'), { color: colors.link, textDecorationLine: 'underline' }]}>
         {title}
       </Text>
     </Pressable>
@@ -163,19 +124,10 @@ export function AuthDivider({ label = 'ou' }: { label?: string }) {
   const { colors } = useAppTheme();
 
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 28, gap: 12 }}>
-      <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
-      <Text
-        style={{
-          fontSize: 13,
-          color: colors.muted,
-          fontWeight: '500',
-          fontFamily: fontFamily('medium'),
-        }}
-      >
-        {label}
-      </Text>
-      <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
+    <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: Spacing.seven, gap: Spacing.three }}>
+      <View style={{ flex: 1, height: 1, backgroundColor: colors.borderHairline }} />
+      <Text style={[textStyle('caption'), { color: colors.muted }]}>{label}</Text>
+      <View style={{ flex: 1, height: 1, backgroundColor: colors.borderHairline }} />
     </View>
   );
 }
@@ -197,26 +149,18 @@ export function SocialAuthButton({ label, icon, onPress }: SocialAuthButtonProps
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 10,
-        height: 52,
-        borderRadius: Radius.pill,
+        gap: Spacing.twoHalf,
+        minHeight: 44,
+        paddingVertical: 12,
+        borderRadius: Radius.xl,
         borderWidth: 1,
-        borderColor: colors.border,
+        borderColor: colors.borderHairline,
         backgroundColor: colors.surface,
         opacity: pressed ? 0.9 : 1,
       })}
     >
       {icon}
-      <Text
-        style={{
-          fontSize: 14,
-          fontWeight: '600',
-          color: colors.ink,
-          fontFamily: fontFamily('semiBold'),
-        }}
-      >
-        {label}
-      </Text>
+      <Text style={[textStyle('button'), { color: colors.ink }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -224,7 +168,7 @@ export function SocialAuthButton({ label, icon, onPress }: SocialAuthButtonProps
 export function GoogleIcon() {
   return (
     <View style={{ width: 20, height: 20, alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ fontSize: 16, fontWeight: '700', color: '#4285F4' }}>G</Text>
+      <Text style={{ fontSize: 16, fontFamily: fontFamily('body', 'medium'), color: '#4285F4' }}>G</Text>
     </View>
   );
 }

@@ -1,21 +1,24 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import { useAppTheme } from '@/providers/ThemeProvider';
+import { fontFamily, textStyle } from '@/theme/typography';
+import { Radius } from '@/theme/tokens';
 
 interface BadgeProps {
   label: string;
-  variant?: 'default' | 'verified' | 'premium' | 'danger' | 'accent';
+  variant?: 'default' | 'verified' | 'premium' | 'danger' | 'accent' | 'taxonomy';
 }
 
 export function Badge({ label, variant = 'default' }: BadgeProps) {
   const { colors } = useAppTheme();
 
   const styles = {
-    default: { bg: colors.surfaceStrong, text: colors.body },
-    verified: { bg: colors.primary + '20', text: colors.primary },
-    premium: { bg: colors.accent, text: colors.onAccent },
-    danger: { bg: colors.error + '20', text: colors.error },
-    accent: { bg: colors.accent + '30', text: colors.onAccent },
+    default: { bg: colors.surfaceStrong, text: colors.body, border: colors.border },
+    verified: { bg: colors.canvasGreenWash, text: colors.success, border: colors.borderHairline },
+    premium: { bg: colors.accent, text: colors.onAccent, border: colors.accent },
+    danger: { bg: colors.error + '12', text: colors.error, border: colors.error + '30' },
+    accent: { bg: colors.canvasBlueWash, text: colors.link, border: colors.borderLight },
+    taxonomy: { bg: colors.accentSoft + '50', text: colors.ink, border: colors.accent },
   };
 
   const s = styles[variant];
@@ -24,13 +27,22 @@ export function Badge({ label, variant = 'default' }: BadgeProps) {
     <View
       style={{
         backgroundColor: s.bg,
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderRadius: 9999,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: Radius.sm,
+        borderWidth: 1,
+        borderColor: s.border,
         alignSelf: 'flex-start',
       }}
     >
-      <Text style={{ fontSize: 11, fontWeight: '600', color: s.text }}>{label}</Text>
+      <Text
+        style={[
+          textStyle('micro'),
+          { fontFamily: fontFamily('body', 'medium'), color: s.text },
+        ]}
+      >
+        {label}
+      </Text>
     </View>
   );
 }

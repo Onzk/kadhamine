@@ -3,7 +3,8 @@ import { View, Text, Pressable } from 'react-native';
 import { ChevronLeft } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useAppTheme } from '@/providers/ThemeProvider';
-import { fontFamily } from '@/theme/typography';
+import { textStyle } from '@/theme/typography';
+import { Spacing } from '@/theme/tokens';
 
 interface ScreenHeaderProps {
   title: string;
@@ -19,23 +20,23 @@ export function ScreenHeader({ title, subtitle, showBack, rightAction }: ScreenH
   return (
     <View
       style={{
-        paddingTop: 12,
-        paddingBottom: 12,
-        paddingHorizontal: 16,
+        paddingTop: Spacing.three,
+        paddingBottom: Spacing.three,
+        paddingHorizontal: Spacing.four,
         backgroundColor: colors.canvas,
         borderBottomWidth: 1,
-        borderBottomColor: colors.border,
+        borderBottomColor: colors.borderHairline,
       }}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: 8 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: Spacing.two }}>
           {showBack && (
             <Pressable
               onPress={() => router.back()}
               style={({ pressed }) => ({
                 width: 36,
                 height: 36,
-                borderRadius: 10,
+                borderRadius: 8,
                 backgroundColor: colors.surfaceCard,
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -46,9 +47,9 @@ export function ScreenHeader({ title, subtitle, showBack, rightAction }: ScreenH
             </Pressable>
           )}
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 22, fontWeight: '700', color: colors.ink, fontFamily: fontFamily('bold') }}>{title}</Text>
+            <Text style={[textStyle('featureHeading'), { color: colors.ink }]}>{title}</Text>
             {subtitle && (
-              <Text style={{ fontSize: 13, color: colors.muted, marginTop: 2, fontFamily: fontFamily('regular') }}>{subtitle}</Text>
+              <Text style={[textStyle('caption'), { color: colors.muted, marginTop: 2 }]}>{subtitle}</Text>
             )}
           </View>
         </View>
