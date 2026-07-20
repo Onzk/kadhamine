@@ -3,12 +3,13 @@ import { View, Text, Pressable, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from 'convex/react';
-import { MessageCircle, Lock } from 'lucide-react-native';
+import { ChatCircleDots, Lock, CaretRight } from 'phosphor-react-native';
 
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
+import { Radius } from '@/theme/tokens';
 import { api } from '../../../convex/_generated/api';
 
 export default function MessagesScreen() {
@@ -36,30 +37,48 @@ export default function MessagesScreen() {
             {t('common.loading')}
           </Text>
         ) : conversations.length === 0 ? (
-          <EmptyState icon={MessageCircle} title={t('messages.empty')} />
+          <EmptyState icon={ChatCircleDots} title={t('messages.empty')} />
         ) : (
           conversations.map((conv) => (
             <Pressable
               key={conv._id}
               onPress={() => router.push(`/chat/${conv._id}`)}
               style={({ pressed }) => ({
+                flexDirection: 'row',
+                alignItems: 'center',
                 backgroundColor: colors.surfaceCard,
-                borderRadius: 14,
-                padding: 16,
+                borderRadius: Radius.xl,
+                padding: 14,
                 marginBottom: 10,
                 borderWidth: 1,
                 borderColor: colors.border,
                 opacity: pressed ? 0.9 : 1,
+                gap: 12,
               })}
             >
-              <Text style={{ fontSize: 15, fontWeight: '600', color: colors.ink }}>
-                Conversation
-              </Text>
-              {conv.lastMessagePreview && (
-                <Text numberOfLines={1} style={{ fontSize: 13, color: colors.muted, marginTop: 4 }}>
-                  {conv.lastMessagePreview}
+              <View
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 24,
+                  backgroundColor: colors.iconWash,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <ChatCircleDots size={22} color={colors.primary} weight="fill" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 15, fontWeight: '600', color: colors.ink }}>
+                  Conversation
                 </Text>
-              )}
+                {conv.lastMessagePreview ? (
+                  <Text numberOfLines={1} style={{ fontSize: 13, color: colors.muted, marginTop: 4 }}>
+                    {conv.lastMessagePreview}
+                  </Text>
+                ) : null}
+              </View>
+              <CaretRight size={18} color={colors.muted} />
             </Pressable>
           ))
         )}

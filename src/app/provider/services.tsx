@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
-import { Wrench } from 'lucide-react-native';
+import { Wrench } from 'phosphor-react-native';
 import type { Id } from '../../../convex/_generated/dataModel';
 
 import { ScreenHeader } from '@/components/ui/ScreenHeader';

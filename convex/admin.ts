@@ -330,3 +330,60 @@ export const promoteToAdmin = mutation({
     return { promoted: target._id, by: userId };
   },
 });
+
+export const setPremium = mutation({
+  args: {
+    userId: v.id('users'),
+    isPremium: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    const profile = await ctx.db
+      .query('profiles')
+      .withIndex('by_user', (q) => q.eq('userId', args.userId))
+      .first();
+    if (!profile) throw new Error('Profil introuvable');
+
+    const timestamp = now();
+    await ctx.db.patch(profile._id, {
+      isPremium: args.isPremium,
+      badge: args.isPremium ? 'premium' : profile.isVerified ? 'verified' : undefined,
+      updatedAt: timestamp,
+    });
+
+    if (args.isPremium) {
+      const existing = await ctx.db
+        .query('subscriptions')
+        .withIndex('by_user', (q) => q.eq('userId', args.userId))
+        .collect();
+      const active = existing.find((s) => s.status === 'active' && s.endDate > timestamp);
+      if (!active) {
+        const endDate = timestamp + 30 * 24 * 60 * 60 * 1000;
+        await ctx.db.insert('subscriptions', {
+          userId: args.userId,
+          profileId: profile._id,
+          plan: 'premium',
+          status: 'active',
+          startDate: timestamp,
+          endDate,
+          amount: 0,
+          currency: 'XAF',
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        });
+      }
+    }
+
+    await refreshProfileStats(ctx, profile._id);
+    await createNotification(ctx, {
+      userId: args.userId,
+      type: 'subscription',
+      title: args.isPremium ? 'Premium activé' : 'Premium retiré',
+      body: args.isPremium
+        ? 'Un administrateur a activé votre abonnement Premium.'
+        : 'Votre badge Premium a été retiré.',
+    });
+
+    return { isPremium: args.isPremium };
+  },
+});

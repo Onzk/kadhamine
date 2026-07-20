@@ -24,7 +24,8 @@
     "premium": "بريميوم",
     "available": "متاح",
     "busy": "مشغول",
-    "unavailable": "غير متاح"
+    "unavailable": "غير متاح",
+    "all": "الكل"
   },
   "auth": {
     "login": "تسجيل الدخول",
@@ -39,6 +40,12 @@
     "signUp": "إنشاء حساب",
     "signIn": "دخول",
     "welcomeBack": "مرحباً بعودتك!",
+    "loginSubtitle": "سجّل الدخول ببريدك الإلكتروني وكلمة المرور للوصول إلى حسابك، وطلب الخدمات وترك التقييمات.",
+    "rememberMe": "تذكرني",
+    "continueWithoutAccount": "المتابعة بدون حساب",
+    "forgotPasswordSoon": "إعادة تعيين كلمة المرور ستكون متاحة قريباً.",
+    "guestTitle": "مساحتك",
+    "guestSubtitle": "تصفح المواهب بحرية. سجّل الدخول للطلب والدردشة وترك التقييمات.",
     "createAccount": "إنشاء حساب",
     "chooseRole": "أنا...",
     "client": "عميل",

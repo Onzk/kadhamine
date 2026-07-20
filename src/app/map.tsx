@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, Platform, Pressable, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from 'convex/react';
-import { MapPin, Navigation } from 'lucide-react-native';
+import { MapPin, NavigationArrow } from 'phosphor-react-native';
 
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { CategoryChip } from '@/components/ui/CategoryChip';
@@ -122,7 +122,7 @@ export default function MapScreen() {
               onPress={() => Linking.openURL(openInMaps(latitude, longitude, 'Ma position'))}
               style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}
             >
-              <Navigation size={14} color={colors.primary} />
+              <NavigationArrow size={14} color={colors.primary} />
               <Text style={{ fontSize: 13, color: colors.primary }}>Ouvrir dans Google Maps</Text>
             </Pressable>
           </View>

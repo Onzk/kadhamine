@@ -1,6 +1,7 @@
 import { v } from 'convex/values';
 import { mutation, query } from './_generated/server';
-import { requireAuth, now } from './lib';
+import { requireAuth, createNotification, now } from './lib';
+import { internal } from './_generated/api';
 
 export const list = query({
   args: {},
@@ -25,13 +26,23 @@ export const getMessages = query({
       throw new Error('Conversation introuvable');
     }
 
-    return await ctx.db
+    const messages = await ctx.db
       .query('messages')
       .withIndex('by_conversation_time', (q) =>
         q.eq('conversationId', args.conversationId),
       )
       .order('asc')
       .collect();
+
+    return await Promise.all(
+      messages.map(async (msg) => {
+        let mediaUrl = msg.mediaUrl;
+        if (!mediaUrl && msg.storageId) {
+          mediaUrl = (await ctx.storage.getUrl(msg.storageId)) ?? undefined;
+        }
+        return { ...msg, mediaUrl };
+      }),
+    );
   },
 });
 
@@ -71,6 +82,7 @@ export const send = mutation({
       v.union(v.literal('text'), v.literal('image'), v.literal('document')),
     ),
     mediaUrl: v.optional(v.string()),
+    storageId: v.optional(v.id('_storage')),
   },
   handler: async (ctx, args) => {
     const { userId } = await requireAuth(ctx);
@@ -79,22 +91,57 @@ export const send = mutation({
       throw new Error('Conversation introuvable');
     }
 
+    const messageType = args.type ?? 'text';
+    let mediaUrl = args.mediaUrl;
+    if (args.storageId && !mediaUrl) {
+      mediaUrl = (await ctx.storage.getUrl(args.storageId)) ?? undefined;
+    }
+
+    if (messageType === 'image' && !args.storageId && !mediaUrl) {
+      throw new Error('Image requise');
+    }
+
     const timestamp = now();
+    const preview =
+      messageType === 'image' ? '[Image]' : args.content.slice(0, 100);
+
     const messageId = await ctx.db.insert('messages', {
       conversationId: args.conversationId,
       senderId: userId,
-      type: args.type ?? 'text',
-      content: args.content,
-      mediaUrl: args.mediaUrl,
+      type: messageType,
+      content: args.content || (messageType === 'image' ? 'Image' : ''),
+      mediaUrl,
+      storageId: args.storageId,
       readBy: [userId],
       createdAt: timestamp,
     });
 
     await ctx.db.patch(args.conversationId, {
       lastMessageAt: timestamp,
-      lastMessagePreview: args.content.slice(0, 100),
+      lastMessagePreview: preview,
       updatedAt: timestamp,
     });
+
+    const recipients = conversation.participantIds.filter((id) => id !== userId);
+    for (const recipientId of recipients) {
+      await createNotification(ctx, {
+        userId: recipientId,
+        type: 'message',
+        title: 'Nouveau message',
+        body: preview,
+        data: { conversationId: args.conversationId, messageId },
+      });
+
+      await ctx.scheduler.runAfter(0, internal.notifications.sendPush, {
+        userId: recipientId,
+        title: 'Nouveau message',
+        body: preview,
+        data: {
+          conversationId: args.conversationId,
+          type: 'message',
+        },
+      });
+    }
 
     return messageId;
   },

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { CategoryChip } from '@/components/ui/CategoryChip';
 import { useAppTheme } from '@/providers/ThemeProvider';
-import { CHAD_REGIONS, CITIES_BY_REGION } from '@/constants/chad';
+import { MVP_CITIES, MVP_CITY_REGION, type MvpCity } from '@/constants/chad';
 import { api } from '../../../convex/_generated/api';
 
 type Role = 'client' | 'provider';
@@ -22,12 +22,9 @@ export default function CompleteProfileScreen() {
   const [role, setRole] = useState<Role>('client');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [region, setRegion] = useState('ndjamena');
-  const [city, setCity] = useState("N'Djamena");
+  const [city, setCity] = useState<MvpCity>("N'Djamena");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  const cities = CITIES_BY_REGION[region] ?? ["N'Djamena"];
 
   const handleSubmit = async () => {
     if (!firstName || !lastName) {
@@ -43,7 +40,7 @@ export default function CompleteProfileScreen() {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         city,
-        region,
+        region: MVP_CITY_REGION[city],
       });
       router.replace('/');
     } catch (err) {
@@ -83,27 +80,10 @@ export default function CompleteProfileScreen() {
         <Input label="Nom" value={lastName} onChangeText={setLastName} />
 
         <Text style={{ fontSize: 13, fontWeight: '500', color: colors.body, marginBottom: 8 }}>
-          Région
-        </Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
-          {CHAD_REGIONS.slice(0, 8).map((r) => (
-            <CategoryChip
-              key={r.id}
-              label={r.nameFr}
-              selected={region === r.id}
-              onPress={() => {
-                setRegion(r.id);
-                setCity(CITIES_BY_REGION[r.id]?.[0] ?? "N'Djamena");
-              }}
-            />
-          ))}
-        </ScrollView>
-
-        <Text style={{ fontSize: 13, fontWeight: '500', color: colors.body, marginBottom: 8 }}>
           Ville
         </Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 24 }}>
-          {cities.map((c) => (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
+          {MVP_CITIES.map((c) => (
             <CategoryChip
               key={c}
               label={c}
@@ -111,7 +91,7 @@ export default function CompleteProfileScreen() {
               onPress={() => setCity(c)}
             />
           ))}
-        </ScrollView>
+        </View>
 
         <Button title={t('common.confirm')} onPress={handleSubmit} loading={loading} fullWidth />
       </ScrollView>

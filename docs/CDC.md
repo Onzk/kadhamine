@@ -1,0 +1,634 @@
+# TalentTchad — Cahier des Charges (CDC)
+
+| Champ | Valeur |
+|--------|--------|
+| Projet | TalentTchad |
+| Document | Cahier des charges fonctionnel, technique et UI |
+| Version | 2.0 |
+| Date | 2026-07-19 |
+| Statut | Validé (cadrage produit) |
+| Pays cible | Tchad |
+| Remplace / complète | `docs/DRAFT.md` (intentions métier) — **ce CDC fait foi** |
+
+---
+
+## 1. Présentation
+
+### 1.1 Contexte
+
+Au Tchad, de nombreux jeunes ont des compétences monnayables (dev, design, couture, coiffure, photo, réparation, traduction, tutorat, artisanat…) mais manquent de visibilité, d’accès clients et d’outils numériques adaptés (langue, mobile money, connectivité).
+
+### 1.2 Solution
+
+**TalentTchad** est une application mobile qui met en relation :
+
+- des **prestataires** (jeunes talents) ;
+- des **clients** (particuliers, entreprises, ONG) ;
+- un **administrateur** (modération et configuration).
+
+### 1.3 Objectifs
+
+| Horizon | Objectif |
+|---------|----------|
+| Court terme | MVP conforme à ce CDC : auth, profils, services, commandes, chat, notation, admin, FedaPay prêt, UI brandée |
+| Moyen terme | Croissance utilisateurs, paiement live, premium payant, vérifications à l’échelle |
+| Long terme | Extension Afrique centrale |
+
+### 1.4 Stack retenue (fait foi)
+
+> La stack Django / Flutter mentionnée dans `DRAFT.md` est **abandonnée**.
+
+| Couche | Technologie |
+|--------|-------------|
+| Mobile | **Expo SDK 56** + React Native + Expo Router |
+| UI | NativeWind / Tailwind, composants RN, **Phosphor** (`phosphor-react-native`) |
+| Backend | **Convex** (DB, functions, realtime, storage, auth) |
+| Auth | `@convex-dev/auth` — provider **Password** (email + mot de passe) |
+| Paiements | **FedaPay** (sandbox/prod) + option **hors plateforme** |
+| i18n | `i18next` / `react-i18next` — **fr**, **arabe tchadien**, **Sara** |
+| Notifications | `expo-notifications` (push basiques) |
+
+Référence docs Expo : [docs.expo.dev/versions/v56.0.0](https://docs.expo.dev/versions/v56.0.0/).
+
+---
+
+## 2. Acteurs
+
+### 2.1 Prestataire
+
+Jeune (cible 18–35 ans) proposant des services.
+
+- Créer / gérer son profil
+- Publier des services (prix, délai, catégorie, ville)
+- Portfolio **images**
+- Recevoir, accepter ou annuler des commandes
+- Chatter (texte + images)
+- Encaisser via FedaPay (quand live) ou hors plateforme
+- Demander vérification d’identité (CNI / passeport + selfie)
+- Souscrire / afficher le **Premium** (mise en avant + badge)
+
+### 2.2 Client
+
+- Rechercher par catégorie, ville, mot-clé, prix, note
+- Consulter profil, portfolio, avis
+- Commander et suivre le statut
+- Payer in-app (FedaPay) ou hors app
+- Noter **uniquement** après paiement in-app
+- Chatter (texte + images)
+
+### 2.3 Administrateur
+
+Un seul opérateur au démarrage (compte seed).
+
+- Gérer utilisateurs (suspendre, etc.)
+- Examiner les demandes de vérification → badge **vérifié**
+- Activer Premium manuellement (V1) / suivre abonnements
+- Configurer commission et paramètres plateforme
+- Traiter signalements
+- Consulter paiements / commandes
+
+**Pas de second front web admin en V1** — admin dans l’app mobile.
+
+---
+
+## 3. Périmètre MVP (décisions verrouillées)
+
+### 3.1 Inclus
+
+| Domaine | Contenu |
+|---------|---------|
+| Auth | Inscription / connexion email + mot de passe ; reset email si disponible, sinon contact support |
+| Profils | Client & prestataire ; ville parmi 10 villes ; compétences ; bio ; photo |
+| Services | CRUD prestataire ; recherche / filtres ; détail |
+| Portfolio | Images uniquement |
+| Commandes | Statuts simplifiés (voir §5) |
+| Messagerie | Temps réel Convex ; **texte + images** |
+| Notation | Note globale 1–5 + commentaire ; **seulement si paiement in-app** |
+| Paiement | Hors plateforme + **intégration FedaPay complète** (sandbox → prod) |
+| Commission | 10 % défaut, **paramétrable** (settings + admin) |
+| Premium | UI + flag admin en V1 ; paiement FedaPay dès live → badge + boost recherche |
+| Vérification | Upload CNI/passeport + selfie **après inscription** (paramètres) ; revue admin → badge vérifié |
+| Langues | FR + arabe tchadien + Sara |
+| Villes | 10 villes (voir §8) |
+| Push | Nouvelles commandes + nouveaux messages |
+| Admin | Écrans mobile existants à finaliser |
+| UI | Refonte selon `docs/design.png` + identité TalentTchad ; **zéro emoji** → Phosphor |
+| Données test | `mock_data` avec URLs d’images **vérifiées** |
+| Logo | Logo actuel converti en **SVG** et utilisé dans l’app |
+
+### 3.2 Exclu / reporté (hors MVP ou V1.x)
+
+| Élément | Statut |
+|---------|--------|
+| OTP SMS réel | Exclu (pas de Twilio etc.) |
+| Escrow bancaire complexe | Non — libération logique à “terminé” |
+| Litige comme statut dédié | Exclu du cycle V1 |
+| Statut “en cours” séparé | Exclu (voir §5) |
+| Sous-critères d’avis (ponctualité…) | V1.1 |
+| Vidéos portfolio / chat | Reporté |
+| PDF / documents dans le chat | Reporté |
+| Carte / géolocalisation avancée | V2 |
+| Formations en ligne / IA | V2 |
+| Mode hors-ligne riche | V2 |
+| iOS Store en premier | Android / APK interne d’abord |
+| Rôle dual (client + prestataire) | Exclu — un seul rôle à l’inscription |
+
+### 3.3 Matrice décisions produit
+
+| # | Sujet | Décision |
+|---|--------|----------|
+| 1 | SMS | Pas de SMS réel |
+| 2 | Validation prestataire à l’inscription | Auto-actif |
+| 3 | Paiement | Hors app + FedaPay préparé et branché |
+| 4 | Ordre FedaPay | Commande d’abord, puis abonnement premium |
+| 5 | Libération fonds | À la validation client “terminé” |
+| 6 | Choix paiement | FedaPay **et** hors plateforme coexistent |
+| 7 | Avis | Uniquement après paiement in-app |
+| 8 | Chat | Texte + images (galerie + caméra, JPEG/PNG/WebP, ~5 Mo max) |
+| 9 | Premium | Nécessaire (badge + mise en avant) ; flag admin V1 puis paiement |
+| 10 | Identité | CNI ou passeport + selfie ; settings post-inscription |
+| 11 | Compte non vérifié | Peut publier et recevoir des commandes |
+| 12 | Langues | 3 langues |
+| 13 | Villes | 10 villes (liste §8) |
+| 14 | Rôle | Un seul à l’inscription |
+| 15 | Admin | Mobile, opérateur unique |
+| 16 | Push | Commande + message |
+| 17 | Distribution | APK / tests internes avant Play Store |
+| 18 | Commission | 10 %, paramétrable, pas d’escrow “banque” |
+| 19 | Avis UX | Note globale + commentaire |
+| 20 | Portfolio | Images seules |
+| 21 | Reset mdp | Email si possible, sinon support |
+
+---
+
+## 4. Fonctionnalités détaillées
+
+### 4.1 Authentification
+
+| Fonction | Priorité | Règle |
+|----------|----------|--------|
+| Inscription | Haute | Email, mot de passe, nom, **rôle** (`client` \| `provider`) |
+| Connexion | Haute | Email + mot de passe (Convex Auth Password) |
+| OTP SMS | — | **Non implémenté** en prod ; aucun provider SMS |
+| Mot de passe oublié | Moyenne | Reset email si le provider le permet ; sinon message support |
+| Session | Haute | Session Convex Auth persistée (SecureStore / AsyncStorage selon setup projet) |
+
+Après inscription : redirection vers complétion de profil (ville, téléphone optionnel, etc.).
+
+### 4.2 Profils
+
+| Champ | Client | Prestataire |
+|-------|--------|-------------|
+| Photo | Oui | Oui |
+| Nom / prénom | Oui | Oui |
+| Ville (liste fermée) | Oui | Oui |
+| Bio | Optionnel | Recommandé |
+| Compétences | — | Oui |
+| Tarif horaire indicatif | — | Optionnel |
+| Disponibilité | — | `available` \| `busy` \| `unavailable` |
+| Badges | — | `verified`, `premium` (+ scores dérivés si utiles) |
+
+**Vérification d’identité** (prestataire, depuis Paramètres) :
+
+1. Upload document (`national_id` \| `passport`)
+2. Upload selfie
+3. Statut `pending` → revue admin → `approved` \| `rejected`
+4. Si `approved` : `isVerified = true` + badge vérifié
+
+### 4.3 Services
+
+- Titre, description, catégorie, prix (fixe ou négociable), délai (jours), photos, ville/région, actif/pause
+- Recherche : texte, catégorie, ville, prix min/max, note, premium/vérifié
+- Tri : note, prix, popularité, récence — **Premium en tête** des résultats pertinents
+
+### 4.4 Portfolio
+
+- Items liés au profil prestataire
+- Media : **image** uniquement (storage Convex)
+- Titre + description optionnelle + ordre d’affichage
+
+### 4.5 Commandes — cycle V1
+
+Statuts autorisés :
+
+```
+pending → accepted → completed
+                  ↘ cancelled
+pending → cancelled
+```
+
+| Statut | Signification |
+|--------|----------------|
+| `pending` | Demande client, en attente prestataire |
+| `accepted` | Prestataire a accepté (travail en cours implicitement) |
+| `completed` | Client (ou flux convenu) valide la fin |
+| `cancelled` | Annulation par une des parties |
+
+Pas de statut `in_progress`, `rejected` ou `dispute` dans le parcours utilisateur V1 (le schéma technique peut conserver des littéraux inutilisés jusqu’à nettoyage).
+
+### 4.6 Paiements
+
+#### Modes
+
+| Mode | Commission | Avis officiel | Notes |
+|------|------------|---------------|-------|
+| `fedapay` / `airtel_money` / `moov_money` | Oui (% settings) | Oui après succès + commande terminée | Via FedaPay |
+| `off_platform` | 0 % affichée / pas prélevée | Non (`canReview = false`) | Accord hors app |
+
+#### FedaPay (obligatoire à préparer)
+
+- Variables : `FEDAPAY_SECRET_KEY`, `FEDAPAY_ENV` (`sandbox` \| `live`), `FEDAPAY_CALLBACK_URL`
+- Création transaction, webhook HTTP Convex, mise à jour `payments`
+- Flux métier :
+  1. Client paie → statut paiement `held` (ou équivalent)
+  2. Commande `completed` → libération `released` vers prestataire (logique métier)
+- **Premier flux à finaliser** : paiement de **commande**
+- **Second** : paiement **abonnement premium**
+- Sans clés : mode sandbox local (référence factice, pas de blocage du reste de l’app)
+
+#### Commission
+
+- Défaut : **10 %**
+- Stockée dans `settings` (clé type `commission_rate`)
+- Modifiable depuis l’admin mobile
+- Affichée au checkout : montant service, commission, net prestataire
+
+### 4.7 Notation
+
+- Une note par commande éligible (`canReview` / paiement in-app)
+- Champs V1 : `rating` (1–5), `commentaire` optionnel
+- Moyenne affichée sur profil / service
+- Prestataire peut répondre (si déjà prévu dans le code — à conserver)
+
+Règle produit : **pas de paiement in-app ⇒ pas d’avis officiel** (évite les faux scores).
+
+### 4.8 Messagerie
+
+- Conversation liée optionnellement à une commande
+- Temps réel via Convex subscriptions
+- Types : `text`, `image`
+- Images : galerie + caméra ; formats JPEG / PNG / WebP ; taille max ~5 Mo
+- Lu / non lu via `readBy`
+- Pas de documents PDF en V1
+
+### 4.9 Premium
+
+| Élément | V1 |
+|---------|-----|
+| Avantage | Mise en avant recherche + badge premium |
+| Attribution | Flag admin (`isPremium`) + enregistrement `subscriptions` possible |
+| Paiement | Brancher FedaPay dès que les clés sandbox sont dispo |
+| UI | Écran Premium avec prix affiché (FCFA) |
+
+Badge **vérifié** ≠ badge **premium** :
+
+- Vérifié = identité validée
+- Premium = abonnement / mise en avant
+
+### 4.10 Admin mobile
+
+Écrans cibles :
+
+- Tableau de bord
+- Utilisateurs
+- Vérifications identité
+- Signalements
+- Avis (modération)
+- Paiements / abonnements
+- Paramètres (commission, etc.)
+
+### 4.11 Notifications
+
+Push (Expo) pour :
+
+- Nouvelle commande / changement de statut
+- Nouveau message
+
+Pas d’emails transactionnels obligatoires en V1 (hors reset mdp).
+
+---
+
+## 5. Modèle de données (conceptuel)
+
+Aligné sur le schéma Convex actuel (`convex/schema.ts`), à ajuster seulement si une règle de ce CDC l’exige.
+
+### Entités principales
+
+| Table | Rôle |
+|-------|------|
+| `users` | Compte auth, rôle, statut, langue, push token |
+| `profiles` | Profil métier, ville, badges, stats, géo optionnelle |
+| `categories` / `skills` | Taxonomie services |
+| `services` | Offres publiées |
+| `portfolio` | Médias prestataire |
+| `orders` | Commandes + flags paiement / review |
+| `payments` | Montants, commission, méthode, statut FedaPay |
+| `reviews` | Avis |
+| `conversations` / `messages` | Chat |
+| `notifications` | In-app (+ lien push) |
+| `subscriptions` | Premium |
+| `verificationRequests` | CNI / passeport + selfie |
+| `reports` | Signalements |
+| `favorites` | Favoris (si conservé) |
+| `settings` | Commission et config |
+| `searchHistory` | Optionnel |
+
+### Règles clés
+
+- Un user = un rôle (`client` \| `provider` \| `admin`)
+- Prestataire actif sans vérification obligatoire
+- `isOfficial` / `canReview` respectent la règle paiement in-app
+- Premium influence le score / tri de recherche
+
+---
+
+## 6. Modèle économique
+
+| Source | Phase | Détail |
+|--------|-------|--------|
+| Commission prestations | V1 | % paramétrable (défaut 10 %) sur paiements in-app |
+| Abonnement Premium | V1 (préparé) / live avec FedaPay | Mise en avant + badge |
+| Publicités | V2 | — |
+
+Exemple (prix 20 000 FCFA, commission 10 %) :
+
+| Poste | Montant |
+|-------|---------|
+| Prix service | 20 000 FCFA |
+| Commission | 2 000 FCFA |
+| Net prestataire | 18 000 FCFA |
+
+---
+
+## 7. Exigences non fonctionnelles
+
+### 7.1 Performance
+
+- API Convex : objectif réponses perçues < 500 ms pour actions courantes
+- Accueil : cible < 2 s sur réseau 3G/4G correct
+- Listes : FlashList / virtualisation pour services et messages
+
+### 7.2 Disponibilité & données
+
+- Hébergement Convex + backups plateforme
+- Secrets FedaPay hors repo (env Convex)
+
+### 7.3 Sécurité
+
+- HTTPS
+- Auth Convex ; validation des args côté mutations/actions
+- Uploads contrôlés (types / taille)
+- Admin : garde `role === 'admin'`
+- Pas de secrets dans le client
+
+### 7.4 Compatibilité
+
+- Android prioritaire (API 23+ / politique Expo 56)
+- iOS plus tard
+- Écrans à partir de ~4.5"
+
+### 7.5 Accessibilité & i18n
+
+- Textes UI via clés i18n (pas de chaînes hardcodées nouvelles)
+- RTL à anticiper pour l’arabe (bonnes pratiques layout)
+- Icônes Phosphor : labels accessibles sur actions icon-only
+
+---
+
+## 8. Données de référence
+
+### 8.1 Dix villes (MVP)
+
+1. N'Djaména  
+2. Moundou  
+3. Abéché  
+4. Sarh  
+5. Bongor  
+6. Doba  
+7. Kélo  
+8. Pala  
+9. Ati  
+10. Mongo  
+
+(Les régions/villes élargies du code peuvent rester en seed, mais l’UX inscription / filtres MVP se concentre sur ces 10.)
+
+### 8.2 Catégories de services
+
+| Catégorie | Exemples |
+|-----------|----------|
+| Développement web & mobile | Site, app, e-commerce |
+| Design graphique | Logo, affiche, charte |
+| Couture | Robes, retouches |
+| Coiffure | Tresses, coupes |
+| Photographie | Mariage, portrait |
+| Réparation informatique | PC, téléphone |
+| Marketing digital | Réseaux, pubs |
+| Traduction | FR–AR, FR–EN |
+| Formation & tutorat | Maths, langues, info |
+| Artisanat | Bijoux, déco |
+
+**Icônes** : Phosphor uniquement (pas d’emoji catégorie).
+
+### 8.3 Langues
+
+| Code | Libellé |
+|------|---------|
+| `fr` | Français (défaut) |
+| `ar` | Arabe tchadien |
+| `sara` | Sara |
+
+### 8.4 Monnaie
+
+**XAF (FCFA)** exclusivement en V1.
+
+---
+
+## 9. Design system & UI
+
+### 9.1 Référence visuelle
+
+Fichier : **`docs/design.png`**
+
+Le style à reproduire (structure / patterns), **adapté** au contexte TalentTchad (marketplace de compétences, pas food delivery) :
+
+| Pattern référence | Application TalentTchad |
+|-------------------|-------------------------|
+| Fond blanc, beaucoup d’air | Écrans clairs, hiérarchie simple |
+| Pills catégories (actif = fond noir / texte blanc) | Filtres catégories / villes |
+| Segmented control (History / Ongoing…) | Onglets commandes (ex. En cours / Terminées) |
+| Tabs texte + underline accent | Sous-filtres |
+| Cards image + badge note (étoile) | Cartes services / talents |
+| Bannières promo arrondies | Premium, vérification, campagnes |
+| Lignes liste : icône dans cercle lavande/clair | Historique commandes / paiements |
+| Filtres chips + chevron | Historique transactions / recherche |
+| Bottom tabs 4 items, icône + label | Accueil, Recherche (ou Découvrir), Commandes, Messages (+ Profil selon IA) |
+| Coins très arrondis (16–24) | Boutons, cards, inputs |
+| Typo sans-serif bold titres / gris secondaire | Titres forts, meta en muted |
+
+### 9.2 Identité couleur (adaptée au logo TalentTchad)
+
+Le mockup référence utilise du violet ; **TalentTchad** s’appuie sur le logo actuel (`assets/images/logo.png`) :
+
+| Token | Usage | Approximation logo |
+|-------|--------|-------------------|
+| Primary / ink | Textes, pills actives, CTA sombres | Noir / bleu profond |
+| Brand blue | Figure logo, accents UI | ~`#0B3D91` / bleu logo |
+| Accent success / vérifié | Check jaune logo | ~`#F5C400` |
+| Accent highlight | Étoile / alertes / promo | ~`#E11D48` (rouge logo) |
+| Surface | Fond app | `#FFFFFF` |
+| Surface muted | Inputs, chips inactifs | `#F2F4F7` |
+| Icon wash | Cercle derrière icônes liste | Bleu très pâle (équivalent du lavande référence) |
+| Muted text | Meta | Gris moyen |
+
+> Objectif : **mêmes patterns que `design.png`**, **palette alignée logo + contexte TalentTchad** (confiance, vérification, talent).
+
+### 9.3 Logo
+
+- Source : `assets/images/logo.png`
+- Livrable : **SVG vectoriel** du logo (le terme “csv” dans la demande est interprété comme **SVG**)
+- Usage : splash, auth, headers, about
+- Fond sombre OK pour versions inversées ; version claire pour fonds blancs
+
+### 9.4 Iconographie
+
+| Règle | Détail |
+|-------|--------|
+| Librairie | **`phosphor-react-native`** |
+| Emojis | **Interdits** dans l’UI (écrans, tabs, catégories, empty states) |
+| Style | Préférer poids **regular / bold** cohérent avec le logo (formes rondes, traits nets) |
+| Exemples | `House`, `MagnifyingGlass`, `Receipt`, `ChatCircle`, `User`, `Star`, `MapPin`, `Camera`, `SealCheck`, `Crown`, etc. |
+
+### 9.5 Motion
+
+- Transitions légères (tabs, apparition listes)
+- Feedback press sur boutons / cards
+- Pas d’animations décoratives excessives
+
+### 9.6 Écrans cibles (conformité CDC)
+
+Auth, complétion profil, tabs principales, recherche, détail service, portfolio, dashboard prestataire, commandes, checkout, chat, notifications, premium, vérification, paramètres, admin (*).
+
+(*) Admin : même langage visuel, densité un peu plus élevée.
+
+---
+
+## 10. Données de test (`mock_data`)
+
+### 10.1 Objectif
+
+Fichier dédié (ex. `src/data/mock_data.ts` ou `src/constants/mock_data.ts`) pour :
+
+- story / preview UI ;
+- seed local ;
+- démonstrations hors backend si besoin.
+
+### 10.2 Contenu minimal
+
+- Utilisateurs / profils (clients + prestataires des 10 villes)
+- Catégories + services avec **URLs d’images HTTPS vérifiées** (HTTP 200, CDN stables type Unsplash / Pexels / images projet)
+- Portfolio items
+- Commandes dans chaque statut V1
+- Messages texte + image
+- Avis, paiements, abonnements, demandes de vérification
+- Textes FR (et clés i18n si affichées)
+
+### 10.3 Règle qualité images
+
+Avant commit : chaque URL mock doit être **testée** (fetch / HEAD) et remplacée si morte.
+
+---
+
+## 11. Architecture technique
+
+```
+src/app/          # Expo Router (auth, tabs, admin, service, chat…)
+src/components/   # UI + rn-ui
+src/providers/    # Auth, Theme, Fonts, I18n
+src/locales/      # fr / ar / sara
+convex/           # schema, auth, orders, payments, fedapay, admin…
+assets/           # images, logo SVG
+docs/             # CDC.md, design.png, DRAFT.md (historique)
+```
+
+### Principes
+
+- Une source de vérité backend : Convex
+- Pas de logique métier critique uniquement côté client
+- Actions FedaPay isolées (`convex/fedapay.ts` + `http` webhook)
+- Thème tokens centralisés ; UI conforme §9
+
+---
+
+## 12. Plan de livraison (après validation de ce CDC)
+
+Ordre recommandé :
+
+1. **Gel documentaire** — ce CDC validé  
+2. **Parité fonctionnelle** — combler les gaps vs §3–4 (auth, CNI settings, chat images, FedaPay commande→premium, admin commission, 10 villes, i18n)  
+3. **Design system** — tokens, logo SVG, Phosphor, composants de base alignés `design.png`  
+4. **`mock_data`** — jeux de données + images vérifiées  
+5. **Refonte UI écran par écran**  
+6. **QA manuelle** — parcours client / prestataire / admin  
+7. **Build APK interne**
+
+> À la validation de ce document, le product owner indiquera l’ordre d’exécution détaillé suivant.
+
+---
+
+## 13. Critères d’acceptation MVP
+
+Le MVP est **conforme** si :
+
+1. Un client et un prestataire peuvent s’inscrire (email/mdp), compléter un profil (ville parmi les 10), et publier / commander un service.  
+2. Le chat texte + image fonctionne en temps réel.  
+3. Le cycle de commande V1 (`pending` → `accepted` → `completed` \| `cancelled`) fonctionne.  
+4. Paiement hors plateforme : pas d’avis ; paiement FedaPay (sandbox ou live) : avis possible après complétion.  
+5. Commission paramétrable visible au checkout.  
+6. Prestataire peut uploader CNI/passeport + selfie ; admin peut approuver → badge vérifié.  
+7. Premium : badge + boost ; attribution admin et/ou FedaPay selon disponibilité clés.  
+8. UI sans emoji ; icônes Phosphor ; look aligné `docs/design.png` + couleurs logo ; logo SVG en place.  
+9. App utilisable en **fr**, **ar**, **sara**.  
+10. Push basiques commande + message.  
+11. `mock_data` fourni avec images valides.  
+12. Admin mobile opérationnel pour users, vérifs, settings commission, signalements.
+
+---
+
+## 14. Glossaire
+
+| Terme | Définition |
+|-------|------------|
+| MVP | Version minimale livrable conforme à ce CDC |
+| CDC | Cahier des charges |
+| Convex | Backend BaaS (DB + functions + realtime) |
+| FedaPay | Agrégateur de paiement (mobile money, etc.) |
+| Premium | Abonnement prestataire : mise en avant + badge |
+| Vérifié | Identité validée par admin |
+| Hors plateforme | Paiement convenu hors TalentTchad |
+| Phosphor | Librairie d’icônes `phosphor-react-native` |
+| XAF / FCFA | Franc CFA |
+
+---
+
+## 15. Documents liés
+
+| Fichier | Rôle |
+|---------|------|
+| `docs/CDC.md` | **Fait foi** |
+| `docs/DRAFT.md` | Intention initiale (stack obsolète) |
+| `docs/design.png` | Référence UI patterns |
+| `assets/images/logo.png` | Source logo → à vectoriser en SVG |
+| `DESIGN.md` | Ancienne inspiration Cohere — **ne pas suivre** pour la refonte UI TalentTchad |
+
+---
+
+## 16. Historique
+
+| Version | Date | Notes |
+|---------|------|-------|
+| 1.0 | 2025 | DRAFT initial (Django/Flutter) |
+| 2.0 | 2026-07-19 | CDC aligné stack Expo+Convex + décisions produit/UI verrouillées |
+
+---
+
+**TalentTchad © 2026 — Document confidentiel — Version 2.0**

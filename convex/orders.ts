@@ -1,25 +1,19 @@
 import { v } from 'convex/values';
 import { mutation, query } from './_generated/server';
-import {
-  requireAuth,
-  createNotification,
-  PLATFORM_COMMISSION_RATE,
-  now,
-} from './lib';
+import { requireAuth, createNotification, now } from './lib';
+import { internal } from './_generated/api';
+
+const orderStatusValidator = v.union(
+  v.literal('pending'),
+  v.literal('accepted'),
+  v.literal('completed'),
+  v.literal('cancelled'),
+);
 
 export const listMine = query({
   args: {
     role: v.union(v.literal('client'), v.literal('provider')),
-    status: v.optional(
-      v.union(
-        v.literal('pending'),
-        v.literal('accepted'),
-        v.literal('in_progress'),
-        v.literal('completed'),
-        v.literal('cancelled'),
-        v.literal('rejected'),
-      ),
-    ),
+    status: v.optional(orderStatusValidator),
   },
   handler: async (ctx, args) => {
     const { userId } = await requireAuth(ctx);
@@ -106,6 +100,13 @@ export const create = mutation({
       data: { orderId },
     });
 
+    await ctx.scheduler.runAfter(0, internal.notifications.sendPush, {
+      userId: service.providerId,
+      title: 'Nouvelle commande',
+      body: `Vous avez reçu une nouvelle commande : ${service.title}`,
+      data: { orderId, type: 'order' },
+    });
+
     return orderId;
   },
 });
@@ -128,35 +129,31 @@ export const respond = mutation({
 
     const timestamp = now();
     await ctx.db.patch(args.orderId, {
-      status: args.accept ? 'accepted' : 'rejected',
+      status: args.accept ? 'accepted' : 'cancelled',
       providerNotes: args.providerNotes,
       acceptedAt: args.accept ? timestamp : undefined,
+      cancelledAt: args.accept ? undefined : timestamp,
       updatedAt: timestamp,
     });
+
+    const title = args.accept ? 'Commande acceptée' : 'Commande annulée';
+    const body = args.accept
+      ? 'Votre commande a été acceptée par le prestataire.'
+      : 'Votre commande a été refusée par le prestataire.';
 
     await createNotification(ctx, {
       userId: order.clientId,
       type: args.accept ? 'validation' : 'rejection',
-      title: args.accept ? 'Commande acceptée' : 'Commande refusée',
-      body: args.accept
-        ? 'Votre commande a été acceptée par le prestataire.'
-        : 'Votre commande a été refusée par le prestataire.',
+      title,
+      body,
       data: { orderId: args.orderId },
     });
-  },
-});
 
-export const startProgress = mutation({
-  args: { orderId: v.id('orders') },
-  handler: async (ctx, args) => {
-    const { userId } = await requireAuth(ctx);
-    const order = await ctx.db.get(args.orderId);
-    if (!order || order.providerId !== userId) throw new Error('Commande introuvable');
-    if (order.status !== 'accepted') throw new Error('Statut invalide');
-
-    await ctx.db.patch(args.orderId, {
-      status: 'in_progress',
-      updatedAt: now(),
+    await ctx.scheduler.runAfter(0, internal.notifications.sendPush, {
+      userId: order.clientId,
+      title,
+      body,
+      data: { orderId: args.orderId, type: 'order' },
     });
   },
 });
@@ -167,7 +164,7 @@ export const complete = mutation({
     const { userId } = await requireAuth(ctx);
     const order = await ctx.db.get(args.orderId);
     if (!order || order.providerId !== userId) throw new Error('Commande introuvable');
-    if (order.status !== 'in_progress') throw new Error('Statut invalide');
+    if (order.status !== 'accepted') throw new Error('Statut invalide');
 
     await ctx.db.patch(args.orderId, {
       status: 'completed',
@@ -181,6 +178,13 @@ export const complete = mutation({
       title: 'Prestation terminée',
       body: 'Le prestataire a marqué la prestation comme terminée. Validez pour finaliser.',
       data: { orderId: args.orderId },
+    });
+
+    await ctx.scheduler.runAfter(0, internal.notifications.sendPush, {
+      userId: order.clientId,
+      title: 'Prestation terminée',
+      body: 'Validez la prestation pour finaliser la commande.',
+      data: { orderId: args.orderId, type: 'order' },
     });
   },
 });
@@ -229,6 +233,13 @@ export const validate = mutation({
         title: 'Paiement libéré',
         body: 'Le paiement de votre prestation a été libéré.',
         data: { orderId: args.orderId, paymentId: payment._id },
+      });
+
+      await ctx.scheduler.runAfter(0, internal.notifications.sendPush, {
+        userId: order.providerId,
+        title: 'Paiement libéré',
+        body: 'Le paiement de votre prestation a été libéré.',
+        data: { orderId: args.orderId, type: 'payment' },
       });
     }
 

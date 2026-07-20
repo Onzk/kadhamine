@@ -3,18 +3,17 @@ import { View, Text, ScrollView, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
-  Settings,
-  Globe,
+  Gear,
   Moon,
   Shield,
   Crown,
-  LogOut,
-  ChevronRight,
-  BarChart3,
+  SignOut,
+  CaretRight,
+  ChartBar,
   Wrench,
-  LayoutDashboard,
+  SquaresFour,
   Images,
-} from 'lucide-react-native';
+} from 'phosphor-react-native';
 
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -97,7 +96,7 @@ export default function ProfileScreen() {
   const menuItems = [
     ...(isProvider
       ? [
-          { icon: BarChart3, label: t('profile.dashboard'), route: '/provider/dashboard' },
+          { icon: ChartBar, label: t('profile.dashboard'), route: '/provider/dashboard' },
           { icon: Wrench, label: t('profile.myServices'), route: '/provider/services' },
           { icon: Images, label: t('service.portfolio'), route: '/portfolio' },
         ]
@@ -105,9 +104,9 @@ export default function ProfileScreen() {
     { icon: Shield, label: t('profile.verification'), route: '/verification' },
     { icon: Crown, label: t('profile.premium'), route: '/premium' },
     ...(isAdmin
-      ? [{ icon: LayoutDashboard, label: 'Administration', route: '/admin' }]
+      ? [{ icon: SquaresFour, label: 'Administration', route: '/admin' }]
       : []),
-    { icon: Settings, label: t('profile.settings'), route: '/settings' },
+    { icon: Gear, label: t('profile.settings'), route: '/settings' },
   ];
 
   return (
@@ -228,7 +227,7 @@ export default function ProfileScreen() {
               <Text style={{ flex: 1, fontSize: 15, color: colors.ink, marginLeft: 12 }}>
                 {item.label}
               </Text>
-              <ChevronRight size={18} color={colors.muted} />
+              <CaretRight size={18} color={colors.muted} />
             </Pressable>
           ))}
 
@@ -252,10 +251,10 @@ export default function ProfileScreen() {
           </Pressable>
 
           <Button
-            title={t('auth.logout')}
+            title={t('auth.SignOut')}
             variant="outline"
             onPress={signOut}
-            icon={<LogOut size={18} color={colors.error} />}
+            icon={<SignOut size={18} color={colors.error} />}
             fullWidth
             style={{ marginTop: 16, borderColor: colors.error }}
           />

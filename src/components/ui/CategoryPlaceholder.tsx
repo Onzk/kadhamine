@@ -1,6 +1,6 @@
 import React from 'react';
 import { View } from 'react-native';
-import { Wrench } from 'lucide-react-native';
+import { Wrench } from 'phosphor-react-native';
 import { useAppTheme } from '@/providers/ThemeProvider';
 
 interface CategoryPlaceholderProps {
@@ -12,7 +12,7 @@ export function CategoryPlaceholder({ size = 40 }: CategoryPlaceholderProps) {
 
   return (
     <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-      <Wrench size={size} color={colors.muted} strokeWidth={1.5} />
+      <Wrench size={size} color={colors.muted} />
     </View>
   );
 }

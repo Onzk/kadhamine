@@ -1,3 +1,7 @@
+> **Superseded for TalentTchad UI.** This file documents an older Cohere-inspired exploration.
+> The active design system is defined in [`docs/CDC.md`](docs/CDC.md) §9 and implemented in `src/theme/tokens.ts`
+> (logo palette + patterns from `docs/design.png`). Do not use this file for new UI work.
+
 ## Overview
 
 Cohere's current web presence feels like a sober enterprise AI command center with editorial restraint. The home page opens on a huge typographic declaration over a white canvas, then uses photography, dark product mockups, trust logos, and generous empty space to make AI infrastructure feel controlled rather than speculative. Product pages invert the tone into deep green-black or dark navy bands, while blog and research pages move toward publishing-system clarity: large filters, thin rules, dense lists, and pale technical backgrounds.

@@ -1,22 +1,43 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Pressable,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
+import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
+import * as ImagePicker from 'expo-image-picker';
+import { Camera, Image as ImageIcon } from 'phosphor-react-native';
 import type { Id } from '../../../convex/_generated/dataModel';
 
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Button } from '@/components/ui/Button';
+import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
+import { useUpload } from '@/hooks/useUpload';
 import { api } from '../../../convex/_generated/api';
+
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 export default function ChatScreen() {
   const { conversationId } = useLocalSearchParams<{ conversationId: string }>();
   const { t } = useTranslation();
   const { colors } = useAppTheme();
+  const { user } = useAuth();
+  const { uploadFromUri } = useUpload();
 
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const messages = useQuery(api.messages.getMessages, {
     conversationId: conversationId as Id<'conversations'>,
@@ -28,7 +49,7 @@ export default function ChatScreen() {
     if (conversationId) {
       markRead({ conversationId: conversationId as Id<'conversations'> }).catch(() => {});
     }
-  }, [conversationId, markRead]);
+  }, [conversationId, markRead, messages?.length]);
 
   const handleSend = async () => {
     if (!message.trim() || !conversationId) return;
@@ -37,10 +58,64 @@ export default function ChatScreen() {
       await sendMessage({
         conversationId: conversationId as Id<'conversations'>,
         content: message.trim(),
+        type: 'text',
       });
       setMessage('');
     } finally {
       setSending(false);
+    }
+  };
+
+  const pickAndSendImage = async (source: 'camera' | 'library') => {
+    if (!conversationId) return;
+
+    const permission =
+      source === 'camera'
+        ? await ImagePicker.requestCameraPermissionsAsync()
+        : await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permission.granted) {
+      Alert.alert('Permission requise', 'Autorisez l\'accès à la caméra ou à la galerie.');
+      return;
+    }
+
+    const result =
+      source === 'camera'
+        ? await ImagePicker.launchCameraAsync({
+            mediaTypes: ['images'],
+            quality: 0.8,
+          })
+        : await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'],
+            quality: 0.8,
+          });
+
+    if (result.canceled || !result.assets[0]) return;
+
+    const asset = result.assets[0];
+    const mimeType = asset.mimeType ?? 'image/jpeg';
+    if (!ALLOWED_TYPES.includes(mimeType)) {
+      Alert.alert('Format non supporté', 'Utilisez JPEG, PNG ou WebP.');
+      return;
+    }
+    if (asset.fileSize && asset.fileSize > MAX_IMAGE_BYTES) {
+      Alert.alert('Fichier trop volumineux', 'Taille maximale : 5 Mo.');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const storageId = await uploadFromUri(asset.uri, mimeType);
+      await sendMessage({
+        conversationId: conversationId as Id<'conversations'>,
+        content: 'Image',
+        type: 'image',
+        storageId,
+      });
+    } catch (err) {
+      Alert.alert('Erreur', err instanceof Error ? err.message : 'Envoi impossible');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -53,26 +128,40 @@ export default function ChatScreen() {
         style={{ flex: 1 }}
         keyboardVerticalOffset={0}
       >
-        <View style={{ flex: 1, padding: 16 }}>
-          {messages?.map((msg) => (
-            <View
-              key={msg._id}
-              style={{
-                alignSelf: 'flex-start',
-                backgroundColor: colors.surfaceCard,
-                borderRadius: 16,
-                borderBottomLeftRadius: 4,
-                padding: 12,
-                marginBottom: 8,
-                maxWidth: '80%',
-                borderWidth: 1,
-                borderColor: colors.border,
-              }}
-            >
-              <Text style={{ fontSize: 15, color: colors.ink }}>{msg.content}</Text>
-            </View>
-          ))}
-        </View>
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 8 }}>
+          {messages?.map((msg) => {
+            const mine = msg.senderId === user?._id;
+            return (
+              <View
+                key={msg._id}
+                style={{
+                  alignSelf: mine ? 'flex-end' : 'flex-start',
+                  backgroundColor: mine ? colors.primary : colors.surfaceCard,
+                  borderRadius: 16,
+                  borderBottomRightRadius: mine ? 4 : 16,
+                  borderBottomLeftRadius: mine ? 16 : 4,
+                  padding: 12,
+                  marginBottom: 8,
+                  maxWidth: '80%',
+                  borderWidth: mine ? 0 : 1,
+                  borderColor: colors.border,
+                }}
+              >
+                {msg.type === 'image' && msg.mediaUrl ? (
+                  <Image
+                    source={{ uri: msg.mediaUrl }}
+                    style={{ width: 200, height: 200, borderRadius: 12 }}
+                    contentFit="cover"
+                  />
+                ) : (
+                  <Text style={{ fontSize: 15, color: mine ? colors.onPrimary : colors.ink }}>
+                    {msg.content}
+                  </Text>
+                )}
+              </View>
+            );
+          })}
+        </ScrollView>
 
         <View
           style={{
@@ -82,8 +171,27 @@ export default function ChatScreen() {
             borderTopWidth: 1,
             borderTopColor: colors.border,
             backgroundColor: colors.canvas,
+            alignItems: 'center',
           }}
         >
+          <Pressable
+            onPress={() => pickAndSendImage('library')}
+            disabled={uploading}
+            style={{ padding: 8 }}
+          >
+            {uploading ? (
+              <ActivityIndicator color={colors.primary} />
+            ) : (
+              <ImageIcon size={22} color={colors.ink} />
+            )}
+          </Pressable>
+          <Pressable
+            onPress={() => pickAndSendImage('camera')}
+            disabled={uploading}
+            style={{ padding: 8 }}
+          >
+            <Camera size={22} color={colors.ink} />
+          </Pressable>
           <TextInput
             value={message}
             onChangeText={setMessage}

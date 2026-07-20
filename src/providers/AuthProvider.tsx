@@ -2,6 +2,7 @@ import React, { createContext, useContext } from 'react';
 import { useQuery } from 'convex/react';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { api } from '../../convex/_generated/api';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 interface AuthContextValue {
   user: ReturnType<typeof useQuery<typeof api.users.current>> | undefined;
@@ -18,6 +19,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const isLoading = user === undefined;
   const isAuthenticated = user !== null && user !== undefined;
+
+  usePushNotifications(isAuthenticated);
 
   const signOut = async () => {
     await authSignOut();

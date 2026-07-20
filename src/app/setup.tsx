@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Cloud } from 'lucide-react-native';
+import { Cloud } from 'phosphor-react-native';
 
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useAppTheme } from '@/providers/ThemeProvider';
@@ -23,7 +23,7 @@ export default function SetupScreen() {
             borderColor: colors.border,
           }}
         >
-          <Cloud size={40} color={colors.primary} strokeWidth={1.5} style={{ marginBottom: 16 }} />
+          <Cloud size={40} color={colors.primary} style={{ marginBottom: 16 }} />
           <Text style={{ fontSize: 18, fontWeight: '600', color: colors.ink, marginBottom: 12 }}>
             {t('setup.convex')}
           </Text>

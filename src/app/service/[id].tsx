@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
 import { Image } from 'expo-image';
-import { BadgeCheck, MessageCircle, Star } from 'lucide-react-native';
+import { ChatCircleDots } from 'phosphor-react-native';
 import type { Id } from '../../../convex/_generated/dataModel';
 
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -197,7 +197,7 @@ export default function ServiceDetailScreen() {
           title={t('service.contact')}
           variant="outline"
           onPress={handleContact}
-          icon={<MessageCircle size={18} color={colors.primary} />}
+          icon={<ChatCircleDots size={18} color={colors.primary} />}
           style={{ flex: 1 }}
         />
         <Button title={t('service.order')} onPress={handleOrder} style={{ flex: 1 }} />

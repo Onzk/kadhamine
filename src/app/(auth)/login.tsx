@@ -8,13 +8,12 @@ import {
   Pressable,
   Switch,
   Alert,
-  Image,
 } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAuthActions } from '@convex-dev/auth/react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft } from 'phosphor-react-native';
 
 import {
   AuthField,
@@ -25,6 +24,7 @@ import {
   GoogleIcon,
   AppleIcon,
 } from '@/components/auth/AuthField';
+import { Logo } from '@/components/brand/Logo';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { Radius, Spacing } from '@/theme/tokens';
 import { textStyle } from '@/theme/typography';
@@ -122,11 +122,7 @@ export default function LoginScreen() {
         </Pressable>
 
         <View style={{ alignItems: 'center', marginBottom: Spacing.eight }}>
-          <Image
-            source={require('@/assets/images/logo.png')}
-            style={{ width: 80, height: 80 }}
-            resizeMode="contain"
-          />
+          <Logo size={72} />
         </View>
 
         <Text style={[textStyle('productDisplay'), { color: colors.ink, marginBottom: Spacing.three }]}>

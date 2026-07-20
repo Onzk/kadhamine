@@ -8,7 +8,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { useAppTheme } from '@/providers/ThemeProvider';
-import { fontFamily, textStyle } from '@/theme/typography';
+import { textStyle } from '@/theme/typography';
 import { Radius } from '@/theme/tokens';
 
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'accent' | 'link';

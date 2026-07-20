@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, Pressable } from 'react-native';
+import { View, Text, ScrollView } from 'react-native';
 import { useQuery, useMutation } from 'convex/react';
 
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -18,9 +18,14 @@ export default function AdminUsersScreen() {
     status: filter === 'all' ? undefined : filter,
   });
   const updateStatus = useMutation(api.admin.updateUserStatus);
+  const setPremium = useMutation(api.admin.setPremium);
 
   const handleStatus = async (userId: Id<'users'>, status: 'active' | 'rejected' | 'suspended') => {
     await updateStatus({ userId, status });
+  };
+
+  const handlePremium = async (userId: Id<'users'>, isPremium: boolean) => {
+    await setPremium({ userId, isPremium });
   };
 
   return (
@@ -57,10 +62,16 @@ export default function AdminUsersScreen() {
               </Text>
               <Badge label={user.role ?? '?'} />
             </View>
-            <Text style={{ fontSize: 13, color: colors.muted, marginBottom: 12 }}>{user.email}</Text>
+            <Text style={{ fontSize: 13, color: colors.muted, marginBottom: 8 }}>{user.email}</Text>
+            {profile && (
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+                {profile.isVerified ? <Badge label="Vérifié" variant="verified" /> : null}
+                {profile.isPremium ? <Badge label="Premium" variant="premium" /> : null}
+              </View>
+            )}
 
             {user.status === 'pending' && user.role === 'provider' && (
-              <View style={{ flexDirection: 'row', gap: 8 }}>
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
                 <Button title="Valider" onPress={() => handleStatus(user._id, 'active')} style={{ flex: 1 }} />
                 <Button
                   title="Refuser"
@@ -76,6 +87,15 @@ export default function AdminUsersScreen() {
                 title="Suspendre"
                 variant="outline"
                 onPress={() => handleStatus(user._id, 'suspended')}
+                style={{ marginBottom: 8 }}
+              />
+            )}
+
+            {user.role === 'provider' && profile && (
+              <Button
+                title={profile.isPremium ? 'Retirer Premium' : 'Activer Premium'}
+                variant={profile.isPremium ? 'outline' : 'accent'}
+                onPress={() => handlePremium(user._id, !profile.isPremium)}
               />
             )}
           </View>

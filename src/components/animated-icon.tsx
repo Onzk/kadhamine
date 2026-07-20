@@ -1,8 +1,8 @@
-import { Image } from 'expo-image';
 import { useEffect, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import Animated, { Easing, FadeIn, FadeOut } from 'react-native-reanimated';
 
+import { Logo } from '@/components/brand/Logo';
 import { useAppTheme } from '@/providers/ThemeProvider';
 
 const DURATION = 1200;
@@ -24,11 +24,7 @@ export function AnimatedSplashOverlay() {
       style={[styles.overlay, { backgroundColor: colors.canvas }]}
     >
       <Animated.View entering={FadeIn.duration(450).easing(Easing.out(Easing.cubic))} style={styles.logoWrap}>
-        <Image
-          source={require('@/assets/images/logo.png')}
-          style={styles.logo}
-          contentFit="contain"
-        />
+        <Logo size={120} />
       </Animated.View>
     </Animated.View>
   );
@@ -46,9 +42,5 @@ const styles = StyleSheet.create({
     height: 160,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  logo: {
-    width: 140,
-    height: 140,
   },
 });

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text, ScrollView, Alert, TextInput } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { useQuery, useMutation } from 'convex/react';
-import { Crown, Check } from 'lucide-react-native';
+import { useQuery, useMutation, useAction } from 'convex/react';
+import * as WebBrowser from 'expo-web-browser';
+import { Crown, Check } from 'phosphor-react-native';
 
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Button } from '@/components/ui/Button';
@@ -17,10 +18,12 @@ export default function PremiumScreen() {
   const { colors } = useAppTheme();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState('');
 
   const plans = useQuery(api.subscriptions.getPlans);
   const active = useQuery(api.subscriptions.getActive);
-  const subscribe = useMutation(api.subscriptions.subscribe);
+  const createPending = useMutation(api.subscriptions.createPending);
+  const createPremiumTx = useAction(api.fedapay.createPremiumTransaction);
   const expireCheck = useMutation(api.subscriptions.expireCheck);
 
   React.useEffect(() => {
@@ -28,16 +31,47 @@ export default function PremiumScreen() {
   }, [user?._id, expireCheck]);
 
   const handleSubscribe = async () => {
+    if (!phoneNumber.trim()) {
+      Alert.alert('Numéro requis', 'Entrez votre numéro Mobile Money pour payer via FedaPay.');
+      return;
+    }
+
     setLoading(true);
     try {
-      await subscribe({ paymentReference: `PREMIUM-${Date.now()}` });
+      const subscriptionId = await createPending({});
+      const result = await createPremiumTx({
+        subscriptionId,
+        amount: plans?.premium.price ?? 5000,
+        phoneNumber: phoneNumber.trim(),
+        method: 'fedapay',
+        customerEmail: user?.email ?? undefined,
+        customerName: user?.profile
+          ? `${user.profile.firstName} ${user.profile.lastName}`
+          : user?.name ?? undefined,
+      });
+
+      if (result.paymentUrl) {
+        await WebBrowser.openBrowserAsync(result.paymentUrl);
+        Alert.alert(
+          'Paiement en cours',
+          'Confirmez le paiement. Votre Premium sera activé automatiquement.',
+        );
+      } else if (result.sandbox) {
+        Alert.alert(
+          'Mode sandbox',
+          result.message ?? 'Premium activé en mode sandbox local.',
+        );
+      }
+    } catch (err) {
+      Alert.alert('Erreur', err instanceof Error ? err.message : 'Échec abonnement');
     } finally {
       setLoading(false);
     }
   };
 
   const plan = plans?.premium;
-  const isActive = active && active.endDate > Date.now();
+  const [now] = React.useState(() => Date.now());
+  const isActive = Boolean(active && active.endDate > now);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.canvas }}>
@@ -46,25 +80,14 @@ export default function PremiumScreen() {
       <ScrollView contentContainerStyle={{ padding: 16 }}>
         <View
           style={{
-            backgroundColor: BrandColors.enterpriseGreen,
-            borderRadius: 20,
+            backgroundColor: BrandColors.blue,
+            borderRadius: 24,
             padding: 24,
             marginBottom: 24,
             overflow: 'hidden',
           }}
         >
-          <View
-            style={{
-              position: 'absolute',
-              right: -30,
-              top: -30,
-              width: 120,
-              height: 120,
-              borderRadius: 60,
-              backgroundColor: BrandColors.coral + '40',
-            }}
-          />
-          <Crown size={40} color={BrandColors.coral} />
+          <Crown size={40} color={BrandColors.gold} weight="fill" />
           <Text style={{ fontSize: 26, fontWeight: '700', color: '#FFFFFF', marginTop: 12 }}>
             TalentTchad Premium
           </Text>
@@ -72,7 +95,7 @@ export default function PremiumScreen() {
             Boostez votre visibilité et attirez plus de clients
           </Text>
           {plan && (
-            <Text style={{ fontSize: 32, fontWeight: '700', color: BrandColors.coral, marginTop: 16 }}>
+            <Text style={{ fontSize: 32, fontWeight: '700', color: BrandColors.gold, marginTop: 16 }}>
               {formatPrice(plan.price)}
               <Text style={{ fontSize: 14, fontWeight: '400' }}> / mois</Text>
             </Text>
@@ -90,12 +113,12 @@ export default function PremiumScreen() {
               borderColor: colors.success + '40',
             }}
           >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Check size={18} color={colors.success} />
-            <Text style={{ color: colors.success, fontWeight: '600', flex: 1 }}>
-              Premium actif jusqu'au {new Date(active.endDate).toLocaleDateString('fr-FR')}
-            </Text>
-          </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Check size={18} color={colors.success} />
+              <Text style={{ color: colors.success, fontWeight: '600', flex: 1 }}>
+                Premium actif jusqu&apos;au {new Date(active.endDate).toLocaleDateString('fr-FR')}
+              </Text>
+            </View>
           </View>
         )}
 
@@ -110,12 +133,12 @@ export default function PremiumScreen() {
                 width: 28,
                 height: 28,
                 borderRadius: 14,
-                backgroundColor: BrandColors.coral + '30',
+                backgroundColor: BrandColors.gold + '40',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <Check size={16} color={BrandColors.enterpriseGreen} />
+              <Check size={16} color={BrandColors.blue} weight="bold" />
             </View>
             <Text style={{ fontSize: 15, color: colors.body, flex: 1 }}>{benefit}</Text>
           </View>
@@ -126,14 +149,35 @@ export default function PremiumScreen() {
             Réservé aux prestataires
           </Text>
         ) : !isActive ? (
-          <Button
-            title="S'abonner Premium"
-            variant="accent"
-            onPress={handleSubscribe}
-            loading={loading}
-            fullWidth
-            style={{ marginTop: 24 }}
-          />
+          <View style={{ marginTop: 24 }}>
+            <Text style={{ fontSize: 13, color: colors.muted, marginBottom: 8 }}>
+              Numéro Mobile Money (FedaPay)
+            </Text>
+            <TextInput
+              value={phoneNumber}
+              onChangeText={setPhoneNumber}
+              keyboardType="phone-pad"
+              placeholder="66 XX XX XX"
+              placeholderTextColor={colors.muted}
+              style={{
+                backgroundColor: colors.surfaceCard,
+                borderRadius: 14,
+                borderWidth: 1,
+                borderColor: colors.border,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                color: colors.ink,
+                marginBottom: 16,
+              }}
+            />
+            <Button
+              title="S'abonner Premium"
+              variant="accent"
+              onPress={handleSubscribe}
+              loading={loading}
+              fullWidth
+            />
+          </View>
         ) : null}
       </ScrollView>
     </View>

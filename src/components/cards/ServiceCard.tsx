@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import { Image } from 'expo-image';
-import { Star, BadgeCheck, Crown } from 'lucide-react-native';
+import { Star, SealCheck, Crown, MapPin } from 'phosphor-react-native';
 import { useTranslation } from 'react-i18next';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { Card } from '@/components/ui/Card';
@@ -42,15 +42,16 @@ export function ServiceCard({
 }: ServiceCardProps) {
   const { colors } = useAppTheme();
   const { t } = useTranslation();
+  const ratingColor = colors.rating ?? colors.accentSoft;
 
   return (
     <Card onPress={onPress} padded={false} variant="stone" style={{ marginBottom: Spacing.three }}>
       <View
         style={{
-          height: 140,
-          backgroundColor: colors.canvasSoft,
-          borderTopLeftRadius: Radius.lg,
-          borderTopRightRadius: Radius.lg,
+          height: 160,
+          backgroundColor: colors.surfaceStrong,
+          borderTopLeftRadius: Radius.xl,
+          borderTopRightRadius: Radius.xl,
           overflow: 'hidden',
         }}
       >
@@ -61,46 +62,70 @@ export function ServiceCard({
             <CategoryPlaceholder size={40} />
           </View>
         )}
+
+        {/* Badge note overlay — pattern design.png */}
+        <View
+          style={{
+            position: 'absolute',
+            top: Spacing.twoHalf,
+            right: Spacing.twoHalf,
+            backgroundColor: colors.canvas,
+            borderRadius: Radius.pill,
+            paddingHorizontal: Spacing.twoHalf,
+            paddingVertical: Spacing.one,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 4,
+          }}
+        >
+          <Star size={12} color={ratingColor} weight="fill" />
+          <Text style={[textStyle('micro'), { color: colors.ink, fontWeight: '700' }]}>
+            {formatRating(rating)}
+          </Text>
+        </View>
+
         {isPremium && (
           <View
             style={{
               position: 'absolute',
-              top: Spacing.two,
-              right: Spacing.two,
+              top: Spacing.twoHalf,
+              left: Spacing.twoHalf,
               backgroundColor: colors.accent,
-              borderRadius: Radius.sm,
-              paddingHorizontal: Spacing.two,
+              borderRadius: Radius.pill,
+              paddingHorizontal: Spacing.twoHalf,
               paddingVertical: Spacing.one,
               flexDirection: 'row',
               alignItems: 'center',
-              gap: Spacing.one,
+              gap: 4,
             }}
           >
-            <Crown size={12} color={colors.onAccent} />
+            <Crown size={12} color={colors.onAccent} weight="fill" />
             <Text style={[textStyle('micro'), { color: colors.onAccent }]}>{t('common.premium')}</Text>
           </View>
         )}
       </View>
 
       <View style={{ padding: Spacing.four }}>
-        <Text numberOfLines={1} style={[textStyle('featureHeading'), { color: colors.ink, marginBottom: Spacing.one }]}>
-          {title}
-        </Text>
-        <Text numberOfLines={2} style={[textStyle('caption'), { color: colors.body, marginBottom: Spacing.twoHalf }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: Spacing.one }}>
+          <Text numberOfLines={1} style={[textStyle('featureHeading'), { color: colors.ink, flex: 1 }]}>
+            {title}
+          </Text>
+          {isVerified ? <SealCheck size={18} color={colors.accentSoft} weight="fill" /> : null}
+        </View>
+
+        <Text numberOfLines={2} style={[textStyle('caption'), { color: colors.muted, marginBottom: Spacing.twoHalf }]}>
           {description}
         </Text>
 
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.oneHalf }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-              <Star size={14} color={colors.accent} fill={colors.accent} />
-              <Text style={[textStyle('caption'), { color: colors.ink }]}>{formatRating(rating)}</Text>
-              <Text style={[textStyle('micro'), { color: colors.muted }]}>({reviewCount})</Text>
-            </View>
-            {isVerified && <BadgeCheck size={14} color={colors.link} />}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <MapPin size={14} color={colors.muted} />
+            <Text style={[textStyle('micro'), { color: colors.muted }]}>
+              {providerName} · {city}
+            </Text>
           </View>
 
-          <Text style={[textStyle('body'), { color: colors.ink }]}>
+          <Text style={[textStyle('body'), { color: colors.primary, fontWeight: '700' }]}>
             {pricingType === 'negotiable'
               ? t('common.negotiable')
               : price
@@ -109,9 +134,11 @@ export function ServiceCard({
           </Text>
         </View>
 
-        <Text style={[textStyle('micro'), { color: colors.muted, marginTop: Spacing.oneHalf }]}>
-          {providerName} · {city}
-        </Text>
+        {reviewCount > 0 ? (
+          <Text style={[textStyle('micro'), { color: colors.slate, marginTop: Spacing.one }]}>
+            {reviewCount} avis
+          </Text>
+        ) : null}
       </View>
     </Card>
   );

@@ -3,13 +3,14 @@ import { View, Text, ScrollView, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from 'convex/react';
 import {
-  Users,
-  AlertTriangle,
+  UsersThree,
+  Warning,
   CreditCard,
   Shield,
   Star,
-  ChevronRight,
-} from 'lucide-react-native';
+  CaretRight,
+  Gear,
+} from 'phosphor-react-native';
 
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { useAppTheme } from '@/providers/ThemeProvider';
@@ -23,11 +24,12 @@ export default function AdminDashboard() {
   const stats = useQuery(api.admin.dashboard);
 
   const menu = [
-    { icon: Users, label: 'Utilisateurs', route: '/admin/users', badge: stats?.pendingProviders },
+    { icon: UsersThree, label: 'Utilisateurs', route: '/admin/users', badge: stats?.pendingProviders },
     { icon: Shield, label: 'Vérifications', route: '/admin/verifications', badge: stats?.pendingVerifications },
-    { icon: AlertTriangle, label: 'Litiges', route: '/admin/reports', badge: stats?.openReports },
+    { icon: Warning, label: 'Litiges', route: '/admin/reports', badge: stats?.openReports },
     { icon: Star, label: 'Modération avis', route: '/admin/reviews' },
     { icon: CreditCard, label: 'Paiements', route: '/admin/payments' },
+    { icon: Gear, label: 'Paramètres', route: '/admin/settings' },
   ];
 
   return (
@@ -37,8 +39,8 @@ export default function AdminDashboard() {
       <ScrollView contentContainerStyle={{ padding: 16 }}>
         <View
           style={{
-            backgroundColor: BrandColors.enterpriseGreen,
-            borderRadius: 16,
+            backgroundColor: BrandColors.blue,
+            borderRadius: 24,
             padding: 20,
             marginBottom: 20,
           }}
@@ -47,7 +49,7 @@ export default function AdminDashboard() {
           <Text style={{ color: '#FFFFFF', fontSize: 28, fontWeight: '700', marginTop: 4 }}>
             {formatPrice(stats?.totalRevenue ?? 0)}
           </Text>
-          <Text style={{ color: BrandColors.coral, fontSize: 13, marginTop: 8 }}>
+          <Text style={{ color: BrandColors.gold, fontSize: 13, marginTop: 8 }}>
             Volume: {formatPrice(stats?.totalVolume ?? 0)}
           </Text>
         </View>
@@ -92,7 +94,18 @@ export default function AdminDashboard() {
               opacity: pressed ? 0.9 : 1,
             })}
           >
-            <item.icon size={20} color={colors.primary} />
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: colors.iconWash,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <item.icon size={20} color={colors.primary} />
+            </View>
             <Text style={{ flex: 1, marginLeft: 12, fontSize: 15, fontWeight: '500', color: colors.ink }}>
               {item.label}
             </Text>
@@ -109,7 +122,7 @@ export default function AdminDashboard() {
                 <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '700' }}>{item.badge}</Text>
               </View>
             ) : null}
-            <ChevronRight size={18} color={colors.muted} />
+            <CaretRight size={18} color={colors.muted} />
           </Pressable>
         ))}
       </ScrollView>

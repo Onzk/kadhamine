@@ -1,11 +1,7 @@
 import { v } from 'convex/values';
 import { mutation, query } from './_generated/server';
-import {
-  requireAuth,
-  createNotification,
-  PLATFORM_COMMISSION_RATE,
-  now,
-} from './lib';
+import { requireAuth, createNotification, now } from './lib';
+import { readCommissionRate } from './settings';
 
 export const initiate = mutation({
   args: {
@@ -28,7 +24,8 @@ export const initiate = mutation({
 
     const isOffPlatform = args.method === 'off_platform';
     const amount = order.agreedPrice ?? 0;
-    const commission = isOffPlatform ? 0 : Math.round(amount * PLATFORM_COMMISSION_RATE);
+    const commissionRate = await readCommissionRate(ctx);
+    const commission = isOffPlatform ? 0 : Math.round(amount * commissionRate);
     const providerAmount = amount - commission;
     const timestamp = now();
 

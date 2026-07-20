@@ -24,10 +24,10 @@ export function Input({ label, error, leftIcon, style, ...props }: InputProps) {
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          backgroundColor: colors.surface,
+          backgroundColor: colors.surfaceStrong,
           borderWidth: 1,
-          borderColor: error ? colors.error : colors.borderHairline,
-          borderRadius: Radius.sm,
+          borderColor: error ? colors.error : colors.border,
+          borderRadius: Radius.md,
           paddingHorizontal: Spacing.four,
           minHeight: 48,
         }}

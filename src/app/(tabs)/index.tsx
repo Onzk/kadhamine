@@ -1,10 +1,9 @@
 import React, { useEffect } from 'react';
-import { View, Pressable, TextInput, ScrollView } from 'react-native';
+import { View, Pressable, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
-import { FlashList } from '@shopify/flash-list';
-import { Search, Bell, Moon, Sun, MapPin, Hand, Wrench } from 'lucide-react-native';
+import { MagnifyingGlass, Bell, Moon, Sun, MapPin, HandWaving, Wrench } from 'phosphor-react-native';
 
 import { ServiceCard } from '@/components/cards/ServiceCard';
 import { CategoryChip } from '@/components/ui/CategoryChip';
@@ -44,7 +43,7 @@ export default function HomeScreen() {
               <Text style={{ color: colors.ink }} variant="cardHeading" display>
                 {firstName || 'TalentTchad'}
               </Text>
-              <Hand size={22} color={colors.accent} style={{ marginLeft: 6 }} />
+              <HandWaving size={22} color={colors.accent} style={{ marginLeft: 6 }} />
             </View>
           </View>
           <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -101,16 +100,16 @@ export default function HomeScreen() {
           style={{
             flexDirection: 'row',
             alignItems: 'center',
-            backgroundColor: colors.surfaceCard,
-            borderRadius: Radius.sm,
+            backgroundColor: colors.surfaceStrong,
+            borderRadius: Radius.pill,
             paddingHorizontal: Spacing.four,
             height: 48,
             borderWidth: 1,
-            borderColor: colors.borderHairline,
+            borderColor: colors.border,
             gap: 10,
           }}
         >
-          <Search size={18} color={colors.muted} />
+          <MagnifyingGlass size={18} color={colors.muted} />
           <Text style={{ color: colors.muted, fontSize: 15 }}>{t('home.searchPlaceholder')}</Text>
         </Pressable>
       </View>
@@ -119,9 +118,9 @@ export default function HomeScreen() {
         <View
           style={{
             marginHorizontal: Spacing.four,
-            marginBottom: Spacing.five,
-            backgroundColor: BrandColors.enterpriseGreen,
-            borderRadius: Radius.lg,
+            marginBottom: Spacing.three,
+            backgroundColor: BrandColors.blue,
+            borderRadius: Radius.xl,
             padding: Spacing.five,
           }}
         >
@@ -129,8 +128,30 @@ export default function HomeScreen() {
             {t('payment.integratedBenefit')}
           </Text>
           <Text style={[textStyle('caption'), { color: '#ffffffcc', lineHeight: 19.6 }]}>
-            {t('payment.offPlatformWarning')}
+            Payez via FedaPay pour débloquer les avis officiels et sécuriser la prestation.
           </Text>
+        </View>
+
+        <View
+          style={{
+            marginHorizontal: Spacing.four,
+            marginBottom: Spacing.five,
+            backgroundColor: BrandColors.crimson,
+            borderRadius: Radius.xl,
+            padding: Spacing.five,
+          }}
+        >
+          <Text style={[textStyle('featureHeading'), { color: '#FFFFFF', marginBottom: Spacing.oneHalf }]}>
+            Passez Premium
+          </Text>
+          <Text style={[textStyle('caption'), { color: '#ffffffcc', lineHeight: 19.6 }]}>
+            Badge Premium + mise en avant dans les recherches pour les prestataires.
+          </Text>
+          <Pressable onPress={() => router.push('/premium')} style={{ marginTop: 12 }}>
+            <Text style={{ color: BrandColors.gold, fontWeight: '700', fontSize: 14 }}>
+              Découvrir →
+            </Text>
+          </Pressable>
         </View>
 
         <View style={{ marginBottom: 20 }}>
@@ -181,7 +202,7 @@ export default function HomeScreen() {
             </>
           ) : featured.length === 0 ? (
             <View style={{ alignItems: 'center', paddingVertical: 32 }}>
-              <Wrench size={40} color={colors.muted} strokeWidth={1.5} />
+              <Wrench size={40} color={colors.muted} />
               <Text style={{ color: colors.muted, textAlign: 'center', marginTop: 12 }}>
                 Aucun service pour le moment.{'\n'}Soyez le premier prestataire !
               </Text>

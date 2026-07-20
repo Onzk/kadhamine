@@ -15,7 +15,11 @@ http.route({
     const signature = request.headers.get('X-FEDAPAY-SIGNATURE');
     const webhookSecret = process.env.FEDAPAY_WEBHOOK_SECRET;
 
-    if (webhookSecret && signature) {
+    // Si le secret est configuré, la signature est obligatoire
+    if (webhookSecret) {
+      if (!signature) {
+        return new Response('Missing signature', { status: 401 });
+      }
       const encoder = new TextEncoder();
       const key = await crypto.subtle.importKey(
         'raw',
@@ -39,7 +43,11 @@ http.route({
         id?: number;
         status?: string;
         reference?: string;
-        custom_metadata?: { payment_id?: string };
+        custom_metadata?: {
+          payment_id?: string;
+          subscription_id?: string;
+          purpose?: string;
+        };
       };
     };
 

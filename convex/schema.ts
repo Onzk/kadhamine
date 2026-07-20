@@ -35,10 +35,8 @@ const pricingType = v.union(
 const orderStatus = v.union(
   v.literal('pending'),
   v.literal('accepted'),
-  v.literal('in_progress'),
   v.literal('completed'),
   v.literal('cancelled'),
-  v.literal('rejected'),
 );
 
 const paymentMethod = v.union(
@@ -311,7 +309,8 @@ export default defineSchema({
     .index('by_client', ['clientId'])
     .index('by_provider', ['providerId'])
     .index('by_status', ['status'])
-    .index('by_method', ['method']),
+    .index('by_method', ['method'])
+    .index('by_fedapay_reference', ['fedapayReference']),
 
   reviews: defineTable({
     orderId: v.id('orders'),
@@ -392,6 +391,7 @@ export default defineSchema({
     profileId: v.id('profiles'),
     plan: v.literal('premium'),
     status: v.union(
+      v.literal('pending'),
       v.literal('active'),
       v.literal('expired'),
       v.literal('cancelled'),
@@ -401,12 +401,15 @@ export default defineSchema({
     amount: v.number(),
     currency: v.string(),
     paymentId: v.optional(v.id('payments')),
+    fedapayTransactionId: v.optional(v.string()),
+    fedapayReference: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index('by_user', ['userId'])
     .index('by_profile', ['profileId'])
-    .index('by_status', ['status']),
+    .index('by_status', ['status'])
+    .index('by_fedapay_reference', ['fedapayReference']),
 
   verificationRequests: defineTable({
     userId: v.id('users'),

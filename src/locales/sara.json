@@ -24,7 +24,8 @@
     "premium": "Premium",
     "available": "Kəla",
     "busy": "Kəla",
-    "unavailable": "Kəla fɔl"
+    "unavailable": "Kəla fɔl",
+    "all": "Kəla kəla"
   },
   "auth": {
     "login": "Kəla sɔ",
@@ -39,6 +40,12 @@
     "signUp": "Kəla səgə",
     "signIn": "Kəla sɔ",
     "welcomeBack": "Kəla!",
+    "loginSubtitle": "Kəla email ka password ge mbi kəla compte, commander ka avis.",
+    "rememberMe": "Kəla mbi",
+    "continueWithoutAccount": "Kəla sans compte",
+    "forgotPasswordSoon": "Reset password kəla sɔ bientôt.",
+    "guestTitle": "Espace mbi",
+    "guestSubtitle": "Kəla talent libre. Connecte pour commander, chat ka avis.",
     "createAccount": "Kəla səgə",
     "chooseRole": "Mbi...",
     "client": "Kəla",

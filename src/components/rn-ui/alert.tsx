@@ -1,7 +1,7 @@
-import { Icon } from '@/components/rn-ui/icon';
+import { Icon as IconView } from '@/components/rn-ui/icon';
 import { Text, TextClassContext } from '@/components/rn-ui/text';
 import { cn } from '@/lib/utils';
-import type { LucideIcon } from 'lucide-react-native';
+import type { Icon as PhosphorIcon } from 'phosphor-react-native';
 import * as React from 'react';
 import { View } from 'react-native';
 
@@ -13,7 +13,7 @@ function Alert({
   iconClassName,
   ...props
 }: React.ComponentProps<typeof View> & React.RefAttributes<View> & {
-  icon: LucideIcon;
+  icon: PhosphorIcon;
   variant?: 'default' | 'destructive';
   iconClassName?: string;
 }) {
@@ -32,7 +32,7 @@ function Alert({
         )}
         {...props}>
         <View className="absolute left-3.5 top-3">
-          <Icon
+          <IconView
             as={icon}
             className={cn('size-4', variant === 'destructive' && 'text-destructive', iconClassName)}
           />

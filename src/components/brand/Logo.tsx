@@ -1,0 +1,50 @@
+import React from 'react';
+import Svg, { Circle, Path } from 'react-native-svg';
+import { View, type ViewStyle } from 'react-native';
+
+type LogoProps = {
+  size?: number;
+  style?: ViewStyle;
+};
+
+/**
+ * Logo TalentTchad vectoriel (silhouette bleue, check doré, étoile rouge).
+ * Formes plates — reconstruction manuelle fidèle au PNG brand.
+ */
+export function Logo({ size = 64, style }: LogoProps) {
+  return (
+    <View style={[{ width: size, height: size * (140 / 120) }, style]}>
+      <Svg width={size} height={size * (140 / 120)} viewBox="0 0 120 140" fill="none">
+        <Path
+          fill="#E11D48"
+          d="M60 8l7.2 14.6 16.1 2.3-11.6 11.3 2.7 16.1L60 44.8 45.6 52.3l2.7-16.1L36.7 24.9l16.1-2.3L60 8z"
+        />
+        <Path
+          fill="#E11D48"
+          d="M28 28l3 6 6 1.5-4.5 4.5 1 6.5L28 43.5 22.5 46.5l1-6.5L19 35.5l6-1.5 3-6z"
+        />
+        <Path
+          fill="#E11D48"
+          d="M96 22l2.2 4.5 5 1.1-3.6 3.5.8 5L96 33.5l-4.4 2.3.8-5-3.6-3.5 5-1.1L96 22z"
+        />
+        <Path
+          fill="#E11D48"
+          d="M102 48l1.8 3.6 4 0.9-2.9 2.8.6 4L102 57.3l-3.5 1.8.6-4-2.9-2.8 4-0.9L102 48z"
+        />
+        <Circle cx="52" cy="58" r="12" fill="#0B3D91" />
+        <Path
+          fill="#0B3D91"
+          d="M40 72c0-2 2-4 6-4h12c18 0 28 10 32 22 2 6 1 14-2 20-4 8-12 16-22 18-6 1-10-2-12-7L40 72z"
+        />
+        <Path
+          d="M38 88l16 16 38-52"
+          stroke="#F5C400"
+          strokeWidth={10}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+      </Svg>
+    </View>
+  );
+}

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text } from 'react-native';
-import type { LucideIcon } from 'lucide-react-native';
-import { Inbox } from 'lucide-react-native';
+import type { Icon as PhosphorIcon } from 'phosphor-react-native';
+import { Tray } from 'phosphor-react-native';
 
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { Button } from '@/components/ui/Button';
@@ -9,7 +9,7 @@ import { textStyle } from '@/theme/typography';
 import { Radius, Spacing } from '@/theme/tokens';
 
 interface EmptyStateProps {
-  icon?: LucideIcon;
+  icon?: PhosphorIcon;
   title: string;
   description?: string;
   actionLabel?: string;
@@ -17,7 +17,7 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({
-  icon: Icon = Inbox,
+  icon: IconComponent = Tray,
   title,
   description,
   actionLabel,
@@ -38,16 +38,14 @@ export function EmptyState({
         style={{
           width: 72,
           height: 72,
-          borderRadius: Radius.lg,
-          backgroundColor: colors.surfaceCard,
-          borderWidth: 1,
-          borderColor: colors.border,
+          borderRadius: Radius.full,
+          backgroundColor: colors.iconWash,
           alignItems: 'center',
           justifyContent: 'center',
           marginBottom: Spacing.four,
         }}
       >
-        <Icon size={32} color={colors.muted} strokeWidth={1.5} />
+        <IconComponent size={32} color={colors.primary} weight="regular" />
       </View>
       <Text style={[textStyle('featureHeading'), { color: colors.ink, textAlign: 'center', marginBottom: Spacing.two }]}>
         {title}

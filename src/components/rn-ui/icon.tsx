@@ -1,14 +1,15 @@
 import { TextClassContext } from '@/components/rn-ui/text';
 import { cn } from '@/lib/utils';
-import type { LucideIcon, LucideProps } from 'lucide-react-native';
+import type { Icon as PhosphorIcon, IconProps } from 'phosphor-react-native';
 import { cssInterop } from 'nativewind';
 import * as React from 'react';
 
-type IconProps = LucideProps & {
-  as: LucideIcon;
-} & React.RefAttributes<LucideIcon>;
+type AppIconProps = IconProps & {
+  as: PhosphorIcon;
+  className?: string;
+};
 
-function IconImpl({ as: IconComponent, ...props }: IconProps) {
+function IconImpl({ as: IconComponent, ...props }: AppIconProps) {
   return <IconComponent {...props} />;
 }
 
@@ -23,35 +24,26 @@ cssInterop(IconImpl, {
 });
 
 /**
- * A wrapper component for Lucide icons with Nativewind `className` support via `cssInterop`.
- *
- * This component allows you to render any Lucide icon while applying utility classes
- * using `nativewind`. It avoids the need to wrap or configure each icon individually.
- *
- * @component
- * @example
- * ```tsx
- * import { ArrowRight } from 'lucide-react-native';
- * import { Icon } from '@/registry/components/ui/icon';
- *
- * <Icon as={ArrowRight} className="text-red-500" size={16} />
- * ```
- *
- * @param {LucideIcon} as - The Lucide icon component to render.
- * @param {string} className - Utility classes to style the icon using Nativewind.
- * @param {number} size - Icon size (defaults to 14).
- * @param {...LucideProps} ...props - Additional Lucide icon props passed to the "as" icon.
+ * Wrapper Phosphor + NativeWind `className`.
  */
-function Icon({ as: IconComponent, className, size = 14, ...props }: IconProps) {
+function Icon({
+  as: IconComponent,
+  className,
+  size = 14,
+  weight = 'regular',
+  ...props
+}: AppIconProps) {
   const textClass = React.useContext(TextClassContext);
   return (
     <IconImpl
       as={IconComponent}
       className={cn('text-foreground', textClass, className)}
       size={size}
+      weight={weight}
       {...props}
     />
   );
 }
 
 export { Icon };
+export type { PhosphorIcon as AppIcon, IconProps as AppIconProps };

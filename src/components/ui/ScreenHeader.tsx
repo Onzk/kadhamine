@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
-import { ChevronLeft } from 'lucide-react-native';
+import { CaretLeft } from 'phosphor-react-native';
 import { useRouter } from 'expo-router';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { textStyle } from '@/theme/typography';
@@ -34,16 +34,16 @@ export function ScreenHeader({ title, subtitle, showBack, rightAction }: ScreenH
             <Pressable
               onPress={() => router.back()}
               style={({ pressed }) => ({
-                width: 36,
-                height: 36,
-                borderRadius: 8,
-                backgroundColor: colors.surfaceCard,
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: colors.surfaceStrong,
                 alignItems: 'center',
                 justifyContent: 'center',
                 opacity: pressed ? 0.7 : 1,
               })}
             >
-              <ChevronLeft size={20} color={colors.ink} />
+              <CaretLeft size={20} color={colors.ink} weight="bold" />
             </Pressable>
           )}
           <View style={{ flex: 1 }}>

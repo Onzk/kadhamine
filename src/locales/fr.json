@@ -24,7 +24,8 @@
     "premium": "Premium",
     "available": "Disponible",
     "busy": "Occupé",
-    "unavailable": "Indisponible"
+    "unavailable": "Indisponible",
+    "all": "Tous"
   },
   "auth": {
     "login": "Connexion",

@@ -3,7 +3,7 @@ import { View, TextInput, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from 'convex/react';
-import { Search as SearchIcon } from 'lucide-react-native';
+import { MagnifyingGlass as SearchIcon } from 'phosphor-react-native';
 import type { Id } from '../../../convex/_generated/dataModel';
 
 import { ServiceCard } from '@/components/cards/ServiceCard';

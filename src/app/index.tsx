@@ -1,11 +1,7 @@
-import { useEffect } from 'react';
 import { Redirect } from 'expo-router';
 import { View, ActivityIndicator } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
-
-const ONBOARDING_KEY = 'talenttchad_onboarding_done';
 
 export default function Index() {
   const { user, isLoading, isAuthenticated } = useAuth();

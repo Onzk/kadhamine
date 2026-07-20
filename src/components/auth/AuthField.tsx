@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TextInput, Pressable, type TextInputProps } from 'react-native';
-import { Eye, EyeOff } from 'lucide-react-native';
+import { Eye, EyeSlash } from 'phosphor-react-native';
 
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { fontFamily, textStyle } from '@/theme/typography';
@@ -60,7 +60,7 @@ export function AuthField({
         {isPassword && onTogglePassword && (
           <Pressable onPress={onTogglePassword} hitSlop={8}>
             {showPassword ? (
-              <EyeOff size={20} color={colors.muted} />
+              <EyeSlash size={20} color={colors.muted} />
             ) : (
               <Eye size={20} color={colors.muted} />
             )}

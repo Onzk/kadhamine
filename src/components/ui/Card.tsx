@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Pressable, type ViewProps } from 'react-native';
+import { View, Pressable, type ViewProps } from 'react-native';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { Radius, Spacing } from '@/theme/tokens';
 
@@ -30,11 +30,16 @@ export function Card({
       style={[
         {
           backgroundColor: backgrounds[variant],
-          borderRadius: Radius.lg,
+          borderRadius: Radius.xl,
           borderWidth: 1,
           borderColor: colors.border,
           padding: padded ? Spacing.four : 0,
           overflow: 'hidden',
+          shadowColor: '#101828',
+          shadowOpacity: 0.06,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 2,
         },
         style,
       ]}

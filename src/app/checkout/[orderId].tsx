@@ -4,7 +4,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useAction } from 'convex/react';
 import * as WebBrowser from 'expo-web-browser';
-import { Smartphone, CreditCard, AlertTriangle } from 'lucide-react-native';
+import { DeviceMobile, CreditCard, Warning } from 'phosphor-react-native';
+import type { Icon as PhosphorIcon } from 'phosphor-react-native';
 import type { Id } from '../../../convex/_generated/dataModel';
 
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -17,13 +18,11 @@ import { BrandColors } from '@/theme/tokens';
 import { api } from '../../../convex/_generated/api';
 import type { PaymentMethod } from '@/types';
 
-import type { LucideIcon } from 'lucide-react-native';
-
-const PAYMENT_METHODS: { id: PaymentMethod; label: string; icon: LucideIcon }[] = [
-  { id: 'airtel_money', label: 'Airtel Money', icon: Smartphone },
-  { id: 'moov_money', label: 'Moov Money', icon: Smartphone },
+const PAYMENT_METHODS: { id: PaymentMethod; label: string; icon: PhosphorIcon }[] = [
+  { id: 'airtel_money', label: 'Airtel Money', icon: DeviceMobile },
+  { id: 'moov_money', label: 'Moov Money', icon: DeviceMobile },
   { id: 'fedapay', label: 'FedaPay', icon: CreditCard },
-  { id: 'off_platform', label: 'Hors plateforme', icon: AlertTriangle },
+  { id: 'off_platform', label: 'Hors plateforme', icon: Warning },
 ];
 
 export default function CheckoutScreen() {
@@ -39,6 +38,7 @@ export default function CheckoutScreen() {
 
   const orderData = useQuery(api.orders.listMine, { role: 'client' });
   const order = orderData?.find((o) => o.order._id === orderId);
+  const commissionRate = useQuery(api.settings.getCommissionRate) ?? 0.1;
   const initiatePayment = useMutation(api.payments.initiate);
   const createFedapayTransaction = useAction(api.fedapay.createTransaction);
 
@@ -101,7 +101,7 @@ export default function CheckoutScreen() {
   };
 
   const amount = order?.order.agreedPrice ?? 0;
-  const commission = method === 'off_platform' ? 0 : Math.round(amount * 0.1);
+  const commission = method === 'off_platform' ? 0 : Math.round(amount * commissionRate);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.canvas }}>

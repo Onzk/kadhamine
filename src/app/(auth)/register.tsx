@@ -8,13 +8,12 @@ import {
   Pressable,
   Switch,
   Alert,
-  Image,
 } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { useMutation } from 'convex/react';
-import { ArrowLeft, Briefcase, Users } from 'lucide-react-native';
+import { ArrowLeft, Briefcase, UsersThree } from 'phosphor-react-native';
 
 import {
   AuthField,
@@ -24,7 +23,10 @@ import {
   GoogleIcon,
   AppleIcon,
 } from '@/components/auth/AuthField';
+import { Logo } from '@/components/brand/Logo';
+import { CategoryChip } from '@/components/ui/CategoryChip';
 import { useAppTheme } from '@/providers/ThemeProvider';
+import { MVP_CITIES, MVP_CITY_REGION, type MvpCity } from '@/constants/chad';
 import { textStyle } from '@/theme/typography';
 import { Radius, Spacing } from '@/theme/tokens';
 import { api } from '../../../convex/_generated/api';
@@ -45,8 +47,7 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [agreed, setAgreed] = useState(false);
-  const [city, setCity] = useState("N'Djamena");
-  const [region, setRegion] = useState('ndjamena');
+  const [city, setCity] = useState<MvpCity>("N'Djamena");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -83,7 +84,7 @@ export default function RegisterScreen() {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         city,
-        region,
+        region: MVP_CITY_REGION[city],
       });
 
       router.replace('/');
@@ -125,11 +126,7 @@ export default function RegisterScreen() {
         </Pressable>
 
         <View style={{ alignItems: 'center', marginBottom: 24 }}>
-          <Image
-            source={require('@/assets/images/logo.png')}
-            style={{ width: 72, height: 72 }}
-            resizeMode="contain"
-          />
+          <Logo size={64} />
         </View>
 
         <Text style={[textStyle('productDisplay'), { color: colors.ink, marginBottom: Spacing.three }]}>
@@ -142,7 +139,7 @@ export default function RegisterScreen() {
         <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
           {(['client', 'provider'] as Role[]).map((r) => {
             const selected = role === r;
-            const Icon = r === 'client' ? Users : Briefcase;
+            const Icon = r === 'client' ? UsersThree : Briefcase;
             return (
               <Pressable
                 key={r}
@@ -216,6 +213,18 @@ export default function RegisterScreen() {
           placeholder="vous@exemple.com"
         />
 
+        <Text style={[textStyle('caption'), { color: colors.muted, marginBottom: 8 }]}>Ville</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+          {MVP_CITIES.map((c) => (
+            <CategoryChip
+              key={c}
+              label={c}
+              selected={city === c}
+              onPress={() => setCity(c)}
+            />
+          ))}
+        </View>
+
         <AuthField
           label={t('auth.password')}
           value={password}
@@ -240,7 +249,7 @@ export default function RegisterScreen() {
             thumbColor={colors.surface}
           />
           <Text style={[textStyle('caption'), { color: colors.body, flex: 1 }]}>
-            J'accepte les{' '}
+            J&apos;accepte les{' '}
             <Text style={{ fontWeight: '700', color: colors.ink }}>Conditions & Politique de confidentialité</Text>
           </Text>
         </View>

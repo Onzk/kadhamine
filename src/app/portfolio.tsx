@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import { Plus, Trash2, Image as ImageIcon } from 'lucide-react-native';
+import { Plus, Trash, Image as ImageIcon } from 'phosphor-react-native';
 
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Button } from '@/components/ui/Button';
@@ -157,7 +157,7 @@ export default function PortfolioScreen() {
                   {item.title}
                 </Text>
                 <Pressable onPress={() => handleDelete(item._id)}>
-                  <Trash2 size={18} color={colors.error} />
+                  <Trash size={18} color={colors.error} />
                 </Pressable>
               </View>
               {item.description && (

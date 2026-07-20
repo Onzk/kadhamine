@@ -7,10 +7,8 @@ export type PricingType = 'fixed' | 'negotiable';
 export type OrderStatus =
   | 'pending'
   | 'accepted'
-  | 'in_progress'
   | 'completed'
-  | 'cancelled'
-  | 'rejected';
+  | 'cancelled';
 export type PaymentMethod =
   | 'fedapay'
   | 'airtel_money'

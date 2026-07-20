@@ -84,7 +84,8 @@ export function calculateBadge(stats: {
   return 'beginner';
 }
 
-export const PLATFORM_COMMISSION_RATE = 0.1;
+/** Fallback only — prefer `readCommissionRate` from `./settings`. */
+export const DEFAULT_COMMISSION_RATE = 0.1;
 export const PREMIUM_MONTHLY_PRICE = 5000;
 
 export function haversineDistanceKm(

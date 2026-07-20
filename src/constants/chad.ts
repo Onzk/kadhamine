@@ -1,3 +1,32 @@
+/** 10 villes MVP (CDC §8.1) — utilisées pour inscription / filtres. */
+export const MVP_CITIES = [
+  "N'Djamena",
+  'Moundou',
+  'Abéché',
+  'Sarh',
+  'Bongor',
+  'Doba',
+  'Kélo',
+  'Pala',
+  'Ati',
+  'Mongo',
+] as const;
+
+export type MvpCity = (typeof MVP_CITIES)[number];
+
+export const MVP_CITY_REGION: Record<MvpCity, string> = {
+  "N'Djamena": 'ndjamena',
+  Moundou: 'logone-occidental',
+  Abéché: 'ouaddai',
+  Sarh: 'moyen-chari',
+  Bongor: 'mayo-kebbi-est',
+  Doba: 'logone-oriental',
+  Kélo: 'tandjile',
+  Pala: 'mayo-kebbi-ouest',
+  Ati: 'batha',
+  Mongo: 'guera',
+};
+
 export const CHAD_REGIONS = [
   { id: 'ndjamena', nameFr: "N'Djamena", nameAr: 'انجمينا', nameSara: "N'Djamena" },
   { id: 'logone-occidental', nameFr: 'Logone Occidental', nameAr: 'لوقون الغربي', nameSara: 'Logone Occidental' },
