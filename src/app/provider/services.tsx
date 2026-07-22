@@ -5,7 +5,7 @@ import { useQuery, useMutation } from 'convex/react';
 import { Wrench, Plus } from 'phosphor-react-native';
 import type { Id } from '../../../convex/_generated/dataModel';
 
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { CategoryChip } from '@/components/ui/CategoryChip';
@@ -13,7 +13,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Badge } from '@/components/ui/Badge';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { formatPrice } from '@/types';
-import { Radius } from '@/theme/tokens';
+import { Radius, Spacing } from '@/theme/tokens';
 import { api } from '../../../convex/_generated/api';
 
 type EditTarget = {
@@ -110,10 +110,8 @@ export default function ProviderServicesScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <ScreenHeader title={t('profile.myServices')} showBack />
-
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
+    <PageScaffold title={t('profile.myServices')} showBack>
+      <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
         <Button
           title={showForm ? t('common.cancel') : t('services.new')}
           icon={showForm ? undefined : <Plus size={18} color={colors.onPrimary} />}
@@ -231,7 +229,7 @@ export default function ProviderServicesScreen() {
             </View>
           ))
         )}
-      </ScrollView>
-    </View>
+      </View>
+    </PageScaffold>
   );
 }

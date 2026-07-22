@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, Pressable } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from 'convex/react';
 import {
@@ -12,10 +12,10 @@ import {
   Gear,
 } from 'phosphor-react-native';
 
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { formatPrice } from '@/types';
-import { BrandColors } from '@/theme/tokens';
+import { BrandColors, Spacing } from '@/theme/tokens';
 import { api } from '../../../convex/_generated/api';
 
 export default function AdminDashboard() {
@@ -33,10 +33,8 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <ScreenHeader title="Administration" showBack />
-
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
+    <PageScaffold title="Administration" showBack>
+      <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
         <View
           style={{
             backgroundColor: BrandColors.ink,
@@ -125,7 +123,7 @@ export default function AdminDashboard() {
             <CaretRight size={18} color={colors.muted} />
           </Pressable>
         ))}
-      </ScrollView>
-    </View>
+      </View>
+    </PageScaffold>
   );
 }

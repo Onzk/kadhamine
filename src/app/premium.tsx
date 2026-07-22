@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, Alert, TextInput } from 'react-native';
+import { View, Text, Alert, TextInput } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useAction } from 'convex/react';
 import * as WebBrowser from 'expo-web-browser';
 import { Crown, Check } from 'phosphor-react-native';
 
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { formatPrice } from '@/types';
-import { BrandColors } from '@/theme/tokens';
+import { BrandColors, Spacing } from '@/theme/tokens';
 import { api } from '../../convex/_generated/api';
 
 export default function PremiumScreen() {
@@ -74,10 +74,8 @@ export default function PremiumScreen() {
   const isActive = Boolean(active && active.endDate > now);
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <ScreenHeader title={t('profile.premium')} showBack />
-
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
+    <PageScaffold title={t('profile.premium')} showBack>
+      <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
         <View
           style={{
             backgroundColor: BrandColors.ink,
@@ -179,7 +177,7 @@ export default function PremiumScreen() {
             />
           </View>
         ) : null}
-      </ScrollView>
-    </View>
+      </View>
+    </PageScaffold>
   );
 }

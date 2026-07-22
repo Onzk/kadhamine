@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
+import { View, Text, Pressable, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
@@ -12,11 +12,12 @@ import {
   User,
 } from 'phosphor-react-native';
 
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { useAppLanguage } from '@/providers/I18nProvider';
 import { SUPPORTED_LANGUAGES } from '@/constants/chad';
+import { Spacing } from '@/theme/tokens';
 
 export default function SettingsScreen() {
   const { t } = useTranslation();
@@ -53,10 +54,8 @@ export default function SettingsScreen() {
   ];
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <ScreenHeader title={t('profile.settings', { defaultValue: 'Paramètres' })} showBack />
-
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
+    <PageScaffold title={t('profile.settings', { defaultValue: 'Paramètres' })} showBack>
+      <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
         {rows.map((row) => (
           <Pressable
             key={row.label}
@@ -163,7 +162,7 @@ export default function SettingsScreen() {
             <Text style={{ color: colors.error, fontWeight: '600' }}>{t('auth.logout')}</Text>
           </Pressable>
         ) : null}
-      </ScrollView>
-    </View>
+      </View>
+    </PageScaffold>
   );
 }

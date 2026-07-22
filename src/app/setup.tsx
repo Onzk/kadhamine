@@ -1,19 +1,19 @@
 import React from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Cloud } from 'phosphor-react-native';
 
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { useAppTheme } from '@/providers/ThemeProvider';
+import { Spacing } from '@/theme/tokens';
 
 export default function SetupScreen() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <ScreenHeader title={t('setup.title')} />
-      <ScrollView contentContainerStyle={{ padding: 24 }}>
+    <PageScaffold title={t('setup.title')}>
+      <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
         <View
           style={{
             backgroundColor: colors.surfaceCard,
@@ -46,7 +46,7 @@ export default function SetupScreen() {
             2. {t('setup.step2')}
           </Text>
         </View>
-      </ScrollView>
-    </View>
+      </View>
+    </PageScaffold>
   );
 }

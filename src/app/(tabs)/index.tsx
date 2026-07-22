@@ -18,9 +18,8 @@ import {
 
 import { ServiceCarousel } from '@/components/cards/ServiceCarousel';
 import { CategoryGrid } from '@/components/ui/CategoryGrid';
-import { PromoCarousel } from '@/components/ui/PromoCarousel';
+import { PromoCarousel, type PromoSlideData } from '@/components/ui/PromoCarousel';
 import { TrustStrip } from '@/components/ui/TrustStrip';
-import { Eyebrow } from '@/components/ui/Eyebrow';
 import { Text } from '@/components/ui/ThemedText';
 import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
@@ -67,125 +66,42 @@ export default function HomeScreen() {
     borderColor: colors.ink,
   };
 
-  const promoSlides = [
-    <Pressable
-      key="premium"
-      onPress={() => router.push('/premium')}
-      style={{
-        backgroundColor: colors.ink,
-        borderRadius: Radius.stadium,
-        paddingVertical: Spacing.six,
-        paddingHorizontal: Spacing.six,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.four,
-        ...Shadows.elevated,
-      }}
-    >
-      <View style={{ flex: 1 }}>
-        <Eyebrow label={t('common.premium')} color={colors.onPrimary} dotColor={colors.orbit} />
-        <Text style={[textStyle('featureHeading'), { color: colors.onPrimary, marginBottom: Spacing.one }]}>
-          Passez Premium
-        </Text>
-        <Text style={[textStyle('caption'), { color: colors.dust }]}>
-          Badge Premium + mise en avant dans les recherches.
-        </Text>
-      </View>
-      <View
-        style={{
-          width: 44,
-          height: 44,
-          borderRadius: 22,
-          backgroundColor: colors.orbit,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <Crown size={20} color={colors.onPrimary} weight="fill" />
-      </View>
-    </Pressable>,
-    <View
-      key="fedapay"
-      style={{
-        backgroundColor: colors.surfaceCard,
-        borderRadius: Radius.stadium,
-        paddingVertical: Spacing.six,
-        paddingHorizontal: Spacing.six,
-        borderWidth: 1.5,
-        borderColor: colors.ink,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.four,
-      }}
-    >
-      <View style={{ flex: 1 }}>
-        <Eyebrow label="FedaPay" />
-        <Text style={[textStyle('featureHeading'), { color: colors.ink, marginBottom: Spacing.one }]}>
-          {t('payment.integratedBenefit')}
-        </Text>
-        <Text style={[textStyle('caption'), { color: colors.muted }]}>
-          Payez via FedaPay pour débloquer les avis officiels.
-        </Text>
-      </View>
-      <View
-        style={{
-          width: 44,
-          height: 44,
-          borderRadius: 22,
-          backgroundColor: colors.iconWash,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <CreditCard size={20} color={colors.ink} weight="bold" />
-      </View>
-    </View>,
-    <Pressable
-      key="nearby"
-      onPress={() => router.push('/map' as never)}
-      style={{
-        backgroundColor: colors.surfaceStrong,
-        borderRadius: Radius.stadium,
-        paddingVertical: Spacing.six,
-        paddingHorizontal: Spacing.six,
-        borderWidth: 1.5,
-        borderColor: colors.ink,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.four,
-      }}
-    >
-      <View style={{ flex: 1 }}>
-        <Eyebrow label={t('home.nearYou')} />
-        <Text style={[textStyle('featureHeading'), { color: colors.ink, marginBottom: Spacing.one }]}>
-          Talents près de chez vous
-        </Text>
-        <Text style={[textStyle('caption'), { color: colors.muted }]}>
-          Découvrez les prestataires autour de vous sur la carte.
-        </Text>
-      </View>
-      <View
-        style={{
-          width: 44,
-          height: 44,
-          borderRadius: 22,
-          backgroundColor: colors.iconWash,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <MapPin size={20} color={colors.ink} weight="fill" />
-      </View>
-    </Pressable>,
+  const promoSlides: PromoSlideData[] = [
+    {
+      id: 'premium',
+      eyebrow: t('common.premium'),
+      title: 'Passez Premium',
+      description: 'Badge Premium + mise en avant dans les recherches pour les prestataires.',
+      icon: Crown,
+      variant: 'dark',
+      onPress: () => router.push('/premium'),
+    },
+    {
+      id: 'fedapay',
+      eyebrow: 'FedaPay',
+      title: t('payment.integratedBenefit'),
+      description: 'Payez via FedaPay pour débloquer les avis officiels et sécuriser la prestation.',
+      icon: CreditCard,
+      variant: 'light',
+    },
+    {
+      id: 'nearby',
+      eyebrow: t('home.nearYou'),
+      title: 'Talents près de chez vous',
+      description: 'Découvrez les prestataires disponibles autour de vous sur la carte.',
+      icon: MapPin,
+      variant: 'warm',
+      onPress: () => router.push('/map' as never),
+    },
   ];
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-      {/* Header fixe */}
+      {/* Header — respiration type « Votre espace » */}
       <View
         style={{
-          paddingHorizontal: Spacing.four,
-          paddingTop: Spacing.two,
+          paddingHorizontal: Spacing.six,
+          paddingTop: Spacing.five,
           paddingBottom: Spacing.three,
           flexDirection: 'row',
           alignItems: 'center',
@@ -244,7 +160,7 @@ export default function HomeScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: Spacing.eight }}>
         {/* Hero éditorial */}
-        <View style={{ paddingHorizontal: Spacing.four, marginBottom: SECTION_GAP }}>
+        <View style={{ paddingHorizontal: Spacing.six, marginBottom: SECTION_GAP }}>
           <Pressable
             onPress={() => router.push('/map' as never)}
             style={({ pressed }) => ({
@@ -306,7 +222,9 @@ export default function HomeScreen() {
           </Pressable>
         </View>
 
-        {/* Services en vedette — avant les catégories */}
+        {/* Carrousel promo — avant les services en vedette */}
+        <PromoCarousel slides={promoSlides} />
+
         <ServiceCarousel
           title={t('home.featured')}
           actionLabel={t('common.seeAll')}
@@ -323,7 +241,7 @@ export default function HomeScreen() {
               flexDirection: 'row',
               justifyContent: 'space-between',
               alignItems: 'center',
-              paddingHorizontal: Spacing.four,
+              paddingHorizontal: Spacing.six,
               marginBottom: Spacing.four,
             }}
           >
@@ -340,15 +258,13 @@ export default function HomeScreen() {
               id: cat._id,
               label: cat.nameFr,
               icon: cat.icon,
+              slug: cat.slug,
               serviceCount: cat.serviceCount,
             }))}
             limit={10}
             onPressCategory={(id) => goToSearch({ categoryId: id })}
           />
         </View>
-
-        {/* Carrousel promo */}
-        <PromoCarousel slides={promoSlides} />
 
         {/* Mieux notés */}
         <ServiceCarousel

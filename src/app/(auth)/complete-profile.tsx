@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useMutation } from 'convex/react';
@@ -7,8 +7,10 @@ import { useMutation } from 'convex/react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { CategoryChip } from '@/components/ui/CategoryChip';
+import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { MVP_CITIES, MVP_CITY_REGION, type MvpCity } from '@/constants/chad';
+import { Spacing } from '@/theme/tokens';
 import { api } from '../../../convex/_generated/api';
 
 type Role = 'client' | 'provider';
@@ -52,16 +54,11 @@ export default function CompleteProfileScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <ScrollView contentContainerStyle={{ padding: 24 }}>
-        <Text style={{ fontSize: 24, fontWeight: '700', color: colors.ink, marginBottom: 8 }}>
-          Complétez votre profil
-        </Text>
-        <Text style={{ fontSize: 14, color: colors.muted, marginBottom: 24 }}>
-          {t('auth.chooseRole')}
-        </Text>
-
-        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 20 }}>
+    <PageScaffold
+      title="Complétez votre profil"
+      subtitle={t('auth.chooseRole')}
+      headerActions={
+        <View style={{ flexDirection: 'row', gap: 8 }}>
           {(['client', 'provider'] as Role[]).map((r) => (
             <CategoryChip
               key={r}
@@ -71,7 +68,9 @@ export default function CompleteProfileScreen() {
             />
           ))}
         </View>
-
+      }
+    >
+      <View style={{ paddingHorizontal: PAGE_H_PAD, marginTop: Spacing.two }}>
         {error ? (
           <Text style={{ color: colors.error, marginBottom: 12 }}>{error}</Text>
         ) : null}
@@ -84,17 +83,12 @@ export default function CompleteProfileScreen() {
         </Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
           {MVP_CITIES.map((c) => (
-            <CategoryChip
-              key={c}
-              label={c}
-              selected={city === c}
-              onPress={() => setCity(c)}
-            />
+            <CategoryChip key={c} label={c} selected={city === c} onPress={() => setCity(c)} />
           ))}
         </View>
 
         <Button title={t('common.confirm')} onPress={handleSubmit} loading={loading} fullWidth />
-      </ScrollView>
-    </View>
+      </View>
+    </PageScaffold>
   );
 }

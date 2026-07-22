@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { View, Text, Alert } from 'react-native';
 import { useQuery, useMutation } from 'convex/react';
 
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useAppTheme } from '@/providers/ThemeProvider';
+import { Spacing } from '@/theme/tokens';
 import { api } from '../../../convex/_generated/api';
 
 export default function AdminSettingsScreen() {
@@ -38,9 +39,8 @@ export default function AdminSettingsScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <ScreenHeader title="Paramètres plateforme" showBack />
-      <View style={{ padding: 16 }}>
+    <PageScaffold title="Paramètres plateforme" showBack>
+      <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
         <Text style={{ fontSize: 15, fontWeight: '600', color: colors.ink, marginBottom: 8 }}>
           Commission sur les paiements in-app
         </Text>
@@ -61,6 +61,6 @@ export default function AdminSettingsScreen() {
         )}
         <Button title="Enregistrer" onPress={handleSave} loading={loading} fullWidth />
       </View>
-    </View>
+    </PageScaffold>
   );
 }

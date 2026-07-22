@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, Pressable } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
@@ -18,6 +18,7 @@ import {
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Eyebrow } from '@/components/ui/Eyebrow';
+import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { useAppLanguage } from '@/providers/I18nProvider';
@@ -39,59 +40,62 @@ export default function ProfileScreen() {
 
   if (isGuest) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-        <ScrollView contentContainerStyle={{ padding: 28, paddingTop: 48, paddingBottom: 32 }}>
-          <Text style={[textStyle('productDisplay'), { color: colors.ink, marginBottom: 12 }]}>
-            {t('auth.guestTitle')}
-          </Text>
-          <Text style={[textStyle('body'), { color: colors.muted, marginBottom: 32 }]}>
-            {t('auth.guestSubtitle')}
-          </Text>
-          <Button
-            title={t('auth.signIn')}
-            onPress={() => router.push('/(auth)/login')}
-            fullWidth
-            style={{ marginBottom: 12 }}
-          />
-          <Button
-            title={t('auth.signUp')}
-            variant="outline"
-            onPress={() => router.push('/(auth)/register')}
-            fullWidth
-          />
-          <View style={{ marginTop: 32 }}>
-            <Eyebrow label={t('profile.language')} />
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              {SUPPORTED_LANGUAGES.map((lang) => (
-                <Pressable
-                  key={lang.code}
-                  onPress={() => setLanguage(lang.code)}
+      <PageScaffold
+        title={t('auth.guestTitle')}
+        subtitle={t('auth.guestSubtitle')}
+        headerActions={
+          <View>
+            <Button
+              title={t('auth.signIn')}
+              onPress={() => router.push('/(auth)/login')}
+              fullWidth
+              style={{ marginBottom: 12 }}
+            />
+            <Button
+              title={t('auth.signUp')}
+              variant="outline"
+              onPress={() => router.push('/(auth)/register')}
+              fullWidth
+            />
+          </View>
+        }
+      >
+        <View style={{ paddingHorizontal: PAGE_H_PAD, marginTop: Spacing.two }}>
+          <Eyebrow label={t('profile.language')} />
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: Spacing.three }}>
+            {SUPPORTED_LANGUAGES.map((lang) => (
+              <Pressable
+                key={lang.code}
+                onPress={() => setLanguage(lang.code)}
+                style={{
+                  paddingHorizontal: 14,
+                  paddingVertical: 8,
+                  borderRadius: Radius.pill,
+                  backgroundColor: language === lang.code ? colors.orbit : colors.surfaceCard,
+                  borderWidth: 1,
+                  borderColor: language === lang.code ? colors.orbit : colors.border,
+                }}
+              >
+                <Text
                   style={{
-                    paddingHorizontal: 14,
-                    paddingVertical: 8,
-                    borderRadius: Radius.pill,
-                    backgroundColor: language === lang.code ? colors.primary : colors.surfaceCard,
-                    borderWidth: 1.5,
-                    borderColor: colors.ink,
+                    fontSize: 13,
+                    fontWeight: '500',
+                    color: language === lang.code ? colors.onPrimary : colors.body,
                   }}
                 >
-                  <Text
-                    style={{
-                      fontSize: 13,
-                      fontWeight: '500',
-                      color: language === lang.code ? colors.onPrimary : colors.body,
-                    }}
-                  >
-                    {lang.nativeLabel}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
+                  {lang.nativeLabel}
+                </Text>
+              </Pressable>
+            ))}
           </View>
-        </ScrollView>
-      </View>
+        </View>
+      </PageScaffold>
     );
   }
+
+  const displayName = profile
+    ? `${profile.firstName} ${profile.lastName}`
+    : user?.name ?? 'Utilisateur';
 
   const menuItems = [
     ...(isProvider
@@ -107,149 +111,159 @@ export default function ProfileScreen() {
     { icon: Gear, label: t('profile.settings'), route: '/settings' },
   ];
 
+  const hasBadges = Boolean(profile?.isVerified || profile?.isPremium || profile?.badge);
+  const showProfileMeta = hasBadges || (isProvider && profile);
+
   return (
-    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
+    <PageScaffold
+      title={displayName}
+      subtitle={user?.email}
+      rightAction={
         <View
           style={{
-            backgroundColor: colors.ink,
-            padding: Spacing.eight,
-            paddingTop: Spacing.four,
-            borderBottomLeftRadius: Radius.stadium,
-            borderBottomRightRadius: Radius.stadium,
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            backgroundColor: colors.surfaceCard,
+            borderWidth: 1,
+            borderColor: colors.border,
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          <View
-            style={{
-              width: 72,
-              height: 72,
-              borderRadius: 36,
-              backgroundColor: colors.surfaceCard,
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: 12,
-            }}
-          >
-            <Text style={{ fontSize: 28, fontWeight: '700', color: colors.ink }}>
-              {profile?.firstName?.[0] ?? '?'}
-            </Text>
-          </View>
-
-          <Text style={[textStyle('cardHeading'), { color: colors.onPrimary }]}>
-            {profile ? `${profile.firstName} ${profile.lastName}` : user?.name ?? 'Utilisateur'}
+          <Text style={{ fontSize: 18, fontWeight: '700', color: colors.ink }}>
+            {profile?.firstName?.[0] ?? '?'}
           </Text>
-          <Text style={[textStyle('caption'), { color: colors.dust, marginTop: 4 }]}>
-            {user?.email}
-          </Text>
-
-          <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-            {profile?.isVerified && <Badge label={t('common.verified')} variant="verified" />}
-            {profile?.isPremium && <Badge label={t('common.premium')} variant="premium" />}
-            {profile?.badge && <Badge label={t(`badges.${profile.badge}`)} variant="accent" />}
-          </View>
-
-          {isProvider && profile && (
-            <View style={{ flexDirection: 'row', gap: 24, marginTop: 16 }}>
-              <View>
-                <Text style={{ fontSize: 20, fontWeight: '700', color: BrandColors.gold }}>
-                  {profile.averageRating.toFixed(1)}
-                </Text>
-                <Text style={{ fontSize: 12, color: colors.dust }}>Note</Text>
-              </View>
-              <View>
-                <Text style={{ fontSize: 20, fontWeight: '700', color: BrandColors.gold }}>
-                  {profile.completedOrders}
-                </Text>
-                <Text style={{ fontSize: 12, color: colors.dust }}>Prestations</Text>
-              </View>
-              <View>
-                <Text style={{ fontSize: 20, fontWeight: '700', color: BrandColors.gold }}>
-                  {profile.trustScore}
-                </Text>
-                <Text style={{ fontSize: 12, color: colors.dust }}>Confiance</Text>
-              </View>
-            </View>
-          )}
         </View>
+      }
+      headerActions={
+        showProfileMeta ? (
+          <View>
+            {hasBadges ? (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                {profile?.isVerified && <Badge label={t('common.verified')} variant="verified" />}
+                {profile?.isPremium && <Badge label={t('common.premium')} variant="premium" />}
+                {profile?.badge && <Badge label={t(`badges.${profile.badge}`)} variant="accent" />}
+              </View>
+            ) : null}
 
-        <View style={{ padding: Spacing.four }}>
-          <Eyebrow label={t('profile.language')} />
-          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 20 }}>
-            {SUPPORTED_LANGUAGES.map((lang) => (
-              <Pressable
-                key={lang.code}
-                onPress={() => setLanguage(lang.code)}
+            {isProvider && profile ? (
+              <View
                 style={{
-                  paddingHorizontal: 14,
-                  paddingVertical: 8,
-                  borderRadius: Radius.pill,
-                  backgroundColor: language === lang.code ? colors.primary : colors.surfaceCard,
-                  borderWidth: 1.5,
-                  borderColor: colors.ink,
+                  flexDirection: 'row',
+                  gap: 24,
+                  marginTop: hasBadges ? Spacing.five : 0,
                 }}
               >
-                <Text
-                  style={{
-                    fontSize: 13,
-                    fontWeight: '500',
-                    color: language === lang.code ? colors.onPrimary : colors.body,
-                  }}
-                >
-                  {lang.nativeLabel}
-                </Text>
-              </Pressable>
-            ))}
+                <View>
+                  <Text style={{ fontSize: 20, fontWeight: '700', color: BrandColors.gold }}>
+                    {profile.averageRating.toFixed(1)}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: colors.muted }}>Note</Text>
+                </View>
+                <View>
+                  <Text style={{ fontSize: 20, fontWeight: '700', color: BrandColors.gold }}>
+                    {profile.completedOrders}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: colors.muted }}>Prestations</Text>
+                </View>
+                <View>
+                  <Text style={{ fontSize: 20, fontWeight: '700', color: BrandColors.gold }}>
+                    {profile.trustScore}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: colors.muted }}>Confiance</Text>
+                </View>
+              </View>
+            ) : null}
           </View>
-
-          {menuItems.map((item) => (
+        ) : undefined
+      }
+    >
+      <View style={{ paddingHorizontal: PAGE_H_PAD, marginTop: Spacing.two }}>
+        <Eyebrow label={t('profile.language')} />
+        <View
+          style={{
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            gap: 8,
+            marginTop: Spacing.three,
+            marginBottom: Spacing.six,
+          }}
+        >
+          {SUPPORTED_LANGUAGES.map((lang) => (
             <Pressable
-              key={item.label}
-              onPress={() => router.push(item.route as never)}
-              style={({ pressed }) => ({
-                flexDirection: 'row',
-                alignItems: 'center',
-                backgroundColor: colors.surfaceCard,
-                borderRadius: Radius.stadium,
-                padding: Spacing.four,
-                marginBottom: Spacing.two,
-                opacity: pressed ? 0.9 : 1,
-              })}
+              key={lang.code}
+              onPress={() => setLanguage(lang.code)}
+              style={{
+                paddingHorizontal: 14,
+                paddingVertical: 8,
+                borderRadius: Radius.pill,
+                backgroundColor: language === lang.code ? colors.orbit : colors.surfaceCard,
+                borderWidth: 1,
+                borderColor: language === lang.code ? colors.orbit : colors.border,
+              }}
             >
-              <item.icon size={20} color={colors.ink} />
-              <Text style={{ flex: 1, fontSize: 15, color: colors.ink, marginLeft: 12 }}>
-                {item.label}
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: '500',
+                  color: language === lang.code ? colors.onPrimary : colors.body,
+                }}
+              >
+                {lang.nativeLabel}
               </Text>
-              <CaretRight size={18} color={colors.muted} />
             </Pressable>
           ))}
+        </View>
 
+        {menuItems.map((item) => (
           <Pressable
-            onPress={toggle}
-            style={{
+            key={item.label}
+            onPress={() => router.push(item.route as never)}
+            style={({ pressed }) => ({
               flexDirection: 'row',
               alignItems: 'center',
               backgroundColor: colors.surfaceCard,
               borderRadius: Radius.stadium,
               padding: Spacing.four,
               marginBottom: Spacing.two,
-            }}
+              opacity: pressed ? 0.9 : 1,
+            })}
           >
-            <Moon size={20} color={colors.ink} />
+            <item.icon size={20} color={colors.ink} />
             <Text style={{ flex: 1, fontSize: 15, color: colors.ink, marginLeft: 12 }}>
-              {t('profile.theme')} ({isDark ? 'Sombre' : 'Clair'})
+              {item.label}
             </Text>
+            <CaretRight size={18} color={colors.muted} />
           </Pressable>
+        ))}
 
-          <Button
-            title={t('auth.logout')}
-            variant="outline"
-            onPress={signOut}
-            icon={<SignOut size={18} color={colors.error} />}
-            fullWidth
-            style={{ marginTop: 16, borderColor: colors.error }}
-          />
-        </View>
-      </ScrollView>
-    </View>
+        <Pressable
+          onPress={toggle}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: colors.surfaceCard,
+            borderRadius: Radius.stadium,
+            padding: Spacing.four,
+            marginBottom: Spacing.two,
+          }}
+        >
+          <Moon size={20} color={colors.ink} />
+          <Text style={{ flex: 1, fontSize: 15, color: colors.ink, marginLeft: 12 }}>
+            {t('profile.theme')} ({isDark ? 'Sombre' : 'Clair'})
+          </Text>
+        </Pressable>
+
+        <Button
+          title={t('auth.logout')}
+          variant="outline"
+          onPress={signOut}
+          icon={<SignOut size={18} color={colors.error} />}
+          fullWidth
+          style={{ marginTop: Spacing.four, borderColor: colors.error }}
+        />
+      </View>
+    </PageScaffold>
   );
 }

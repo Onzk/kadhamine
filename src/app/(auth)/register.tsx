@@ -6,14 +6,13 @@ import {
   Platform,
   ScrollView,
   Pressable,
-  Switch,
   Alert,
 } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { useMutation } from 'convex/react';
-import { ArrowLeft, Briefcase, UsersThree } from 'phosphor-react-native';
+import { CaretLeft } from 'phosphor-react-native';
 
 import {
   AuthField,
@@ -23,12 +22,11 @@ import {
   GoogleIcon,
   AppleIcon,
 } from '@/components/auth/AuthField';
-import { Logo } from '@/components/brand/Logo';
-import { CategoryChip } from '@/components/ui/CategoryChip';
+import { AuthLogoMark, AuthToggleRow, RolePicker, CityChips } from '@/components/auth/AuthExtras';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { MVP_CITIES, MVP_CITY_REGION, type MvpCity } from '@/constants/chad';
 import { textStyle } from '@/theme/typography';
-import { Radius, Spacing } from '@/theme/tokens';
+import { Spacing } from '@/theme/tokens';
 import { api } from '../../../convex/_generated/api';
 
 type Role = 'client' | 'provider';
@@ -46,6 +44,8 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [city, setCity] = useState<MvpCity>("N'Djamena");
   const [loading, setLoading] = useState(false);
@@ -111,59 +111,44 @@ export default function RegisterScreen() {
       <ScrollView
         contentContainerStyle={{
           flexGrow: 1,
-          paddingHorizontal: 28,
-          paddingTop: 16,
-          paddingBottom: 32,
+          paddingHorizontal: Spacing.six,
+          paddingTop: Spacing.five,
+          paddingBottom: Spacing.ten,
         }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         <Pressable
           onPress={() => router.back()}
-          style={{ alignSelf: 'flex-start', marginBottom: 24, flexDirection: 'row', alignItems: 'center', gap: 6 }}
+          style={({ pressed }) => ({
+            alignSelf: 'flex-start',
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            backgroundColor: colors.surfaceCard,
+            borderWidth: 1,
+            borderColor: colors.border,
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: Spacing.five,
+            opacity: pressed ? 0.85 : 1,
+          })}
         >
-          <ArrowLeft size={20} color={colors.ink} />
+          <CaretLeft size={20} color={colors.ink} weight="bold" />
         </Pressable>
 
-        <View style={{ alignItems: 'center', marginBottom: 24 }}>
-          <Logo size={64} />
-        </View>
+        <AuthLogoMark size={56} />
 
-        <Text style={[textStyle('productDisplay'), { color: colors.ink, marginBottom: Spacing.three }]}>
+        <Text style={[textStyle('productDisplay'), { color: colors.ink, marginBottom: Spacing.two }]}>
           {t('auth.createAccount')}
         </Text>
-        <Text style={[textStyle('body'), { color: colors.body, marginBottom: Spacing.seven }]}>
+        <Text style={[textStyle('body'), { color: colors.muted, marginBottom: Spacing.four }]}>
           {t('auth.chooseRole')}
         </Text>
 
-        <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
-          {(['client', 'provider'] as Role[]).map((r) => {
-            const selected = role === r;
-            const Icon = r === 'client' ? UsersThree : Briefcase;
-            return (
-              <Pressable
-                key={r}
-                onPress={() => setRole(r)}
-                style={{
-                  flex: 1,
-                  padding: 16,
-                  borderRadius: Radius.lg,
-                  borderWidth: 2,
-                  borderColor: selected ? colors.ink : colors.border,
-                  backgroundColor: selected ? colors.surfaceStrong : colors.surface,
-                  alignItems: 'center',
-                }}
-              >
-                <Icon size={24} color={selected ? colors.ink : colors.muted} />
-                <Text style={[textStyle('button'), { color: selected ? colors.ink : colors.body, marginTop: Spacing.two }]}>
-                  {t(`auth.${r}`)}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        <RolePicker value={role} onChange={setRole} />
 
-        <View style={{ flexDirection: 'row', gap: 12 }}>
+        <View style={{ flexDirection: 'row', gap: Spacing.three }}>
           <SocialAuthButton
             label="Google"
             icon={<GoogleIcon />}
@@ -182,25 +167,23 @@ export default function RegisterScreen() {
           <View
             style={{
               backgroundColor: colors.error + '12',
-              borderRadius: 20,
-              padding: 12,
-              marginBottom: 16,
+              borderRadius: 16,
+              padding: Spacing.three,
+              marginBottom: Spacing.four,
               borderWidth: 1,
               borderColor: colors.error + '30',
             }}
           >
-            <Text style={[textStyle('caption'), { color: colors.error }]}>
-              {error}
-            </Text>
+            <Text style={[textStyle('caption'), { color: colors.error }]}>{error}</Text>
           </View>
         ) : null}
 
-        <View style={{ flexDirection: 'row', gap: 12 }}>
+        <View style={{ flexDirection: 'row', gap: Spacing.three }}>
           <View style={{ flex: 1 }}>
-            <AuthField label="Prénom" value={firstName} onChangeText={setFirstName} />
+            <AuthField label="Prénom" value={firstName} onChangeText={setFirstName} autoCapitalize="words" />
           </View>
           <View style={{ flex: 1 }}>
-            <AuthField label="Nom" value={lastName} onChangeText={setLastName} />
+            <AuthField label="Nom" value={lastName} onChangeText={setLastName} autoCapitalize="words" />
           </View>
         </View>
 
@@ -213,23 +196,19 @@ export default function RegisterScreen() {
           placeholder="vous@exemple.com"
         />
 
-        <Text style={[textStyle('caption'), { color: colors.muted, marginBottom: 8 }]}>Ville</Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-          {MVP_CITIES.map((c) => (
-            <CategoryChip
-              key={c}
-              label={c}
-              selected={city === c}
-              onPress={() => setCity(c)}
-            />
-          ))}
-        </View>
+        <CityChips
+          cities={MVP_CITIES}
+          value={city}
+          onChange={(c) => setCity(c as MvpCity)}
+        />
 
         <AuthField
           label={t('auth.password')}
           value={password}
           onChangeText={setPassword}
           isPassword
+          showPassword={showPassword}
+          onTogglePassword={() => setShowPassword((v) => !v)}
           placeholder="••••••••"
         />
 
@@ -238,31 +217,45 @@ export default function RegisterScreen() {
           value={confirmPassword}
           onChangeText={setConfirmPassword}
           isPassword
+          showPassword={showConfirm}
+          onTogglePassword={() => setShowConfirm((v) => !v)}
           placeholder="••••••••"
         />
 
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 28 }}>
-          <Switch
-            value={agreed}
-            onValueChange={setAgreed}
-            trackColor={{ false: colors.switchTrackOff, true: colors.switchTrackOn }}
-            thumbColor={colors.surface}
-          />
-          <Text style={[textStyle('caption'), { color: colors.body, flex: 1 }]}>
-            J&apos;accepte les{' '}
-            <Text style={{ fontWeight: '700', color: colors.ink }}>Conditions & Politique de confidentialité</Text>
-          </Text>
-        </View>
+        <AuthToggleRow
+          value={agreed}
+          onChange={setAgreed}
+          label={
+            <Text style={[textStyle('caption'), { color: colors.body, flex: 1 }]}>
+              J&apos;accepte les{' '}
+              <Text
+                style={{
+                  color: colors.orbit,
+                  textDecorationLine: 'underline',
+                  fontFamily: 'SofiaSans_500Medium',
+                }}
+              >
+                Conditions & Politique de confidentialité
+              </Text>
+            </Text>
+          }
+        />
 
         <AuthPrimaryButton title={t('auth.signUp')} onPress={handleRegister} loading={loading} />
 
-        <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 32, gap: 4 }}>
-          <Text style={[textStyle('body'), { color: colors.muted }]}>
-            {t('auth.hasAccount')}
-          </Text>
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'center',
+            marginTop: Spacing.eight,
+            gap: Spacing.one,
+            flexWrap: 'wrap',
+          }}
+        >
+          <Text style={[textStyle('body'), { color: colors.muted }]}>{t('auth.hasAccount')}</Text>
           <Link href="/(auth)/login" asChild>
             <Pressable>
-              <Text style={[textStyle('button'), { color: colors.link, textDecorationLine: 'underline' }]}>
+              <Text style={[textStyle('button'), { color: colors.orbit, textDecorationLine: 'underline' }]}>
                 {t('auth.signIn')}
               </Text>
             </Pressable>

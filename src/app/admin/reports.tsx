@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text } from 'react-native';
 import { useQuery, useMutation } from 'convex/react';
 
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAppTheme } from '@/providers/ThemeProvider';
+import { Spacing } from '@/theme/tokens';
 import { api } from '../../../convex/_generated/api';
 
 export default function AdminReportsScreen() {
@@ -23,10 +24,8 @@ export default function AdminReportsScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <ScreenHeader title="Litiges & signalements" showBack />
-
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
+    <PageScaffold title="Litiges & signalements" showBack>
+      <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
         {reports?.length === 0 && (
           <Text style={{ color: colors.muted, textAlign: 'center', marginTop: 32 }}>
             Aucun litige ouvert
@@ -70,7 +69,7 @@ export default function AdminReportsScreen() {
             </View>
           </View>
         ))}
-      </ScrollView>
-    </View>
+      </View>
+    </PageScaffold>
   );
 }

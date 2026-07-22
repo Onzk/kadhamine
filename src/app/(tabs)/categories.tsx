@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
-import { View, ScrollView, TextInput } from 'react-native';
+import { View, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from 'convex/react';
 import { MagnifyingGlass } from 'phosphor-react-native';
 
 import { CategoryGrid } from '@/components/ui/CategoryGrid';
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { PageScaffold } from '@/components/ui/PageHeader';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { Radius, Shadows, Spacing } from '@/theme/tokens';
 import { api } from '../../../convex/_generated/api';
@@ -28,19 +28,21 @@ export default function CategoriesScreen() {
     id: cat._id,
     label: cat.nameFr,
     icon: cat.icon,
+    slug: cat.slug,
     serviceCount: cat.serviceCount,
   }));
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <ScreenHeader title="Catégories" showBack />
-
-      <View style={{ paddingHorizontal: Spacing.four, marginBottom: Spacing.four }}>
+    <PageScaffold
+      title="Catégories"
+      subtitle="Explorez les métiers et talents disponibles sur TalentTchad."
+      showBack
+      headerActions={
         <View
           style={{
             flexDirection: 'row',
             alignItems: 'center',
-            backgroundColor: colors.surfaceCard,
+            backgroundColor: colors.surfaceStrong,
             borderRadius: Radius.pill,
             paddingHorizontal: Spacing.five,
             height: 48,
@@ -61,20 +63,18 @@ export default function CategoriesScreen() {
             clearButtonMode="while-editing"
           />
         </View>
-      </View>
-
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingBottom: Spacing.eight }}
-      >
+      }
+    >
+      <View style={{ marginTop: Spacing.six }}>
         <CategoryGrid
           categories={gridItems}
+          columns={3}
+          emptyLast
           onPressCategory={(id) =>
             router.push({ pathname: '/(tabs)/search', params: { categoryId: id } })
           }
         />
-      </ScrollView>
-    </View>
+      </View>
+    </PageScaffold>
   );
 }

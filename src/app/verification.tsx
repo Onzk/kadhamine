@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, Alert } from 'react-native';
+import { View, Text, Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { CategoryChip } from '@/components/ui/CategoryChip';
 import { Badge } from '@/components/ui/Badge';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { useUpload } from '@/hooks/useUpload';
+import { Spacing } from '@/theme/tokens';
 import { api } from '../../convex/_generated/api';
 
 type DocType = 'national_id' | 'passport';
@@ -67,10 +68,8 @@ export default function VerificationScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <ScreenHeader title={t('profile.verification')} showBack />
-
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
+    <PageScaffold title={t('profile.verification')} showBack>
+      <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
         {status?.status === 'pending' && (
           <Badge label="En attente de validation" variant="accent" />
         )}
@@ -149,7 +148,7 @@ export default function VerificationScreen() {
         {(!status || status.status === 'rejected') && (
           <Button title="Soumettre pour vérification" onPress={handleSubmit} loading={loading} fullWidth />
         )}
-      </ScrollView>
-    </View>
+      </View>
+    </PageScaffold>
   );
 }

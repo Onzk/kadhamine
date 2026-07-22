@@ -1,11 +1,12 @@
 import React from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text } from 'react-native';
 import { useQuery } from 'convex/react';
 
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { Badge } from '@/components/ui/Badge';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { formatPrice } from '@/types';
+import { Spacing } from '@/theme/tokens';
 import { api } from '../../../convex/_generated/api';
 
 export default function AdminPaymentsScreen() {
@@ -13,10 +14,8 @@ export default function AdminPaymentsScreen() {
   const payments = useQuery(api.admin.listPayments, { limit: 50 });
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <ScreenHeader title="Paiements" showBack />
-
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
+    <PageScaffold title="Paiements" showBack>
+      <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
         {payments?.map(({ payment, order, client, provider }) => (
           <View
             key={payment._id}
@@ -51,7 +50,7 @@ export default function AdminPaymentsScreen() {
             )}
           </View>
         ))}
-      </ScrollView>
-    </View>
+      </View>
+    </PageScaffold>
   );
 }

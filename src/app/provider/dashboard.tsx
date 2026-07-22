@@ -1,11 +1,11 @@
 import React from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
-import { BrandColors } from '@/theme/tokens';
+import { BrandColors, Spacing } from '@/theme/tokens';
 
 export default function ProviderDashboardScreen() {
   const { t } = useTranslation();
@@ -21,9 +21,8 @@ export default function ProviderDashboardScreen() {
   ];
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <ScreenHeader title={t('profile.dashboard')} showBack />
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
+    <PageScaffold title={t('profile.dashboard')} showBack>
+      <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
           {stats.map((stat) => (
             <View
@@ -44,7 +43,7 @@ export default function ProviderDashboardScreen() {
             </View>
           ))}
         </View>
-      </ScrollView>
-    </View>
+      </View>
+    </PageScaffold>
   );
 }

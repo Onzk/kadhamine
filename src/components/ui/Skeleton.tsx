@@ -53,7 +53,17 @@ export function ServiceCardSkeleton() {
         overflow: 'hidden',
       }}
     >
-      <Skeleton width="100%" height={190} borderRadius={0} />
+      <View
+        style={{
+          width: '100%',
+          height: 168,
+          borderTopLeftRadius: Radius.lg,
+          borderTopRightRadius: Radius.lg,
+          overflow: 'hidden',
+        }}
+      >
+        <Skeleton width="100%" height={168} borderRadius={0} />
+      </View>
       <View style={{ padding: Spacing.four, gap: 10 }}>
         <Skeleton height={18} width="75%" />
         <Skeleton height={13} width="95%" />

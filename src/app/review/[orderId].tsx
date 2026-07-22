@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, Alert, ScrollView } from 'react-native';
+import { View, Text, Pressable, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery } from 'convex/react';
 import { Star } from 'phosphor-react-native';
 import type { Id } from '../../../convex/_generated/dataModel';
 
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useAppTheme } from '@/providers/ThemeProvider';
-import { Radius } from '@/theme/tokens';
+import { Radius, Spacing } from '@/theme/tokens';
 import { api } from '../../../convex/_generated/api';
 
 export default function ReviewScreen() {
@@ -55,20 +55,20 @@ export default function ReviewScreen() {
 
   if (existing === undefined) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-        <ScreenHeader title={t('reviews.leaveReview')} showBack />
-        <Text style={{ textAlign: 'center', marginTop: 32, color: colors.muted }}>
-          {t('common.loading')}
-        </Text>
-      </View>
+      <PageScaffold title={t('reviews.leaveReview')} showBack>
+        <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
+          <Text style={{ textAlign: 'center', marginTop: 32, color: colors.muted }}>
+            {t('common.loading')}
+          </Text>
+        </View>
+      </PageScaffold>
     );
   }
 
   if (existing) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-        <ScreenHeader title={t('reviews.title')} showBack />
-        <View style={{ padding: 16 }}>
+      <PageScaffold title={t('reviews.title')} showBack>
+        <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
           <Text style={{ fontSize: 15, color: colors.body, marginBottom: 12 }}>
             {t('reviews.thanks')}
           </Text>
@@ -92,14 +92,13 @@ export default function ReviewScreen() {
             style={{ marginTop: 24 }}
           />
         </View>
-      </View>
+      </PageScaffold>
     );
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <ScreenHeader title={t('reviews.leaveReview')} showBack />
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
+    <PageScaffold title={t('reviews.leaveReview')} showBack>
+      <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
         <Text style={{ fontSize: 15, fontWeight: '600', color: colors.ink, marginBottom: 12 }}>
           {t('reviews.rating')}
         </Text>
@@ -143,7 +142,7 @@ export default function ReviewScreen() {
           loading={loading}
           fullWidth
         />
-      </ScrollView>
-    </View>
+      </View>
+    </PageScaffold>
   );
 }

@@ -172,6 +172,7 @@ export const listForMap = query({
         .filter((s) => s.latitude !== undefined && s.longitude !== undefined)
         .map(async (service) => {
           const profile = await ctx.db.get(service.profileId);
+          const category = await ctx.db.get(service.categoryId);
           let distanceKm: number | undefined;
           if (
             args.latitude !== undefined &&
@@ -196,15 +197,22 @@ export const listForMap = query({
             longitude: service.longitude!,
             price: service.price,
             rating: service.averageRating,
+            reviewCount: service.reviewCount,
             isPremium: profile?.isPremium ?? false,
             isVerified: profile?.isVerified ?? false,
             providerName: profile ? `${profile.firstName} ${profile.lastName}` : 'Talent',
+            avatarUrl: profile?.avatarUrl,
+            categoryId: service.categoryId,
+            categoryIcon: category?.icon,
+            categoryLabel: category?.nameFr,
             distanceKm,
           };
         }),
     );
 
-    return results.filter(Boolean);
+    const filtered = results.filter(Boolean) as NonNullable<(typeof results)[number]>[];
+    filtered.sort((a, b) => (a.distanceKm ?? 9999) - (b.distanceKm ?? 9999));
+    return filtered;
   },
 });
 

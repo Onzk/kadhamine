@@ -1,17 +1,18 @@
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useAppTheme } from '@/providers/ThemeProvider';
-import { CategoryIcon } from '@/lib/categoryIcons';
-import { getCategoryPastel } from '@/lib/categoryTheme';
+import { getCategoryVisual } from '@/lib/categoryTheme';
 import { fontFamily, textStyle } from '@/theme/typography';
 import { Shadows, Spacing } from '@/theme/tokens';
 
 const CARD_RADIUS = 16;
+const CARD_MIN_HEIGHT = 148;
 
 export interface CategoryCardData {
   id: string;
   label: string;
   icon?: string;
+  slug?: string;
   serviceCount?: number;
 }
 
@@ -21,46 +22,53 @@ interface CategoryCardProps {
   onPress: () => void;
 }
 
-/** Card catégorie 2 colonnes — icône pastel, nom, compteur services optionnel. */
+/** Card catégorie — icône pastel métier, nom, compteur ; opacité réduite si 0 services. */
 export function CategoryCard({ item, width, onPress }: CategoryCardProps) {
   const { colors } = useAppTheme();
-  const pastel = getCategoryPastel(item.icon);
+  const { Icon, pastel } = getCategoryVisual({
+    icon: item.icon,
+    slug: item.slug,
+    label: item.label,
+  });
+  const isEmpty = item.serviceCount === 0;
 
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => ({
         width,
+        minHeight: CARD_MIN_HEIGHT,
         borderRadius: CARD_RADIUS,
         backgroundColor: colors.surfaceCard,
-        padding: Spacing.four,
-        opacity: pressed ? 0.92 : 1,
-        transform: [{ scale: pressed ? 0.98 : 1 }],
+        padding: Spacing.three,
+        opacity: pressed ? 0.9 : isEmpty ? 0.6 : 1,
+        transform: [{ scale: pressed ? 0.97 : 1 }],
         ...Shadows.nav,
       })}
     >
       <View
         style={{
-          width: 48,
-          height: 48,
-          borderRadius: 24,
+          width: 44,
+          height: 44,
+          borderRadius: 22,
           backgroundColor: pastel.bg,
           alignItems: 'center',
           justifyContent: 'center',
-          marginBottom: Spacing.three,
+          marginBottom: Spacing.two,
         }}
       >
-        <CategoryIcon icon={item.icon} size={24} color={pastel.fg} weight="bold" />
+        <Icon size={22} color={pastel.fg} weight="bold" />
       </View>
 
       <Text
         numberOfLines={2}
         style={{
           fontFamily: fontFamily('body', 'medium'),
-          fontSize: 15,
-          lineHeight: 20,
+          fontSize: 13,
+          lineHeight: 17,
           color: colors.ink,
-          marginBottom: item.serviceCount !== undefined ? Spacing.one : 0,
+          marginBottom: Spacing.one,
+          minHeight: 34,
         }}
       >
         {item.label}
@@ -86,31 +94,32 @@ export function CategoryCardSkeleton({ width }: CategoryCardSkeletonProps) {
     <View
       style={{
         width,
+        minHeight: CARD_MIN_HEIGHT,
         borderRadius: CARD_RADIUS,
         backgroundColor: colors.surfaceCard,
-        padding: Spacing.four,
+        padding: Spacing.three,
         ...Shadows.nav,
       }}
     >
       <View
         style={{
-          width: 48,
-          height: 48,
-          borderRadius: 24,
+          width: 44,
+          height: 44,
+          borderRadius: 22,
           backgroundColor: colors.surfaceStrong,
-          marginBottom: Spacing.three,
+          marginBottom: Spacing.two,
         }}
       />
       <View
         style={{
-          height: 14,
-          width: '80%',
-          borderRadius: 8,
+          height: 12,
+          width: '90%',
+          borderRadius: 6,
           backgroundColor: colors.surfaceStrong,
           marginBottom: 8,
         }}
       />
-      <View style={{ height: 10, width: '50%', borderRadius: 6, backgroundColor: colors.surfaceStrong }} />
+      <View style={{ height: 10, width: '45%', borderRadius: 5, backgroundColor: colors.surfaceStrong }} />
     </View>
   );
 }

@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { Wrench } from 'phosphor-react-native';
 
+import { PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { ServiceCard } from '@/components/cards/ServiceCard';
 import { Text } from '@/components/ui/ThemedText';
 import { ServiceCardSkeleton } from '@/components/ui/Skeleton';
@@ -64,7 +65,7 @@ export function ServiceCarousel({
           flexDirection: 'row',
           justifyContent: 'space-between',
           alignItems: 'center',
-          paddingHorizontal: Spacing.four,
+          paddingHorizontal: PAGE_H_PAD,
           marginBottom: Spacing.four,
         }}
       >
@@ -80,7 +81,7 @@ export function ServiceCarousel({
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: Spacing.four, gap: GAP }}
+          contentContainerStyle={{ paddingHorizontal: PAGE_H_PAD, gap: GAP }}
         >
           <View style={{ width: CAROUSEL_CARD_WIDTH }}>
             <ServiceCardSkeleton />
@@ -101,7 +102,7 @@ export function ServiceCarousel({
           decelerationRate="fast"
           snapToInterval={CAROUSEL_CARD_WIDTH + GAP}
           snapToAlignment="start"
-          contentContainerStyle={{ paddingHorizontal: Spacing.four, gap: GAP }}
+          contentContainerStyle={{ paddingHorizontal: PAGE_H_PAD, gap: GAP }}
         >
           {items.map((item) => (
             <View key={item.service._id} style={{ width: CAROUSEL_CARD_WIDTH }}>

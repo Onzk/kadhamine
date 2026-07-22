@@ -5,15 +5,15 @@ import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
 import { Lock, ClipboardText, Briefcase } from 'phosphor-react-native';
 
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { CategoryChip } from '@/components/ui/CategoryChip';
+import { FilterChip } from '@/components/ui/FilterChip';
 import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { formatPrice } from '@/types';
-import { Radius } from '@/theme/tokens';
+import { Radius, Spacing } from '@/theme/tokens';
 import { api } from '../../../convex/_generated/api';
 
 const STATUS_COLORS: Record<string, 'default' | 'verified' | 'premium' | 'danger' | 'accent'> = {
@@ -43,32 +43,32 @@ export default function OrdersScreen() {
   };
 
   const filtered =
-    filter === 'all'
-      ? orders
-      : orders?.filter(({ order }) => order.status === filter);
+    filter === 'all' ? orders : orders?.filter(({ order }) => order.status === filter);
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <ScreenHeader title={t('orders.title')} />
-
-      {user ? (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8, gap: 8 }}
-        >
-          {FILTERS.map((f) => (
-            <CategoryChip
-              key={f}
-              label={f === 'all' ? t('common.all') : t(`orders.${f}`)}
-              selected={filter === f}
-              onPress={() => setFilter(f)}
-            />
-          ))}
-        </ScrollView>
-      ) : null}
-
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+    <PageScaffold
+      title={t('orders.title')}
+      subtitle={user ? undefined : 'Connectez-vous pour suivre vos commandes.'}
+      headerActions={
+        user ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: Spacing.two }}
+          >
+            {FILTERS.map((f) => (
+              <FilterChip
+                key={f}
+                label={f === 'all' ? t('common.all') : t(`orders.${f}`)}
+                selected={filter === f}
+                onPress={() => setFilter(f)}
+              />
+            ))}
+          </ScrollView>
+        ) : undefined
+      }
+    >
+      <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four, gap: Spacing.four }}>
         {!user ? (
           <EmptyState
             icon={Lock}
@@ -92,9 +92,6 @@ export default function OrdersScreen() {
                 backgroundColor: colors.surfaceCard,
                 borderRadius: Radius.stadium,
                 padding: 24,
-                marginBottom: 16,
-                borderWidth: 0,
-                borderColor: colors.border,
                 gap: 14,
               }}
             >
@@ -210,7 +207,7 @@ export default function OrdersScreen() {
             </View>
           ))
         )}
-      </ScrollView>
-    </View>
+      </View>
+    </PageScaffold>
   );
 }

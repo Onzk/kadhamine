@@ -6,30 +6,31 @@ import {
   Platform,
   ScrollView,
   Pressable,
-  Switch,
   Alert,
 } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAuthActions } from '@convex-dev/auth/react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ArrowLeft } from 'phosphor-react-native';
+import { CaretLeft } from 'phosphor-react-native';
 
 import {
   AuthField,
   AuthPrimaryButton,
   AuthGhostButton,
   AuthDivider,
+  AuthLink,
   SocialAuthButton,
   GoogleIcon,
   AppleIcon,
 } from '@/components/auth/AuthField';
-import { Logo } from '@/components/brand/Logo';
+import { AuthLogoMark, AuthToggleRow } from '@/components/auth/AuthExtras';
 import { useAppTheme } from '@/providers/ThemeProvider';
-import { Radius, Spacing } from '@/theme/tokens';
+import { Spacing } from '@/theme/tokens';
 import { textStyle } from '@/theme/typography';
 
 const REMEMBER_EMAIL_KEY = 'talenttchad_remember_email';
+const SECTION = Spacing.six;
 
 export default function LoginScreen() {
   const { t } = useTranslation();
@@ -98,45 +99,48 @@ export default function LoginScreen() {
       <ScrollView
         contentContainerStyle={{
           flexGrow: 1,
-          paddingHorizontal: Spacing.eight,
-          paddingTop: Spacing.four,
-          paddingBottom: Spacing.nine,
+          paddingHorizontal: Spacing.six,
+          paddingTop: Spacing.five,
+          paddingBottom: Spacing.ten,
         }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+        {/* Header — retour uniquement */}
         <Pressable
-          onPress={handleGuest}
-          style={{
+          onPress={() => (router.canGoBack() ? router.back() : handleGuest())}
+          style={({ pressed }) => ({
             alignSelf: 'flex-start',
-            marginBottom: Spacing.seven,
-            flexDirection: 'row',
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            backgroundColor: colors.surfaceCard,
+            borderWidth: 1,
+            borderColor: colors.border,
             alignItems: 'center',
-            gap: Spacing.oneHalf,
-          }}
+            justifyContent: 'center',
+            marginBottom: Spacing.five,
+            opacity: pressed ? 0.85 : 1,
+          })}
         >
-          <ArrowLeft size={20} color={colors.ink} />
-          <Text style={[textStyle('caption'), { color: colors.muted }]}>
-            {t('auth.continueWithoutAccount')}
-          </Text>
+          <CaretLeft size={20} color={colors.ink} weight="bold" />
         </Pressable>
 
-        <View style={{ alignItems: 'center', marginBottom: Spacing.eight }}>
-          <Logo size={72} />
-        </View>
+        <AuthLogoMark size={64} />
 
-        <Text style={[textStyle('productDisplay'), { color: colors.ink, marginBottom: Spacing.three }]}>
+        <Text style={[textStyle('productDisplay'), { color: colors.ink, marginBottom: Spacing.two }]}>
           {t('auth.welcomeBack')}
         </Text>
         <Text
           style={[
             textStyle('body'),
-            { color: colors.body, marginBottom: Spacing.nine, maxWidth: 320 },
+            { color: colors.muted, marginBottom: SECTION, lineHeight: 24 },
           ]}
         >
           {t('auth.loginSubtitle')}
         </Text>
 
+        {/* Social */}
         <View style={{ flexDirection: 'row', gap: Spacing.three }}>
           <SocialAuthButton
             label="Google"
@@ -156,7 +160,7 @@ export default function LoginScreen() {
           <View
             style={{
               backgroundColor: colors.error + '12',
-              borderRadius: Radius.sm,
+              borderRadius: 16,
               padding: Spacing.three,
               marginBottom: Spacing.four,
               borderWidth: 1,
@@ -183,39 +187,26 @@ export default function LoginScreen() {
           onChangeText={setPassword}
           isPassword
           showPassword={showPassword}
-          onTogglePassword={() => setShowPassword(!showPassword)}
+          onTogglePassword={() => setShowPassword((v) => !v)}
           autoComplete="password"
           placeholder="••••••••"
         />
 
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: Spacing.eight,
-            marginTop: -4,
-          }}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.two }}>
-            <Switch
-              value={rememberMe}
-              onValueChange={setRememberMe}
-              trackColor={{ false: colors.switchTrackOff, true: colors.switchTrackOn }}
-              thumbColor={colors.surface}
+        <AuthToggleRow
+          value={rememberMe}
+          onChange={setRememberMe}
+          label={t('auth.rememberMe')}
+          right={
+            <AuthLink
+              title={t('auth.forgotPassword')}
+              onPress={() => Alert.alert('Mot de passe oublié', t('auth.forgotPasswordSoon'))}
             />
-            <Text style={[textStyle('caption'), { color: colors.body }]}>{t('auth.rememberMe')}</Text>
-          </View>
-          <Pressable onPress={() => Alert.alert('Mot de passe oublié', t('auth.forgotPasswordSoon'))}>
-            <Text style={[textStyle('button'), { color: colors.link, textDecorationLine: 'underline' }]}>
-              {t('auth.forgotPassword')}
-            </Text>
-          </Pressable>
-        </View>
+          }
+        />
 
         <AuthPrimaryButton title={t('auth.signIn')} onPress={handleLogin} loading={loading} />
 
-        <View style={{ marginTop: Spacing.four }}>
+        <View style={{ marginTop: Spacing.three }}>
           <AuthGhostButton title={t('auth.continueWithoutAccount')} onPress={handleGuest} />
         </View>
 
@@ -223,14 +214,15 @@ export default function LoginScreen() {
           style={{
             flexDirection: 'row',
             justifyContent: 'center',
-            marginTop: Spacing.nine,
+            marginTop: Spacing.eight,
             gap: Spacing.one,
+            flexWrap: 'wrap',
           }}
         >
           <Text style={[textStyle('body'), { color: colors.muted }]}>{t('auth.noAccount')}</Text>
           <Link href="/(auth)/register" asChild>
             <Pressable>
-              <Text style={[textStyle('button'), { color: colors.link, textDecorationLine: 'underline' }]}>
+              <Text style={[textStyle('button'), { color: colors.orbit, textDecorationLine: 'underline' }]}>
                 {t('auth.signUp')}
               </Text>
             </Pressable>

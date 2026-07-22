@@ -1,15 +1,15 @@
 import React from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from 'convex/react';
 import { ChatCircleDots, Lock, CaretRight } from 'phosphor-react-native';
 
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
-import { Radius } from '@/theme/tokens';
+import { Radius, Spacing } from '@/theme/tokens';
 import { api } from '../../../convex/_generated/api';
 
 export default function MessagesScreen() {
@@ -20,10 +20,11 @@ export default function MessagesScreen() {
   const conversations = useQuery(api.messages.list, user ? {} : 'skip');
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <ScreenHeader title={t('messages.title')} />
-
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+    <PageScaffold
+      title={t('messages.title')}
+      subtitle={user ? undefined : 'Vos conversations avec les talents et clients.'}
+    >
+      <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
         {!user ? (
           <EmptyState
             icon={Lock}
@@ -50,8 +51,6 @@ export default function MessagesScreen() {
                 borderRadius: Radius.stadium,
                 padding: 16,
                 marginBottom: 12,
-                borderWidth: 0,
-                borderColor: colors.border,
                 opacity: pressed ? 0.9 : 1,
                 gap: 12,
               })}
@@ -82,7 +81,7 @@ export default function MessagesScreen() {
             </Pressable>
           ))
         )}
-      </ScrollView>
-    </View>
+      </View>
+    </PageScaffold>
   );
 }

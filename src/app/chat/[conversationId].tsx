@@ -18,7 +18,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Camera, Image as ImageIcon } from 'phosphor-react-native';
 import type { Id } from '../../../convex/_generated/dataModel';
 
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { PageHeader } from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
@@ -121,7 +121,7 @@ export default function ChatScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <ScreenHeader title={t('messages.title')} showBack />
+      <PageHeader title={t('messages.title')} showBack />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

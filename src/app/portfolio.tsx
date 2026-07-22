@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
+import { View, Text, Pressable, Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { Plus, Trash, Image as ImageIcon } from 'phosphor-react-native';
 
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { useUpload } from '@/hooks/useUpload';
+import { Spacing } from '@/theme/tokens';
 import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
 
@@ -95,10 +96,8 @@ export default function PortfolioScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <ScreenHeader title={t('service.portfolio')} showBack />
-
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
+    <PageScaffold title={t('service.portfolio')} showBack>
+      <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
         <View
           style={{
             backgroundColor: colors.surfaceCard,
@@ -166,7 +165,7 @@ export default function PortfolioScreen() {
             </View>
           </View>
         ))}
-      </ScrollView>
-    </View>
+      </View>
+    </PageScaffold>
   );
 }

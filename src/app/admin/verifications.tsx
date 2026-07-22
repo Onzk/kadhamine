@@ -1,11 +1,12 @@
 import React from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text } from 'react-native';
 import { useQuery, useMutation } from 'convex/react';
 import { Image } from 'expo-image';
 
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { useAppTheme } from '@/providers/ThemeProvider';
+import { Spacing } from '@/theme/tokens';
 import { api } from '../../../convex/_generated/api';
 
 export default function AdminVerificationsScreen() {
@@ -14,10 +15,8 @@ export default function AdminVerificationsScreen() {
   const review = useMutation(api.admin.reviewVerification);
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <ScreenHeader title="Vérifications d'identité" showBack />
-
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
+    <PageScaffold title="Vérifications d'identité" showBack>
+      <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
         {items?.map(({ request, profile, docUrl, selfieUrl }) => (
           <View
             key={request._id}
@@ -57,7 +56,7 @@ export default function AdminVerificationsScreen() {
             </View>
           </View>
         ))}
-      </ScrollView>
-    </View>
+      </View>
+    </PageScaffold>
   );
 }

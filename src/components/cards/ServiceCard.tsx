@@ -29,8 +29,8 @@ interface ServiceCardProps {
 }
 
 /**
- * Card service rectangulaire — image 4:3, badges en overlay, note + prix,
- * ligne prestataire (avatar + nom + ville) en pied. Remplit la largeur du parent.
+ * Card service — image 16:9, badges overlay, note + prix,
+ * ligne prestataire (avatar + nom + ville) + prix. Remplit la largeur du parent.
  */
 export function ServiceCard({
   title,
@@ -69,10 +69,28 @@ export function ServiceCard({
         ...Shadows.nav,
       })}
     >
-      {/* Image 4:3 + overlays */}
-      <View style={{ width: '100%', aspectRatio: 4 / 3, backgroundColor: colors.surfaceStrong }}>
+      {/* Image 16:9 + overlays */}
+      <View
+        style={{
+          width: '100%',
+          aspectRatio: 16 / 9,
+          backgroundColor: colors.surfaceStrong,
+          borderTopLeftRadius: Radius.lg,
+          borderTopRightRadius: Radius.lg,
+          overflow: 'hidden',
+        }}
+      >
         {photo ? (
-          <Image source={{ uri: photo }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+          <Image
+            source={{ uri: photo }}
+            style={{
+              width: '100%',
+              height: '100%',
+              borderTopLeftRadius: Radius.lg,
+              borderTopRightRadius: Radius.lg,
+            }}
+            contentFit="cover"
+          />
         ) : (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
             <CategoryIcon icon={categoryIcon} size={44} color={colors.muted} weight="regular" />
