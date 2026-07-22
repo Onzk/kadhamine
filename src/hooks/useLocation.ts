@@ -52,7 +52,10 @@ export function useLocation() {
   }, []);
 
   useEffect(() => {
-    refresh();
+    // Defer so the effect itself does not synchronously setState (lint: set-state-in-effect).
+    queueMicrotask(() => {
+      void refresh();
+    });
   }, [refresh]);
 
   return { ...location, refresh };

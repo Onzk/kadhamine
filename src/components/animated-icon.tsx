@@ -32,7 +32,7 @@ export function AnimatedSplashOverlay() {
 
 const styles = StyleSheet.create({
   overlay: {
-    ...StyleSheet.absoluteFill,
+    ...StyleSheet.absoluteFillObject,
     zIndex: 1000,
     alignItems: 'center',
     justifyContent: 'center',

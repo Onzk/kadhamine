@@ -17,6 +17,22 @@ export const listByProvider = query({
   },
 });
 
+export const getByOrder = query({
+  args: { orderId: v.id('orders') },
+  handler: async (ctx, args) => {
+    const { userId } = await requireAuth(ctx);
+    const order = await ctx.db.get(args.orderId);
+    if (!order) return null;
+    if (order.clientId !== userId && order.providerId !== userId) {
+      throw new Error('Non autorisé');
+    }
+    return await ctx.db
+      .query('reviews')
+      .withIndex('by_order', (q) => q.eq('orderId', args.orderId))
+      .first();
+  },
+});
+
 export const create = mutation({
   args: {
     orderId: v.id('orders'),

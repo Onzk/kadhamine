@@ -44,7 +44,11 @@ export const listMine = query({
           .query('payments')
           .withIndex('by_order', (q) => q.eq('orderId', order._id))
           .first();
-        return { order, service, payment };
+        const review = await ctx.db
+          .query('reviews')
+          .withIndex('by_order', (q) => q.eq('orderId', order._id))
+          .first();
+        return { order, service, payment, hasReview: Boolean(review) };
       }),
     );
   },
