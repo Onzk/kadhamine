@@ -10,13 +10,15 @@ interface FilterChipProps {
   icon?: string;
   selected?: boolean;
   onPress?: () => void;
+  /** py-2.5 / px-3 — style filtre Recherche. */
+  compact?: boolean;
 }
 
 /**
- * Chip filtre/catégorie — inactif: fond blanc + bordure légère ;
- * actif: fond orange corail + texte blanc.
+ * Chip filtre/catégorie — pill.
+ * compact: padding Tailwind-like py-2.5 (10) / px-3 (12).
  */
-export function FilterChip({ label, icon, selected, onPress }: FilterChipProps) {
+export function FilterChip({ label, icon, selected, onPress, compact = false }: FilterChipProps) {
   const { colors } = useAppTheme();
 
   return (
@@ -26,8 +28,8 @@ export function FilterChip({ label, icon, selected, onPress }: FilterChipProps) 
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
-        paddingHorizontal: Spacing.four,
-        paddingVertical: Spacing.two,
+        paddingHorizontal: compact ? Spacing.three : Spacing.four,
+        paddingVertical: compact ? Spacing.twoHalf : Spacing.two,
         borderRadius: Radius.pill,
         backgroundColor: selected ? colors.orbit : colors.surfaceCard,
         borderWidth: 1,
@@ -65,9 +67,5 @@ interface ChipRowProps {
 
 /** Ligne de chips horizontale scrollable avec gap régulier. */
 export function ChipRow({ children, style }: ChipRowProps) {
-  return (
-    <View style={[{ flexDirection: 'row', flexWrap: 'nowrap' }, style]}>
-      {children}
-    </View>
-  );
+  return <View style={[{ flexDirection: 'row', flexWrap: 'nowrap' }, style]}>{children}</View>;
 }

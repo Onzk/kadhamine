@@ -105,7 +105,11 @@ export default function CheckoutScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <PageScaffold title={t('payment.title')} showBack>
+      <PageScaffold
+        title={t('payment.title')}
+        subtitle="Finalisez votre commande en toute sécurité."
+        showBack
+      >
         <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
           <View
             style={{

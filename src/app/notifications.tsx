@@ -20,6 +20,7 @@ export default function NotificationsScreen() {
   return (
     <PageScaffold
       title={t('notifications.title')}
+      subtitle="Restez informé de l'activité sur votre compte."
       showBack
       rightAction={
         <Pressable onPress={() => markAllRead({})} hitSlop={8}>

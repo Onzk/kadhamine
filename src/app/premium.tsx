@@ -74,7 +74,11 @@ export default function PremiumScreen() {
   const isActive = Boolean(active && active.endDate > now);
 
   return (
-    <PageScaffold title={t('profile.premium')} showBack>
+    <PageScaffold
+      title={t('profile.premium')}
+      subtitle="Débloquez plus de visibilité et d'avantages."
+      showBack
+    >
       <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
         <View
           style={{

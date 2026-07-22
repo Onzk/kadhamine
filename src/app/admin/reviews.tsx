@@ -15,7 +15,11 @@ export default function AdminReviewsScreen() {
   const moderate = useMutation(api.admin.moderateReview);
 
   return (
-    <PageScaffold title="Modération des avis" showBack>
+    <PageScaffold
+      title="Modération des avis"
+      subtitle="Modérez les avis publiés sur la plateforme."
+      showBack
+    >
       <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
         {reviews?.map(({ review, client }) => (
           <View

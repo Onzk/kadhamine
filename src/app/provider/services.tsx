@@ -110,7 +110,11 @@ export default function ProviderServicesScreen() {
   };
 
   return (
-    <PageScaffold title={t('profile.myServices')} showBack>
+    <PageScaffold
+      title={t('profile.myServices')}
+      subtitle="Créez et gérez vos offres de services."
+      showBack
+    >
       <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
         <Button
           title={showForm ? t('common.cancel') : t('services.new')}

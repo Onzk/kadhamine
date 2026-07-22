@@ -24,7 +24,11 @@ export default function AdminReportsScreen() {
   };
 
   return (
-    <PageScaffold title="Litiges & signalements" showBack>
+    <PageScaffold
+      title="Litiges & signalements"
+      subtitle="Traitez les signalements et litiges ouverts."
+      showBack
+    >
       <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
         {reports?.length === 0 && (
           <Text style={{ color: colors.muted, textAlign: 'center', marginTop: 32 }}>

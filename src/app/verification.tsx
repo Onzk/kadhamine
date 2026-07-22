@@ -68,7 +68,11 @@ export default function VerificationScreen() {
   };
 
   return (
-    <PageScaffold title={t('profile.verification')} showBack>
+    <PageScaffold
+      title={t('profile.verification')}
+      subtitle="Renforcez la confiance avec une identité vérifiée."
+      showBack
+    >
       <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
         {status?.status === 'pending' && (
           <Badge label="En attente de validation" variant="accent" />

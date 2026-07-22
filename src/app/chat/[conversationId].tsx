@@ -121,7 +121,11 @@ export default function ChatScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <PageHeader title={t('messages.title')} showBack />
+      <PageHeader
+        title={t('messages.title')}
+        subtitle="Échangez librement autour de votre prestation."
+        showBack
+      />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

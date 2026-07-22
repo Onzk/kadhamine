@@ -33,7 +33,11 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <PageScaffold title="Administration" showBack>
+    <PageScaffold
+      title="Administration"
+      subtitle="Pilotez la plateforme TalentTchad."
+      showBack
+    >
       <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
         <View
           style={{

@@ -22,7 +22,7 @@ export default function MessagesScreen() {
   return (
     <PageScaffold
       title={t('messages.title')}
-      subtitle={user ? undefined : 'Vos conversations avec les talents et clients.'}
+      subtitle="Vos conversations avec les talents et clients."
     >
       <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
         {!user ? (

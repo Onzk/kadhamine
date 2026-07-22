@@ -14,7 +14,11 @@ export default function AdminPaymentsScreen() {
   const payments = useQuery(api.admin.listPayments, { limit: 50 });
 
   return (
-    <PageScaffold title="Paiements" showBack>
+    <PageScaffold
+      title="Paiements"
+      subtitle="Suivez les transactions et commissions."
+      showBack
+    >
       <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
         {payments?.map(({ payment, order, client, provider }) => (
           <View

@@ -3,9 +3,9 @@ import { Pressable, Text, View } from 'react-native';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { getCategoryVisual } from '@/lib/categoryTheme';
 import { fontFamily, textStyle } from '@/theme/typography';
-import { Shadows, Spacing } from '@/theme/tokens';
+import { Radius, Spacing } from '@/theme/tokens';
 
-const CARD_RADIUS = 16;
+const CARD_RADIUS = Radius.lg;
 const CARD_MIN_HEIGHT = 148;
 
 export interface CategoryCardData {
@@ -16,13 +16,46 @@ export interface CategoryCardData {
   serviceCount?: number;
 }
 
+/** Mélange un hex avec du blanc pour adoucir le fond pastel. */
+function softenPastel(hex: string, whiteMix = 0.62): string {
+  const raw = hex.replace('#', '');
+  const full =
+    raw.length === 3
+      ? raw
+          .split('')
+          .map((c) => c + c)
+          .join('')
+      : raw;
+  const r = parseInt(full.slice(0, 2), 16);
+  const g = parseInt(full.slice(2, 4), 16);
+  const b = parseInt(full.slice(4, 6), 16);
+  const mix = (c: number) => Math.round(c + (255 - c) * whiteMix);
+  return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
+}
+
+/** Bordure légère teintée depuis la couleur d’accent. */
+function softBorder(hex: string, alpha = 0.22): string {
+  const raw = hex.replace('#', '');
+  const full =
+    raw.length === 3
+      ? raw
+          .split('')
+          .map((c) => c + c)
+          .join('')
+      : raw;
+  const r = parseInt(full.slice(0, 2), 16);
+  const g = parseInt(full.slice(2, 4), 16);
+  const b = parseInt(full.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 interface CategoryCardProps {
   item: CategoryCardData;
   width: number;
   onPress: () => void;
 }
 
-/** Card catégorie — icône pastel métier, nom, compteur ; opacité réduite si 0 services. */
+/** Card catégorie accueil — pastel adouci + bordure légère. */
 export function CategoryCard({ item, width, onPress }: CategoryCardProps) {
   const { colors } = useAppTheme();
   const { Icon, pastel } = getCategoryVisual({
@@ -31,6 +64,8 @@ export function CategoryCard({ item, width, onPress }: CategoryCardProps) {
     label: item.label,
   });
   const isEmpty = item.serviceCount === 0;
+  const cardBg = softenPastel(pastel.bg, 0.58);
+  const borderColor = softBorder(pastel.fg, 0.2);
 
   return (
     <Pressable
@@ -39,11 +74,12 @@ export function CategoryCard({ item, width, onPress }: CategoryCardProps) {
         width,
         minHeight: CARD_MIN_HEIGHT,
         borderRadius: CARD_RADIUS,
-        backgroundColor: colors.surfaceCard,
+        backgroundColor: cardBg,
+        borderWidth: 1,
+        borderColor,
         padding: Spacing.three,
         opacity: pressed ? 0.9 : isEmpty ? 0.6 : 1,
         transform: [{ scale: pressed ? 0.97 : 1 }],
-        ...Shadows.nav,
       })}
     >
       <View
@@ -97,8 +133,9 @@ export function CategoryCardSkeleton({ width }: CategoryCardSkeletonProps) {
         minHeight: CARD_MIN_HEIGHT,
         borderRadius: CARD_RADIUS,
         backgroundColor: colors.surfaceCard,
+        borderWidth: 1,
+        borderColor: colors.border,
         padding: Spacing.three,
-        ...Shadows.nav,
       }}
     >
       <View

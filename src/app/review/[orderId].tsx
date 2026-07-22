@@ -55,7 +55,11 @@ export default function ReviewScreen() {
 
   if (existing === undefined) {
     return (
-      <PageScaffold title={t('reviews.leaveReview')} showBack>
+      <PageScaffold
+        title={t('reviews.leaveReview')}
+        subtitle="Partagez votre expérience pour aider la communauté."
+        showBack
+      >
         <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
           <Text style={{ textAlign: 'center', marginTop: 32, color: colors.muted }}>
             {t('common.loading')}
@@ -67,7 +71,11 @@ export default function ReviewScreen() {
 
   if (existing) {
     return (
-      <PageScaffold title={t('reviews.title')} showBack>
+      <PageScaffold
+        title={t('reviews.title')}
+        subtitle="Consultez les avis liés à cette commande."
+        showBack
+      >
         <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
           <Text style={{ fontSize: 15, color: colors.body, marginBottom: 12 }}>
             {t('reviews.thanks')}
@@ -97,7 +105,11 @@ export default function ReviewScreen() {
   }
 
   return (
-    <PageScaffold title={t('reviews.leaveReview')} showBack>
+    <PageScaffold
+      title={t('reviews.leaveReview')}
+      subtitle="Partagez votre expérience pour aider la communauté."
+      showBack
+    >
       <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
         <Text style={{ fontSize: 15, fontWeight: '600', color: colors.ink, marginBottom: 12 }}>
           {t('reviews.rating')}

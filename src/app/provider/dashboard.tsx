@@ -21,7 +21,11 @@ export default function ProviderDashboardScreen() {
   ];
 
   return (
-    <PageScaffold title={t('profile.dashboard')} showBack>
+    <PageScaffold
+      title={t('profile.dashboard')}
+      subtitle="Vue d'ensemble de votre activité prestataire."
+      showBack
+    >
       <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
           {stats.map((stat) => (

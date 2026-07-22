@@ -133,6 +133,9 @@ export default function HomeScreen() {
             <Text numberOfLines={1} style={{ color: colors.ink }} variant="featureHeading" display>
               {firstName || 'TalentTchad'}
             </Text>
+            <Text numberOfLines={2} style={{ color: colors.muted, marginTop: 2 }} variant="micro">
+              Découvrez les talents près de chez vous.
+            </Text>
           </View>
         </View>
         <View style={{ flexDirection: 'row', gap: Spacing.two }}>

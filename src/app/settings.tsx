@@ -54,7 +54,11 @@ export default function SettingsScreen() {
   ];
 
   return (
-    <PageScaffold title={t('profile.settings', { defaultValue: 'Paramètres' })} showBack>
+    <PageScaffold
+      title={t('profile.settings', { defaultValue: 'Paramètres' })}
+      subtitle="Personnalisez votre expérience TalentTchad."
+      showBack
+    >
       <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
         {rows.map((row) => (
           <Pressable

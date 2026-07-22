@@ -15,7 +15,11 @@ export default function AdminVerificationsScreen() {
   const review = useMutation(api.admin.reviewVerification);
 
   return (
-    <PageScaffold title="Vérifications d'identité" showBack>
+    <PageScaffold
+      title="Vérifications d'identité"
+      subtitle="Examinez et validez les demandes d'identité."
+      showBack
+    >
       <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
         {items?.map(({ request, profile, docUrl, selfieUrl }) => (
           <View

@@ -22,7 +22,8 @@ const STICKY_THRESHOLD = 56;
 
 export interface PageHeaderProps {
   title: string;
-  subtitle?: string;
+  /** Description sous le titre — obligatoire sur toutes les pages. */
+  subtitle: string;
   showBack?: boolean;
   rightAction?: React.ReactNode;
   /** Contenu sous le titre (search, chips…) — espacé de ~24px. */
@@ -93,19 +94,17 @@ export function PageHeader({
       <Text
         style={[
           textStyle('productDisplay'),
-          { color: colors.ink, marginBottom: subtitle ? Spacing.two : 0 },
+          { color: colors.ink, marginBottom: Spacing.two },
         ]}
       >
         {title}
       </Text>
-      {subtitle ? (
-        <Text
-          style={[textStyle('body'), { color: colors.muted, lineHeight: 24, maxWidth: 360 }]}
-          numberOfLines={2}
-        >
-          {subtitle}
-        </Text>
-      ) : null}
+      <Text
+        style={[textStyle('body'), { color: colors.muted, lineHeight: 24, maxWidth: 360 }]}
+        numberOfLines={2}
+      >
+        {subtitle}
+      </Text>
 
       {actions ? <View style={{ marginTop: Spacing.six }}>{actions}</View> : null}
     </View>
@@ -198,7 +197,8 @@ function StickyBar({ title, showBack, rightAction, progress, active }: StickyBar
 
 export interface PageScaffoldProps {
   title: string;
-  subtitle?: string;
+  /** Description sous le titre — obligatoire sur toutes les pages. */
+  subtitle: string;
   showBack?: boolean;
   rightAction?: React.ReactNode;
   headerActions?: React.ReactNode;

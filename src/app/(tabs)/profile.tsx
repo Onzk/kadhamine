@@ -117,7 +117,7 @@ export default function ProfileScreen() {
   return (
     <PageScaffold
       title={displayName}
-      subtitle={user?.email}
+      subtitle="Gérez votre compte, vos préférences et vos accès."
       rightAction={
         <View
           style={{
@@ -137,8 +137,13 @@ export default function ProfileScreen() {
         </View>
       }
       headerActions={
-        showProfileMeta ? (
+        showProfileMeta || user?.email ? (
           <View>
+            {user?.email ? (
+              <Text style={{ fontSize: 13, color: colors.muted, marginBottom: hasBadges ? 8 : 0 }}>
+                {user.email}
+              </Text>
+            ) : null}
             {hasBadges ? (
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                 {profile?.isVerified && <Badge label={t('common.verified')} variant="verified" />}

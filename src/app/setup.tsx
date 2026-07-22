@@ -12,7 +12,10 @@ export default function SetupScreen() {
   const { colors } = useAppTheme();
 
   return (
-    <PageScaffold title={t('setup.title')}>
+    <PageScaffold
+      title={t('setup.title')}
+      subtitle="Connectez Convex pour lancer TalentTchad."
+    >
       <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
         <View
           style={{

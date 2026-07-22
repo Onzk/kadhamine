@@ -96,7 +96,11 @@ export default function PortfolioScreen() {
   };
 
   return (
-    <PageScaffold title={t('service.portfolio')} showBack>
+    <PageScaffold
+      title={t('service.portfolio')}
+      subtitle="Montrez vos meilleures réalisations aux clients."
+      showBack
+    >
       <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
         <View
           style={{

@@ -39,7 +39,11 @@ export default function AdminSettingsScreen() {
   };
 
   return (
-    <PageScaffold title="Paramètres plateforme" showBack>
+    <PageScaffold
+      title="Paramètres plateforme"
+      subtitle="Configurez les règles et commissions."
+      showBack
+    >
       <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
         <Text style={{ fontSize: 15, fontWeight: '600', color: colors.ink, marginBottom: 8 }}>
           Commission sur les paiements in-app

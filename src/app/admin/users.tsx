@@ -30,7 +30,11 @@ export default function AdminUsersScreen() {
   };
 
   return (
-    <PageScaffold title="Utilisateurs" showBack>
+    <PageScaffold
+      title="Utilisateurs"
+      subtitle="Gérez les comptes utilisateurs et leurs accès."
+      showBack
+    >
       <View style={{ paddingTop: Spacing.four }}>
         <ScrollView
           horizontal
