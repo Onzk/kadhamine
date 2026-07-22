@@ -29,12 +29,3 @@ export default function Index() {
 
   return <Redirect href="/(tabs)" />;
 }
-
-export async function hasSeenOnboarding(): Promise<boolean> {
-  const value = await AsyncStorage.getItem(ONBOARDING_KEY);
-  return value === 'true';
-}
-
-export async function markOnboardingDone(): Promise<void> {
-  await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
-}

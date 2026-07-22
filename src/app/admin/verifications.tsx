@@ -23,7 +23,7 @@ export default function AdminVerificationsScreen() {
             key={request._id}
             style={{
               backgroundColor: colors.surfaceCard,
-              borderRadius: 14,
+              borderRadius: 20,
               padding: 16,
               marginBottom: 12,
               borderWidth: 1,
@@ -39,7 +39,7 @@ export default function AdminVerificationsScreen() {
 
             <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
               {docUrl && (
-                <Image source={{ uri: docUrl }} style={{ width: 120, height: 80, borderRadius: 8 }} contentFit="cover" />
+                <Image source={{ uri: docUrl }} style={{ width: 120, height: 80, borderRadius: 6 }} contentFit="cover" />
               )}
               {selfieUrl && (
                 <Image source={{ uri: selfieUrl }} style={{ width: 80, height: 80, borderRadius: 40 }} contentFit="cover" />

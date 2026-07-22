@@ -7,11 +7,12 @@ import { MagnifyingGlass, Bell, Moon, Sun, MapPin, HandWaving, Wrench } from 'ph
 
 import { ServiceCard } from '@/components/cards/ServiceCard';
 import { CategoryChip } from '@/components/ui/CategoryChip';
+import { Eyebrow } from '@/components/ui/Eyebrow';
 import { ServiceCardSkeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/ThemedText';
 import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
-import { BrandColors, Radius, Spacing } from '@/theme/tokens';
+import { Radius, Shadows, Spacing } from '@/theme/tokens';
 import { textStyle } from '@/theme/typography';
 import { api } from '../../../convex/_generated/api';
 
@@ -33,63 +34,47 @@ export default function HomeScreen() {
 
   const firstName = user?.profile?.firstName ?? '';
 
+  const iconBtn = {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    borderWidth: 1.5,
+    borderColor: colors.ink,
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      <View style={{ paddingHorizontal: Spacing.four, paddingTop: Spacing.two, paddingBottom: Spacing.three }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: Spacing.four,
+          }}
+        >
           <View>
-            <Text style={{ color: colors.muted }} variant="caption">{t('home.greeting')}</Text>
+            <Text style={{ color: colors.muted }} variant="caption">
+              {t('home.greeting')}
+            </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Text style={{ color: colors.ink }} variant="cardHeading" display>
                 {firstName || 'TalentTchad'}
               </Text>
-              <HandWaving size={22} color={colors.accent} style={{ marginLeft: 6 }} />
+              <HandWaving size={22} color={colors.orbit} style={{ marginLeft: 6 }} />
             </View>
           </View>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <Pressable
-              onPress={() => router.push('/map' as never)}
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: Radius.sm,
-                backgroundColor: colors.surfaceCard,
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderWidth: 1,
-                borderColor: colors.border,
-              }}
-            >
-              <MapPin size={18} color={colors.primary} />
+          <View style={{ flexDirection: 'row', gap: Spacing.two }}>
+            <Pressable onPress={() => router.push('/map' as never)} style={iconBtn}>
+              <MapPin size={18} color={colors.ink} />
             </Pressable>
-            <Pressable
-              onPress={toggle}
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: Radius.sm,
-                backgroundColor: colors.surfaceCard,
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderWidth: 1,
-                borderColor: colors.border,
-              }}
-            >
+            <Pressable onPress={toggle} style={iconBtn}>
               {isDark ? <Sun size={18} color={colors.ink} /> : <Moon size={18} color={colors.ink} />}
             </Pressable>
-            <Pressable
-              onPress={() => router.push('/notifications')}
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: Radius.sm,
-                backgroundColor: colors.surfaceCard,
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderWidth: 1,
-                borderColor: colors.border,
-              }}
-            >
+            <Pressable onPress={() => router.push('/notifications')} style={iconBtn}>
               <Bell size={18} color={colors.ink} />
             </Pressable>
           </View>
@@ -100,13 +85,14 @@ export default function HomeScreen() {
           style={{
             flexDirection: 'row',
             alignItems: 'center',
-            backgroundColor: colors.surfaceStrong,
+            backgroundColor: '#FFFFFF',
             borderRadius: Radius.pill,
-            paddingHorizontal: Spacing.four,
+            paddingHorizontal: Spacing.six,
             height: 48,
             borderWidth: 1,
-            borderColor: colors.border,
+            borderColor: 'rgba(20, 20, 19, 0.5)',
             gap: 10,
+            ...Shadows.nav,
           }}
         >
           <MagnifyingGlass size={18} color={colors.muted} />
@@ -114,48 +100,68 @@ export default function HomeScreen() {
         </Pressable>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+        <Pressable
+          onPress={() => router.push('/premium')}
+          style={{
+            marginHorizontal: Spacing.four,
+            marginBottom: Spacing.four,
+            backgroundColor: colors.ink,
+            borderRadius: Radius.stadium,
+            padding: Spacing.eight,
+            minHeight: 160,
+            justifyContent: 'flex-end',
+          }}
+        >
+          <Eyebrow label={t('common.premium')} color={colors.onPrimary} />
+          <Text
+            style={[
+              textStyle('sectionHeading'),
+              { color: colors.onPrimary, marginBottom: Spacing.two },
+            ]}
+          >
+            Passez Premium
+          </Text>
+          <Text style={[textStyle('caption'), { color: colors.dust }]}>
+            Badge Premium + mise en avant dans les recherches pour les prestataires.
+          </Text>
+        </Pressable>
+
         <View
           style={{
             marginHorizontal: Spacing.four,
-            marginBottom: Spacing.three,
-            backgroundColor: BrandColors.blue,
-            borderRadius: Radius.xl,
-            padding: Spacing.five,
+            marginBottom: Spacing.eight,
+            backgroundColor: colors.surfaceCard,
+            borderRadius: Radius.stadium,
+            padding: Spacing.eight,
+            borderWidth: 1.5,
+            borderColor: colors.ink,
           }}
         >
-          <Text style={[textStyle('featureHeading'), { color: colors.onDark, marginBottom: Spacing.oneHalf }]}>
+          <Eyebrow label="FedaPay" />
+          <Text
+            style={[
+              textStyle('featureHeading'),
+              { color: colors.ink, marginBottom: Spacing.two },
+            ]}
+          >
             {t('payment.integratedBenefit')}
           </Text>
-          <Text style={[textStyle('caption'), { color: '#ffffffcc', lineHeight: 19.6 }]}>
+          <Text style={[textStyle('caption'), { color: colors.muted }]}>
             Payez via FedaPay pour débloquer les avis officiels et sécuriser la prestation.
           </Text>
         </View>
 
-        <View
-          style={{
-            marginHorizontal: Spacing.four,
-            marginBottom: Spacing.five,
-            backgroundColor: BrandColors.crimson,
-            borderRadius: Radius.xl,
-            padding: Spacing.five,
-          }}
-        >
-          <Text style={[textStyle('featureHeading'), { color: '#FFFFFF', marginBottom: Spacing.oneHalf }]}>
-            Passez Premium
-          </Text>
-          <Text style={[textStyle('caption'), { color: '#ffffffcc', lineHeight: 19.6 }]}>
-            Badge Premium + mise en avant dans les recherches pour les prestataires.
-          </Text>
-          <Pressable onPress={() => router.push('/premium')} style={{ marginTop: 12 }}>
-            <Text style={{ color: BrandColors.gold, fontWeight: '700', fontSize: 14 }}>
-              Découvrir →
-            </Text>
-          </Pressable>
-        </View>
-
-        <View style={{ marginBottom: 20 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 12 }}>
+        <View style={{ marginBottom: Spacing.eight }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              paddingHorizontal: Spacing.four,
+              marginBottom: Spacing.four,
+            }}
+          >
             <Text style={[textStyle('featureHeading'), { color: colors.ink }]}>
               {t('home.categories')}
             </Text>
@@ -165,7 +171,11 @@ export default function HomeScreen() {
               </Text>
             </Pressable>
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16 }}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: Spacing.four }}
+          >
             {categories === undefined
               ? Array.from({ length: 5 }).map((_, i) => (
                   <View key={i} style={{ width: 100, height: 40, marginRight: 8 }} />
@@ -183,25 +193,31 @@ export default function HomeScreen() {
           </ScrollView>
         </View>
 
-        <View style={{ paddingHorizontal: 16, marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Text style={{ fontSize: 17, fontWeight: '600', color: colors.ink }}>
+        <View
+          style={{
+            paddingHorizontal: Spacing.four,
+            marginBottom: Spacing.four,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <Text style={[textStyle('featureHeading'), { color: colors.ink }]}>
             {t('home.featured')}
           </Text>
           <Pressable onPress={() => router.push('/(tabs)/search')}>
-            <Text style={{ fontSize: 13, color: colors.primary, fontWeight: '600' }}>
-              {t('common.seeAll')}
-            </Text>
+            <Text style={[textStyle('button'), { color: colors.ink }]}>{t('common.seeAll')}</Text>
           </Pressable>
         </View>
 
-        <View style={{ paddingHorizontal: 16, paddingBottom: 24 }}>
+        <View style={{ paddingHorizontal: Spacing.four, paddingBottom: Spacing.eight }}>
           {featured === undefined ? (
             <>
               <ServiceCardSkeleton />
               <ServiceCardSkeleton />
             </>
           ) : featured.length === 0 ? (
-            <View style={{ alignItems: 'center', paddingVertical: 32 }}>
+            <View style={{ alignItems: 'center', paddingVertical: Spacing.nine }}>
               <Wrench size={40} color={colors.muted} />
               <Text style={{ color: colors.muted, textAlign: 'center', marginTop: 12 }}>
                 Aucun service pour le moment.{'\n'}Soyez le premier prestataire !
@@ -227,6 +243,7 @@ export default function HomeScreen() {
                 isVerified={item.profile?.isVerified}
                 isPremium={item.profile?.isPremium}
                 categoryIcon={item.category?.icon}
+                categoryLabel={item.category?.nameFr}
                 onPress={() => router.push(`/service/${item.service._id}`)}
               />
             ))

@@ -24,11 +24,11 @@ export function Input({ label, error, leftIcon, style, ...props }: InputProps) {
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          backgroundColor: colors.surfaceStrong,
+          backgroundColor: '#FFFFFF',
           borderWidth: 1,
-          borderColor: error ? colors.error : colors.border,
-          borderRadius: Radius.md,
-          paddingHorizontal: Spacing.four,
+          borderColor: error ? colors.error : 'rgba(20, 20, 19, 0.5)',
+          borderRadius: Radius.pill,
+          paddingHorizontal: Spacing.six,
           minHeight: 48,
         }}
       >

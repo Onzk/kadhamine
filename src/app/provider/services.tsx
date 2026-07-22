@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text, ScrollView, Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
-import { Wrench } from 'phosphor-react-native';
+import { Wrench, Plus } from 'phosphor-react-native';
 import type { Id } from '../../../convex/_generated/dataModel';
 
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -10,14 +10,26 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { CategoryChip } from '@/components/ui/CategoryChip';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { Badge } from '@/components/ui/Badge';
 import { useAppTheme } from '@/providers/ThemeProvider';
+import { formatPrice } from '@/types';
+import { Radius } from '@/theme/tokens';
 import { api } from '../../../convex/_generated/api';
+
+type EditTarget = {
+  serviceId: Id<'services'>;
+  title: string;
+  description: string;
+  price?: number;
+  categoryId: Id<'categories'>;
+};
 
 export default function ProviderServicesScreen() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
 
   const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<EditTarget | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
@@ -27,24 +39,73 @@ export default function ProviderServicesScreen() {
   const categories = useQuery(api.categories.list, { activeOnly: true });
   const services = useQuery(api.services.getMine);
   const createService = useMutation(api.services.create);
+  const updateService = useMutation(api.services.update);
 
-  const handleCreate = async () => {
-    if (!title || !description || !categoryId) return;
+  const resetForm = () => {
+    setShowForm(false);
+    setEditing(null);
+    setTitle('');
+    setDescription('');
+    setPrice('');
+    setCategoryId(undefined);
+  };
+
+  const openCreate = () => {
+    setEditing(null);
+    setTitle('');
+    setDescription('');
+    setPrice('');
+    setCategoryId(undefined);
+    setShowForm(true);
+  };
+
+  const openEdit = (target: EditTarget) => {
+    setEditing(target);
+    setTitle(target.title);
+    setDescription(target.description);
+    setPrice(target.price != null ? String(target.price) : '');
+    setCategoryId(target.categoryId);
+    setShowForm(true);
+  };
+
+  const handleSave = async () => {
+    if (!title.trim() || !description.trim()) return;
     setLoading(true);
     try {
-      await createService({
-        title: title.trim(),
-        description: description.trim(),
-        categoryId: categoryId as Id<'categories'>,
-        pricingType: price ? 'fixed' : 'negotiable',
-        price: price ? parseInt(price, 10) : undefined,
-      });
-      setShowForm(false);
-      setTitle('');
-      setDescription('');
-      setPrice('');
+      if (editing) {
+        await updateService({
+          serviceId: editing.serviceId,
+          title: title.trim(),
+          description: description.trim(),
+          categoryId: categoryId
+            ? (categoryId as Id<'categories'>)
+            : editing.categoryId,
+          pricingType: price ? 'fixed' : 'negotiable',
+          price: price ? parseInt(price, 10) : undefined,
+        });
+      } else {
+        if (!categoryId) return;
+        await createService({
+          title: title.trim(),
+          description: description.trim(),
+          categoryId: categoryId as Id<'categories'>,
+          pricingType: price ? 'fixed' : 'negotiable',
+          price: price ? parseInt(price, 10) : undefined,
+        });
+      }
+      resetForm();
+    } catch (err) {
+      Alert.alert(t('common.error'), err instanceof Error ? err.message : t('common.error'));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const toggleActive = async (serviceId: Id<'services'>, isActive: boolean) => {
+    try {
+      await updateService({ serviceId, isActive: !isActive });
+    } catch (err) {
+      Alert.alert(t('common.error'), err instanceof Error ? err.message : t('common.error'));
     }
   };
 
@@ -54,8 +115,9 @@ export default function ProviderServicesScreen() {
 
       <ScrollView contentContainerStyle={{ padding: 16 }}>
         <Button
-          title={showForm ? t('common.cancel') : '+ Nouveau service'}
-          onPress={() => setShowForm(!showForm)}
+          title={showForm ? t('common.cancel') : t('services.new')}
+          icon={showForm ? undefined : <Plus size={18} color={colors.onPrimary} />}
+          onPress={() => (showForm ? resetForm() : openCreate())}
           fullWidth
           style={{ marginBottom: 16 }}
         />
@@ -64,13 +126,16 @@ export default function ProviderServicesScreen() {
           <View
             style={{
               backgroundColor: colors.surfaceCard,
-              borderRadius: 16,
+              borderRadius: Radius.xl,
               padding: 16,
               marginBottom: 16,
               borderWidth: 1,
               borderColor: colors.border,
             }}
           >
+            <Text style={{ fontSize: 16, fontWeight: '600', color: colors.ink, marginBottom: 12 }}>
+              {editing ? t('services.edit') : t('services.new')}
+            </Text>
             <Input label="Titre" value={title} onChangeText={setTitle} />
             <Input
               label="Description"
@@ -96,7 +161,12 @@ export default function ProviderServicesScreen() {
                 />
               ))}
             </ScrollView>
-            <Button title={t('common.save')} onPress={handleCreate} loading={loading} fullWidth />
+            <Button
+              title={t('services.save')}
+              onPress={handleSave}
+              loading={loading}
+              fullWidth
+            />
           </View>
         )}
 
@@ -112,19 +182,52 @@ export default function ProviderServicesScreen() {
               key={item.service._id}
               style={{
                 backgroundColor: colors.surfaceCard,
-                borderRadius: 14,
+                borderRadius: Radius.xl,
                 padding: 16,
                 marginBottom: 10,
                 borderWidth: 1,
                 borderColor: colors.border,
               }}
             >
-              <Text style={{ fontSize: 16, fontWeight: '600', color: colors.ink }}>
-                {item.service.title}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
+                <Text style={{ fontSize: 16, fontWeight: '600', color: colors.ink, flex: 1 }}>
+                  {item.service.title}
+                </Text>
+                <Badge
+                  label={item.service.isActive ? t('services.active') : t('services.paused')}
+                  variant={item.service.isActive ? 'verified' : 'danger'}
+                />
+              </View>
+              <Text style={{ fontSize: 13, color: colors.muted, marginTop: 4 }} numberOfLines={2}>
+                {item.service.description}
               </Text>
-              <Text style={{ fontSize: 13, color: colors.muted, marginTop: 4 }}>
-                {item.category?.nameFr} · {item.service.isActive ? 'Actif' : 'Inactif'}
+              <Text style={{ fontSize: 13, color: colors.primary, fontWeight: '600', marginTop: 8 }}>
+                {item.category?.nameFr}
+                {item.service.price != null ? ` · ${formatPrice(item.service.price)}` : ''}
               </Text>
+
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+                <Button
+                  title={t('services.edit')}
+                  variant="outline"
+                  onPress={() =>
+                    openEdit({
+                      serviceId: item.service._id,
+                      title: item.service.title,
+                      description: item.service.description,
+                      price: item.service.price,
+                      categoryId: item.service.categoryId,
+                    })
+                  }
+                  style={{ flex: 1 }}
+                />
+                <Button
+                  title={item.service.isActive ? t('services.pause') : t('services.activate')}
+                  variant={item.service.isActive ? 'ghost' : 'primary'}
+                  onPress={() => toggleActive(item.service._id, item.service.isActive)}
+                  style={{ flex: 1 }}
+                />
+              </View>
             </View>
           ))
         )}

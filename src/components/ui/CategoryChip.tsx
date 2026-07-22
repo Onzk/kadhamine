@@ -11,7 +11,7 @@ interface CategoryChipProps {
   onPress?: () => void;
 }
 
-/** Pill catégorie — actif = fond ink / texte blanc (pattern design.png). */
+/** Pill catégorie — actif = ink / texte cream (DESIGN.md). */
 export function CategoryChip({ label, selected, onPress }: CategoryChipProps) {
   const { colors } = useAppTheme();
 
@@ -21,12 +21,12 @@ export function CategoryChip({ label, selected, onPress }: CategoryChipProps) {
       style={({ pressed }) => ({
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: Spacing.four,
-        paddingVertical: Spacing.twoHalf,
+        paddingHorizontal: Spacing.five,
+        paddingVertical: Spacing.two,
         borderRadius: Radius.pill,
-        backgroundColor: selected ? colors.ink : colors.surfaceStrong,
-        borderWidth: 1,
-        borderColor: selected ? colors.ink : colors.border,
+        backgroundColor: selected ? colors.ink : '#FFFFFF',
+        borderWidth: 1.5,
+        borderColor: colors.ink,
         opacity: pressed ? 0.88 : 1,
         marginRight: Spacing.two,
       })}
@@ -36,7 +36,7 @@ export function CategoryChip({ label, selected, onPress }: CategoryChipProps) {
           textStyle('caption'),
           {
             fontFamily: fontFamily('body', 'medium'),
-            color: selected ? colors.onPrimary : colors.body,
+            color: selected ? colors.onPrimary : colors.ink,
           },
         ]}
       >

@@ -22,7 +22,7 @@ export default function AdminPaymentsScreen() {
             key={payment._id}
             style={{
               backgroundColor: colors.surfaceCard,
-              borderRadius: 14,
+              borderRadius: 20,
               padding: 16,
               marginBottom: 10,
               borderWidth: 1,

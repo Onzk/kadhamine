@@ -34,7 +34,7 @@ export function TextLink({ title, onPress, color }: TextLinkProps) {
       style={[
         textStyle('button'),
         {
-          color: color ?? '#1863dc',
+          color: color ?? '#3860BE',
           textDecorationLine: 'underline',
         },
       ]}

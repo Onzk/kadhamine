@@ -1,24 +1,31 @@
 /**
- * Design tokens TalentTchad — palette dérivée du logo + patterns docs/design.png
- * Source de vérité unique (CDC §9). Ne pas inventer de hex hors de ce fichier.
+ * Design tokens TalentTchad — source de vérité : DESIGN.md (Mastercard-inspired).
+ * Logo blue/gold/crimson réservés aux assets de marque et badges sémantiques.
  */
 
 export const BrandColors = {
-  /** Bleu logo / primary brand */
+  /** Logo only — not a marketing CTA color */
   blue: '#0B3D91',
-  /** Check doré / verified */
+  /** Verified check / rating */
   gold: '#F5C400',
-  /** Étoile rouge / accent */
+  /** Premium / danger semantic */
   crimson: '#E11D48',
-  ink: '#101828',
-  black: '#000000',
-  /** @deprecated alias → blue */
-  nearBlack: '#101828',
-  /** @deprecated alias → blue (anciennement green Cohere) */
-  enterpriseGreen: '#0B3D91',
-  darkNavy: '#071829',
-  /** @deprecated alias → blue */
-  actionBlue: '#0B3D91',
+  ink: '#141413',
+  black: '#141413',
+  canvas: '#F3F0EE',
+  lifted: '#FCFBFA',
+  signal: '#CF4500',
+  orbit: '#F37338',
+  clay: '#9A3A0A',
+  dust: '#D1CDC7',
+  link: '#3860BE',
+  /** @deprecated alias → ink */
+  nearBlack: '#141413',
+  /** @deprecated */
+  enterpriseGreen: '#141413',
+  darkNavy: '#141413',
+  /** @deprecated alias → ink */
+  actionBlue: '#141413',
   /** @deprecated alias → crimson */
   coral: '#E11D48',
   /** @deprecated alias → gold */
@@ -26,81 +33,90 @@ export const BrandColors = {
 } as const;
 
 export const LightTheme = {
-  canvas: '#FFFFFF',
-  canvasSoft: '#F2F4F7',
-  canvasGreenWash: '#EAF0FB',
-  canvasBlueWash: '#EAF0FB',
-  surface: '#FFFFFF',
-  surfaceCard: '#FFFFFF',
-  surfaceStrong: '#F2F4F7',
-  surfaceDark: BrandColors.blue,
-  surfaceNavy: BrandColors.darkNavy,
-  iconWash: '#EAF0FB',
-  border: '#E5E7EB',
-  borderHairline: '#E5E7EB',
-  borderLight: '#F2F4F7',
-  ink: '#101828',
-  body: '#344054',
-  muted: '#667085',
-  slate: '#98A2B3',
-  primary: BrandColors.blue,
-  primaryActive: '#082E6E',
+  canvas: '#F3F0EE',
+  canvasSoft: '#FCFBFA',
+  canvasGreenWash: '#E8E2DA',
+  canvasBlueWash: '#E8E2DA',
+  surface: '#FCFBFA',
+  surfaceCard: '#FCFBFA',
+  surfaceStrong: '#E8E2DA',
+  surfaceDark: BrandColors.ink,
+  surfaceNavy: BrandColors.ink,
+  iconWash: '#E8E2DA',
+  border: '#D1CDC7',
+  borderHairline: '#D1CDC7',
+  borderLight: '#E8E2DA',
+  ink: '#141413',
+  body: '#141413',
+  muted: '#696969',
+  slate: '#555555',
+  dust: '#D1CDC7',
+  primary: BrandColors.ink,
+  primaryActive: '#262627',
   accent: BrandColors.crimson,
   accentSoft: BrandColors.gold,
-  link: BrandColors.blue,
-  onPrimary: '#FFFFFF',
+  signal: BrandColors.signal,
+  orbit: BrandColors.orbit,
+  clay: BrandColors.clay,
+  link: BrandColors.link,
+  onPrimary: '#F3F0EE',
   onAccent: '#FFFFFF',
   onDark: '#FFFFFF',
   success: '#027A48',
   warning: BrandColors.gold,
   error: BrandColors.crimson,
-  info: BrandColors.blue,
-  focus: BrandColors.blue,
-  focusInput: BrandColors.blue,
-  switchTrackOff: '#E5E7EB',
-  switchTrackOn: BrandColors.blue,
+  info: BrandColors.link,
+  focus: BrandColors.ink,
+  focusInput: BrandColors.ink,
+  switchTrackOff: '#D1CDC7',
+  switchTrackOn: BrandColors.ink,
   rating: BrandColors.gold,
 } as const;
 
 export const DarkTheme = {
-  canvas: '#0A1628',
-  canvasSoft: '#122038',
-  canvasGreenWash: '#122038',
-  canvasBlueWash: '#122038',
-  surface: '#122038',
-  surfaceCard: '#1A2B45',
-  surfaceStrong: '#243552',
-  surfaceDark: BrandColors.blue,
-  surfaceNavy: BrandColors.darkNavy,
-  iconWash: '#1E3354',
-  border: '#2A3F5F',
-  borderHairline: '#2A3F5F',
-  borderLight: '#243552',
-  ink: '#F9FAFB',
-  body: '#E4E7EC',
-  muted: '#98A2B3',
-  slate: '#667085',
-  primary: '#5B8DEF',
-  primaryActive: '#7BA3F5',
+  canvas: '#141413',
+  canvasSoft: '#1C1C1B',
+  canvasGreenWash: '#262627',
+  canvasBlueWash: '#262627',
+  surface: '#1C1C1B',
+  surfaceCard: '#262627',
+  surfaceStrong: '#333332',
+  surfaceDark: '#0A0A09',
+  surfaceNavy: '#0A0A09',
+  iconWash: '#333332',
+  border: '#3A3A38',
+  borderHairline: '#3A3A38',
+  borderLight: '#262627',
+  ink: '#F3F0EE',
+  body: '#F3F0EE',
+  muted: '#A3A09A',
+  slate: '#8A8680',
+  dust: '#555555',
+  primary: '#F3F0EE',
+  primaryActive: '#E8E2DA',
   accent: BrandColors.crimson,
   accentSoft: BrandColors.gold,
-  link: '#7BA3F5',
-  onPrimary: '#FFFFFF',
+  signal: BrandColors.signal,
+  orbit: BrandColors.orbit,
+  clay: '#F37338',
+  link: '#7B9BE0',
+  onPrimary: '#141413',
   onAccent: '#FFFFFF',
   onDark: '#FFFFFF',
   success: '#6CE9A6',
   warning: BrandColors.gold,
   error: '#FDA29B',
-  info: '#7BA3F5',
-  focus: '#7BA3F5',
-  focusInput: '#7BA3F5',
-  switchTrackOff: '#2A3F5F',
-  switchTrackOn: BrandColors.blue,
+  info: '#7B9BE0',
+  focus: '#F3F0EE',
+  focusInput: '#F3F0EE',
+  switchTrackOff: '#3A3A38',
+  switchTrackOn: '#F3F0EE',
   rating: BrandColors.gold,
 } as const;
 
 export type ThemeColors = typeof LightTheme | typeof DarkTheme;
 
+/** 8px grid — DESIGN.md spacing scale */
 export const Spacing = {
   px: 1,
   half: 2,
@@ -111,30 +127,55 @@ export const Spacing = {
   three: 12,
   four: 16,
   five: 20,
-  six: 22,
+  six: 24,
   seven: 24,
-  eight: 28,
+  eight: 32,
   nine: 32,
-  ten: 36,
+  ten: 40,
   eleven: 40,
-  twelve: 56,
-  thirteen: 60,
+  twelve: 48,
+  thirteen: 56,
   fourteen: 64,
   fifteen: 80,
+  sixteen: 96,
+  seventeen: 128,
 } as const;
 
-/** Coins très arrondis — patterns design.png (16–24) */
+/**
+ * Radius scale — DESIGN.md: tiny (≤6), button (20), consent (24), stadium (40), pill (999+).
+ * Mid-range 8–16 intentionally avoided.
+ */
 export const Radius = {
-  xs: 8,
-  sm: 12,
-  md: 16,
+  xs: 6,
+  sm: 6,
+  md: 20,
   lg: 20,
-  xl: 24,
-  pill: 9999,
+  xl: 40,
+  button: 20,
+  consent: 24,
+  stadium: 40,
+  pill: 999,
   full: 9999,
 } as const;
 
 export const MaxContentWidth = 800;
+
+export const Shadows = {
+  nav: {
+    shadowColor: '#000000',
+    shadowOpacity: 0.04,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  elevated: {
+    shadowColor: '#000000',
+    shadowOpacity: 0.08,
+    shadowRadius: 48,
+    shadowOffset: { width: 0, height: 24 },
+    elevation: 4,
+  },
+} as const;
 
 export const Animation = {
   fast: 150,

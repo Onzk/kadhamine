@@ -1,4 +1,4 @@
-import { DarkTheme, DefaultTheme, type Theme } from 'expo-router/react-navigation';
+import { DarkTheme, DefaultTheme, type Theme } from '@react-navigation/native';
 import { BrandColors, DarkTheme as AppDark, LightTheme } from '@/theme/tokens';
 
 export const THEME = {
@@ -15,13 +15,13 @@ export const THEME = {
     secondaryForeground: LightTheme.ink,
     muted: LightTheme.muted,
     mutedForeground: LightTheme.muted,
-    accent: LightTheme.accent,
+    accent: LightTheme.signal,
     accentForeground: LightTheme.onAccent,
     destructive: LightTheme.error,
     border: LightTheme.border,
-    input: LightTheme.surfaceStrong,
+    input: '#FFFFFF',
     ring: LightTheme.focus,
-    radius: '1rem',
+    radius: '20px',
   },
   dark: {
     background: AppDark.canvas,
@@ -36,13 +36,13 @@ export const THEME = {
     secondaryForeground: AppDark.ink,
     muted: AppDark.muted,
     mutedForeground: AppDark.muted,
-    accent: AppDark.accent,
+    accent: AppDark.signal,
     accentForeground: AppDark.onAccent,
     destructive: AppDark.error,
     border: AppDark.border,
     input: AppDark.surfaceStrong,
     ring: AppDark.focus,
-    radius: '1rem',
+    radius: '20px',
   },
 } as const;
 
@@ -54,14 +54,14 @@ export const NAV_THEME: Record<'light' | 'dark', Theme> = {
       border: THEME.light.border,
       card: THEME.light.card,
       notification: THEME.light.destructive,
-      primary: BrandColors.blue,
+      primary: BrandColors.ink,
       text: THEME.light.foreground,
     },
     fonts: {
-      bold: { fontFamily: 'Inter_500Medium', fontWeight: '500' },
-      medium: { fontFamily: 'Inter_500Medium', fontWeight: '500' },
-      regular: { fontFamily: 'Inter_400Regular', fontWeight: '400' },
-      heavy: { fontFamily: 'Inter_500Medium', fontWeight: '500' },
+      bold: { fontFamily: 'SofiaSans_700Bold', fontWeight: '700' },
+      medium: { fontFamily: 'SofiaSans_500Medium', fontWeight: '500' },
+      regular: { fontFamily: 'SofiaSans_400Regular', fontWeight: '400' },
+      heavy: { fontFamily: 'SofiaSans_700Bold', fontWeight: '700' },
     },
   },
   dark: {
@@ -75,10 +75,10 @@ export const NAV_THEME: Record<'light' | 'dark', Theme> = {
       text: THEME.dark.foreground,
     },
     fonts: {
-      bold: { fontFamily: 'Inter_500Medium', fontWeight: '500' },
-      medium: { fontFamily: 'Inter_500Medium', fontWeight: '500' },
-      regular: { fontFamily: 'Inter_400Regular', fontWeight: '400' },
-      heavy: { fontFamily: 'Inter_500Medium', fontWeight: '500' },
+      bold: { fontFamily: 'SofiaSans_700Bold', fontWeight: '700' },
+      medium: { fontFamily: 'SofiaSans_500Medium', fontWeight: '500' },
+      regular: { fontFamily: 'SofiaSans_400Regular', fontWeight: '400' },
+      heavy: { fontFamily: 'SofiaSans_700Bold', fontWeight: '700' },
     },
   },
 };

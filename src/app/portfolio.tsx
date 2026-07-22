@@ -102,7 +102,7 @@ export default function PortfolioScreen() {
         <View
           style={{
             backgroundColor: colors.surfaceCard,
-            borderRadius: 16,
+            borderRadius: 20,
             padding: 16,
             marginBottom: 20,
             borderWidth: 1,
@@ -141,7 +141,7 @@ export default function PortfolioScreen() {
             key={item._id}
             style={{
               backgroundColor: colors.surfaceCard,
-              borderRadius: 14,
+              borderRadius: 20,
               marginBottom: 12,
               overflow: 'hidden',
               borderWidth: 1,

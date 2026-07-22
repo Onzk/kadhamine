@@ -7,6 +7,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useAppTheme } from '@/providers/ThemeProvider';
+import { Spacing } from '@/theme/tokens';
 
 interface SkeletonProps {
   width?: number | string;
@@ -14,7 +15,7 @@ interface SkeletonProps {
   borderRadius?: number;
 }
 
-export function Skeleton({ width = '100%', height = 16, borderRadius = 8 }: SkeletonProps) {
+export function Skeleton({ width = '100%', height = 16, borderRadius = 20 }: SkeletonProps) {
   const { colors } = useAppTheme();
   const opacity = useSharedValue(0.4);
 
@@ -41,11 +42,11 @@ export function Skeleton({ width = '100%', height = 16, borderRadius = 8 }: Skel
 
 export function ServiceCardSkeleton() {
   return (
-    <View style={{ marginBottom: 12, borderRadius: 16, overflow: 'hidden' }}>
-      <Skeleton height={140} borderRadius={0} />
-      <View style={{ padding: 14, gap: 8 }}>
-        <Skeleton height={18} width="70%" />
-        <Skeleton height={14} />
+    <View style={{ marginBottom: Spacing.twelve, alignItems: 'center' }}>
+      <Skeleton width={220} height={220} borderRadius={110} />
+      <View style={{ width: '100%', paddingTop: Spacing.four, gap: 8 }}>
+        <Skeleton height={14} width="30%" />
+        <Skeleton height={24} width="70%" />
         <Skeleton height={14} width="90%" />
         <Skeleton height={16} width="40%" />
       </View>

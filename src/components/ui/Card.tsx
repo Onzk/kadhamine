@@ -1,12 +1,12 @@
 import React from 'react';
 import { View, Pressable, type ViewProps } from 'react-native';
 import { useAppTheme } from '@/providers/ThemeProvider';
-import { Radius, Spacing } from '@/theme/tokens';
+import { Radius, Shadows, Spacing } from '@/theme/tokens';
 
 interface CardProps extends ViewProps {
   onPress?: () => void;
   padded?: boolean;
-  variant?: 'default' | 'stone' | 'bordered';
+  variant?: 'default' | 'stone' | 'bordered' | 'elevated' | 'stadium';
 }
 
 export function Card({
@@ -23,23 +23,26 @@ export function Card({
     default: colors.surface,
     stone: colors.surfaceCard,
     bordered: colors.surface,
+    elevated: colors.surfaceCard,
+    stadium: colors.surfaceCard,
   };
+
+  const radius =
+    variant === 'stadium' || variant === 'elevated' ? Radius.stadium : Radius.stadium;
+
+  const shadow = variant === 'elevated' || variant === 'stadium' ? Shadows.elevated : null;
 
   const content = (
     <View
       style={[
         {
           backgroundColor: backgrounds[variant],
-          borderRadius: Radius.xl,
-          borderWidth: 1,
+          borderRadius: radius,
+          borderWidth: variant === 'bordered' ? 1 : 0,
           borderColor: colors.border,
-          padding: padded ? Spacing.four : 0,
+          padding: padded ? Spacing.eight : 0,
           overflow: 'hidden',
-          shadowColor: '#101828',
-          shadowOpacity: 0.06,
-          shadowRadius: 12,
-          shadowOffset: { width: 0, height: 4 },
-          elevation: 2,
+          ...(shadow ?? {}),
         },
         style,
       ]}

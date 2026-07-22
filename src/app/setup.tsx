@@ -17,7 +17,7 @@ export default function SetupScreen() {
         <View
           style={{
             backgroundColor: colors.surfaceCard,
-            borderRadius: 16,
+            borderRadius: 20,
             padding: 20,
             borderWidth: 1,
             borderColor: colors.border,
@@ -33,7 +33,7 @@ export default function SetupScreen() {
           <View
             style={{
               backgroundColor: colors.canvasSoft,
-              borderRadius: 8,
+              borderRadius: 6,
               padding: 12,
               marginBottom: 16,
             }}

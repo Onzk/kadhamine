@@ -137,7 +137,7 @@ export default function ChatScreen() {
                 style={{
                   alignSelf: mine ? 'flex-end' : 'flex-start',
                   backgroundColor: mine ? colors.primary : colors.surfaceCard,
-                  borderRadius: 16,
+                  borderRadius: 20,
                   borderBottomRightRadius: mine ? 4 : 16,
                   borderBottomLeftRadius: mine ? 16 : 4,
                   padding: 12,
@@ -150,7 +150,7 @@ export default function ChatScreen() {
                 {msg.type === 'image' && msg.mediaUrl ? (
                   <Image
                     source={{ uri: msg.mediaUrl }}
-                    style={{ width: 200, height: 200, borderRadius: 12 }}
+                    style={{ width: 200, height: 200, borderRadius: 20 }}
                     contentFit="cover"
                   />
                 ) : (

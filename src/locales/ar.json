@@ -25,7 +25,8 @@
     "available": "متاح",
     "busy": "مشغول",
     "unavailable": "غير متاح",
-    "all": "الكل"
+    "all": "الكل",
+    "services": "خدمات"
   },
   "auth": {
     "login": "تسجيل الدخول",
@@ -133,9 +134,20 @@
     "leaveReview": "اترك تقييماً",
     "rating": "التقييم",
     "comment": "تعليق",
+    "commentPlaceholder": "صف تجربتك (اختياري)",
     "submit": "نشر",
+    "thanks": "شكراً على تقييمك!",
     "officialOnly": "تقييم رسمي (دفع عبر التطبيق)",
     "respond": "رد"
+  },
+  "services": {
+    "new": "خدمة جديدة",
+    "edit": "تعديل",
+    "pause": "إيقاف مؤقت",
+    "activate": "تفعيل",
+    "active": "نشط",
+    "paused": "متوقف",
+    "save": "حفظ الخدمة"
   },
   "profile": {
     "title": "الملف الشخصي",

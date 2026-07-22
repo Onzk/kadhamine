@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
 import { View, Image, StyleSheet } from 'react-native';
-import { Inter_400Regular, Inter_500Medium } from '@expo-google-fonts/inter';
 import {
-  SpaceGrotesk_400Regular,
-  SpaceGrotesk_500Medium,
-} from '@expo-google-fonts/space-grotesk';
+  SofiaSans_400Regular,
+  SofiaSans_500Medium,
+  SofiaSans_700Bold,
+} from '@expo-google-fonts/sofia-sans';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 
@@ -12,10 +12,9 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export function FontProvider({ children }: { children: React.ReactNode }) {
   const [loaded] = useFonts({
-    Inter_400Regular,
-    Inter_500Medium,
-    SpaceGrotesk_400Regular,
-    SpaceGrotesk_500Medium,
+    SofiaSans_400Regular,
+    SofiaSans_500Medium,
+    SofiaSans_700Bold,
   });
 
   useEffect(() => {
@@ -38,7 +37,7 @@ export function FontProvider({ children }: { children: React.ReactNode }) {
 const styles = StyleSheet.create({
   loading: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#F3F0EE',
     alignItems: 'center',
     justifyContent: 'center',
   },

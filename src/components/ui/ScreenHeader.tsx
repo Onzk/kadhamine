@@ -4,7 +4,7 @@ import { CaretLeft } from 'phosphor-react-native';
 import { useRouter } from 'expo-router';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { textStyle } from '@/theme/typography';
-import { Spacing } from '@/theme/tokens';
+import { Radius, Shadows, Spacing } from '@/theme/tokens';
 
 interface ScreenHeaderProps {
   title: string;
@@ -24,11 +24,20 @@ export function ScreenHeader({ title, subtitle, showBack, rightAction }: ScreenH
         paddingBottom: Spacing.three,
         paddingHorizontal: Spacing.four,
         backgroundColor: colors.canvas,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.borderHairline,
       }}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          backgroundColor: '#FFFFFF',
+          borderRadius: Radius.pill,
+          paddingVertical: Spacing.two,
+          paddingHorizontal: Spacing.four,
+          ...Shadows.nav,
+        }}
+      >
         <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: Spacing.two }}>
           {showBack && (
             <Pressable
@@ -49,7 +58,9 @@ export function ScreenHeader({ title, subtitle, showBack, rightAction }: ScreenH
           <View style={{ flex: 1 }}>
             <Text style={[textStyle('featureHeading'), { color: colors.ink }]}>{title}</Text>
             {subtitle && (
-              <Text style={[textStyle('caption'), { color: colors.muted, marginTop: 2 }]}>{subtitle}</Text>
+              <Text style={[textStyle('caption'), { color: colors.muted, marginTop: 2 }]}>
+                {subtitle}
+              </Text>
             )}
           </View>
         </View>

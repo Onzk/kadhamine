@@ -45,9 +45,14 @@ export function EmptyState({
           marginBottom: Spacing.four,
         }}
       >
-        <IconComponent size={32} color={colors.primary} weight="regular" />
+        <IconComponent size={32} color={colors.ink} weight="regular" />
       </View>
-      <Text style={[textStyle('featureHeading'), { color: colors.ink, textAlign: 'center', marginBottom: Spacing.two }]}>
+      <Text
+        style={[
+          textStyle('featureHeading'),
+          { color: colors.ink, textAlign: 'center', marginBottom: Spacing.two },
+        ]}
+      >
         {title}
       </Text>
       {description && (

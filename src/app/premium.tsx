@@ -80,18 +80,18 @@ export default function PremiumScreen() {
       <ScrollView contentContainerStyle={{ padding: 16 }}>
         <View
           style={{
-            backgroundColor: BrandColors.blue,
-            borderRadius: 24,
-            padding: 24,
+            backgroundColor: BrandColors.ink,
+            borderRadius: 40,
+            padding: 32,
             marginBottom: 24,
             overflow: 'hidden',
           }}
         >
           <Crown size={40} color={BrandColors.gold} weight="fill" />
-          <Text style={{ fontSize: 26, fontWeight: '700', color: '#FFFFFF', marginTop: 12 }}>
+          <Text style={{ fontSize: 26, fontWeight: '500', color: '#F3F0EE', marginTop: 12, letterSpacing: -0.5 }}>
             TalentTchad Premium
           </Text>
-          <Text style={{ fontSize: 14, color: '#FFFFFFCC', marginTop: 8, lineHeight: 20 }}>
+          <Text style={{ fontSize: 14, color: '#D1CDC7', marginTop: 8, lineHeight: 20 }}>
             Boostez votre visibilité et attirez plus de clients
           </Text>
           {plan && (
@@ -102,11 +102,11 @@ export default function PremiumScreen() {
           )}
         </View>
 
-        {isActive && (
+        {isActive && active ? (
           <View
             style={{
               backgroundColor: colors.success + '15',
-              borderRadius: 12,
+              borderRadius: 20,
               padding: 14,
               marginBottom: 20,
               borderWidth: 1,
@@ -120,7 +120,7 @@ export default function PremiumScreen() {
               </Text>
             </View>
           </View>
-        )}
+        ) : null}
 
         <Text style={{ fontSize: 17, fontWeight: '600', color: colors.ink, marginBottom: 16 }}>
           Avantages inclus
@@ -132,13 +132,13 @@ export default function PremiumScreen() {
               style={{
                 width: 28,
                 height: 28,
-                borderRadius: 14,
+                borderRadius: 20,
                 backgroundColor: BrandColors.gold + '40',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <Check size={16} color={BrandColors.blue} weight="bold" />
+              <Check size={16} color={BrandColors.ink} weight="bold" />
             </View>
             <Text style={{ fontSize: 15, color: colors.body, flex: 1 }}>{benefit}</Text>
           </View>
@@ -160,11 +160,11 @@ export default function PremiumScreen() {
               placeholder="66 XX XX XX"
               placeholderTextColor={colors.muted}
               style={{
-                backgroundColor: colors.surfaceCard,
-                borderRadius: 14,
+                backgroundColor: '#FFFFFF',
+                borderRadius: 999,
                 borderWidth: 1,
-                borderColor: colors.border,
-                paddingHorizontal: 16,
+                borderColor: 'rgba(20, 20, 19, 0.5)',
+                paddingHorizontal: 24,
                 paddingVertical: 12,
                 color: colors.ink,
                 marginBottom: 16,
@@ -172,7 +172,7 @@ export default function PremiumScreen() {
             />
             <Button
               title="S'abonner Premium"
-              variant="accent"
+              variant="primary"
               onPress={handleSubscribe}
               loading={loading}
               fullWidth

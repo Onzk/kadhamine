@@ -3,24 +3,30 @@ import { useTranslation } from 'react-i18next';
 import { House, MagnifyingGlass, ClipboardText, ChatCircleDots, User } from 'phosphor-react-native';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { textStyle } from '@/theme/typography';
+import { Shadows } from '@/theme/tokens';
 
 export default function TabsLayout() {
   const { t } = useTranslation();
-  const { colors, isDark } = useAppTheme();
+  const { colors } = useAppTheme();
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.primary,
+        tabBarActiveTintColor: colors.ink,
         tabBarInactiveTintColor: colors.muted,
         tabBarStyle: {
-          backgroundColor: isDark ? colors.surface : colors.canvas,
-          borderTopColor: colors.border,
-          borderTopWidth: 1,
-          height: 58,
-          paddingTop: 6,
-          paddingBottom: 6,
+          backgroundColor: '#FFFFFF',
+          borderTopColor: 'transparent',
+          borderTopWidth: 0,
+          height: 64,
+          paddingTop: 8,
+          paddingBottom: 10,
+          marginHorizontal: 16,
+          marginBottom: 12,
+          borderRadius: 999,
+          position: 'absolute',
+          ...Shadows.nav,
         },
         tabBarLabelStyle: { ...textStyle('micro'), color: undefined },
       }}

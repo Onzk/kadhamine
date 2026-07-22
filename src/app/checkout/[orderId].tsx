@@ -111,7 +111,7 @@ export default function CheckoutScreen() {
         <View
           style={{
             backgroundColor: colors.surfaceCard,
-            borderRadius: 16,
+            borderRadius: 20,
             padding: 20,
             marginBottom: 20,
             borderWidth: 1,
@@ -159,7 +159,7 @@ export default function CheckoutScreen() {
                     ? colors.error + '10'
                     : colors.primary + '10'
                   : colors.surfaceCard,
-                borderRadius: 14,
+                borderRadius: 20,
                 padding: 16,
                 marginBottom: 10,
                 borderWidth: 2,
@@ -191,7 +191,7 @@ export default function CheckoutScreen() {
           <View
             style={{
               backgroundColor: BrandColors.actionBlue + '10',
-              borderRadius: 12,
+              borderRadius: 20,
               padding: 14,
               marginTop: 8,
             }}

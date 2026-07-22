@@ -3,7 +3,7 @@ import { ConvexAuthProvider } from '@convex-dev/auth/react';
 import { ConvexReactClient } from 'convex/react';
 import { Slot } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { ThemeProvider as NavigationThemeProvider } from 'expo-router/react-navigation';
+import { ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { PortalHost } from '@rn-primitives/portal';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';

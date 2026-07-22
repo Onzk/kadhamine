@@ -39,7 +39,7 @@ export default function AdminDashboard() {
       <ScrollView contentContainerStyle={{ padding: 16 }}>
         <View
           style={{
-            backgroundColor: BrandColors.blue,
+            backgroundColor: BrandColors.ink,
             borderRadius: 24,
             padding: 20,
             marginBottom: 20,
@@ -66,7 +66,7 @@ export default function AdminDashboard() {
               style={{
                 width: '47%',
                 backgroundColor: colors.surfaceCard,
-                borderRadius: 14,
+                borderRadius: 20,
                 padding: 16,
                 borderWidth: 1,
                 borderColor: colors.border,
@@ -86,7 +86,7 @@ export default function AdminDashboard() {
               flexDirection: 'row',
               alignItems: 'center',
               backgroundColor: colors.surfaceCard,
-              borderRadius: 14,
+              borderRadius: 20,
               padding: 16,
               marginBottom: 8,
               borderWidth: 1,

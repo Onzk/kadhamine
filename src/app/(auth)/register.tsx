@@ -182,7 +182,7 @@ export default function RegisterScreen() {
           <View
             style={{
               backgroundColor: colors.error + '12',
-              borderRadius: 12,
+              borderRadius: 20,
               padding: 12,
               marginBottom: 16,
               borderWidth: 1,

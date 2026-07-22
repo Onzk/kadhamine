@@ -11,7 +11,15 @@ import { useAppTheme } from '@/providers/ThemeProvider';
 import { textStyle } from '@/theme/typography';
 import { Radius } from '@/theme/tokens';
 
-type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'accent' | 'link';
+type ButtonVariant =
+  | 'primary'
+  | 'secondary'
+  | 'outline'
+  | 'ghost'
+  | 'danger'
+  | 'accent'
+  | 'consent'
+  | 'link';
 
 interface ButtonProps extends PressableProps {
   title: string;
@@ -33,12 +41,15 @@ export function Button({
 }: ButtonProps) {
   const { colors } = useAppTheme();
 
-  if (variant === 'link' || variant === 'secondary') {
+  if (variant === 'link') {
     return (
       <Pressable
         disabled={disabled || loading}
         onPress={props.onPress}
-        style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1, alignSelf: fullWidth ? 'stretch' : 'flex-start' }, style as ViewStyle]}
+        style={({ pressed }) => [
+          { opacity: pressed ? 0.7 : 1, alignSelf: fullWidth ? 'stretch' : 'flex-start' },
+          style as ViewStyle,
+        ]}
         {...props}
       >
         {loading ? (
@@ -61,15 +72,68 @@ export function Button({
     );
   }
 
-  const variants: Record<Exclude<ButtonVariant, 'link' | 'secondary'>, { bg: string; text: string; border?: string; radius: number }> = {
-    primary: { bg: colors.primary, text: colors.onPrimary, radius: Radius.pill },
-    outline: { bg: 'transparent', text: colors.ink, border: colors.borderHairline, radius: Radius.xl },
-    ghost: { bg: 'transparent', text: colors.body, radius: Radius.sm },
-    danger: { bg: colors.error, text: '#ffffff', radius: Radius.pill },
-    accent: { bg: colors.accent, text: colors.onAccent, radius: Radius.pill },
+  const variants: Record<
+    Exclude<ButtonVariant, 'link'>,
+    { bg: string; text: string; border?: string; borderWidth?: number; radius: number; padV: number; padH: number }
+  > = {
+    primary: {
+      bg: colors.primary,
+      text: colors.onPrimary,
+      border: colors.primary,
+      borderWidth: 1.5,
+      radius: Radius.button,
+      padV: 6,
+      padH: 24,
+    },
+    secondary: {
+      bg: '#FFFFFF',
+      text: colors.ink,
+      border: colors.ink,
+      borderWidth: 1.5,
+      radius: Radius.button,
+      padV: 6,
+      padH: 24,
+    },
+    outline: {
+      bg: '#FFFFFF',
+      text: colors.ink,
+      border: colors.ink,
+      borderWidth: 1.5,
+      radius: Radius.button,
+      padV: 6,
+      padH: 24,
+    },
+    ghost: {
+      bg: 'transparent',
+      text: colors.body,
+      radius: Radius.button,
+      padV: 6,
+      padH: 24,
+    },
+    danger: {
+      bg: colors.error,
+      text: '#FFFFFF',
+      radius: Radius.button,
+      padV: 6,
+      padH: 24,
+    },
+    accent: {
+      bg: colors.accent,
+      text: colors.onAccent,
+      radius: Radius.button,
+      padV: 6,
+      padH: 24,
+    },
+    consent: {
+      bg: colors.signal,
+      text: '#FFFFFF',
+      radius: Radius.consent,
+      padV: 1,
+      padH: 30,
+    },
   };
 
-  const v = variants[variant as Exclude<ButtonVariant, 'link' | 'secondary'>];
+  const v = variants[variant];
   const isDisabled = disabled || loading;
 
   return (
@@ -82,13 +146,14 @@ export function Button({
           justifyContent: 'center',
           gap: 8,
           minHeight: 44,
-          paddingVertical: 12,
-          paddingHorizontal: 24,
+          paddingVertical: v.padV,
+          paddingHorizontal: v.padH,
           borderRadius: v.radius,
           backgroundColor: v.bg,
-          borderWidth: v.border ? 1 : 0,
+          borderWidth: v.borderWidth ?? 0,
           borderColor: v.border,
           opacity: isDisabled ? 0.5 : pressed ? 0.88 : 1,
+          transform: pressed && !isDisabled ? [{ scale: 0.98 }] : undefined,
           width: fullWidth ? '100%' : undefined,
         } as ViewStyle,
         style as ViewStyle,

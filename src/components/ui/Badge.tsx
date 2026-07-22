@@ -17,8 +17,8 @@ export function Badge({ label, variant = 'default' }: BadgeProps) {
     verified: { bg: BrandColors.gold + '33', text: colors.ink, border: BrandColors.gold },
     premium: { bg: colors.accent, text: colors.onAccent, border: colors.accent },
     danger: { bg: colors.error + '12', text: colors.error, border: colors.error + '30' },
-    accent: { bg: colors.iconWash, text: colors.primary, border: colors.border },
-    taxonomy: { bg: colors.surfaceStrong, text: colors.ink, border: colors.border },
+    accent: { bg: colors.iconWash, text: colors.ink, border: colors.border },
+    taxonomy: { bg: '#FFFFFF', text: colors.ink, border: colors.ink },
   };
 
   const s = styles[variant];
@@ -27,7 +27,7 @@ export function Badge({ label, variant = 'default' }: BadgeProps) {
     <View
       style={{
         backgroundColor: s.bg,
-        paddingHorizontal: 10,
+        paddingHorizontal: 12,
         paddingVertical: 4,
         borderRadius: Radius.pill,
         borderWidth: 1,

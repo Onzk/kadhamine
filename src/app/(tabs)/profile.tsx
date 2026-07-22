@@ -17,11 +17,13 @@ import {
 
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { Eyebrow } from '@/components/ui/Eyebrow';
 import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { useAppLanguage } from '@/providers/I18nProvider';
 import { SUPPORTED_LANGUAGES } from '@/constants/chad';
-import { BrandColors } from '@/theme/tokens';
+import { BrandColors, Radius, Spacing } from '@/theme/tokens';
+import { textStyle } from '@/theme/typography';
 
 export default function ProfileScreen() {
   const { t } = useTranslation();
@@ -38,11 +40,11 @@ export default function ProfileScreen() {
   if (isGuest) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-        <ScrollView contentContainerStyle={{ padding: 28, paddingTop: 48 }}>
-          <Text style={{ fontSize: 32, fontWeight: '700', color: colors.ink, marginBottom: 12 }}>
+        <ScrollView contentContainerStyle={{ padding: 28, paddingTop: 48, paddingBottom: 100 }}>
+          <Text style={[textStyle('productDisplay'), { color: colors.ink, marginBottom: 12 }]}>
             {t('auth.guestTitle')}
           </Text>
-          <Text style={{ fontSize: 15, color: colors.body, lineHeight: 22, marginBottom: 32 }}>
+          <Text style={[textStyle('body'), { color: colors.muted, marginBottom: 32 }]}>
             {t('auth.guestSubtitle')}
           </Text>
           <Button
@@ -58,9 +60,7 @@ export default function ProfileScreen() {
             fullWidth
           />
           <View style={{ marginTop: 32 }}>
-            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.muted, marginBottom: 8, textTransform: 'uppercase' }}>
-              {t('profile.language')}
-            </Text>
+            <Eyebrow label={t('profile.language')} />
             <View style={{ flexDirection: 'row', gap: 8 }}>
               {SUPPORTED_LANGUAGES.map((lang) => (
                 <Pressable
@@ -69,10 +69,10 @@ export default function ProfileScreen() {
                   style={{
                     paddingHorizontal: 14,
                     paddingVertical: 8,
-                    borderRadius: 9999,
-                    backgroundColor: language === lang.code ? colors.primary : colors.surfaceCard,
-                    borderWidth: 1,
-                    borderColor: language === lang.code ? colors.primary : colors.border,
+                    borderRadius: Radius.pill,
+                    backgroundColor: language === lang.code ? colors.primary : '#FFFFFF',
+                    borderWidth: 1.5,
+                    borderColor: colors.ink,
                   }}
                 >
                   <Text
@@ -103,22 +103,20 @@ export default function ProfileScreen() {
       : []),
     { icon: Shield, label: t('profile.verification'), route: '/verification' },
     { icon: Crown, label: t('profile.premium'), route: '/premium' },
-    ...(isAdmin
-      ? [{ icon: SquaresFour, label: 'Administration', route: '/admin' }]
-      : []),
+    ...(isAdmin ? [{ icon: SquaresFour, label: 'Administration', route: '/admin' }] : []),
     { icon: Gear, label: t('profile.settings'), route: '/settings' },
   ];
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
         <View
           style={{
-            backgroundColor: BrandColors.enterpriseGreen,
-            padding: 24,
-            paddingTop: 16,
-            borderBottomLeftRadius: 24,
-            borderBottomRightRadius: 24,
+            backgroundColor: colors.ink,
+            padding: Spacing.eight,
+            paddingTop: Spacing.four,
+            borderBottomLeftRadius: Radius.stadium,
+            borderBottomRightRadius: Radius.stadium,
           }}
         >
           <View
@@ -126,60 +124,56 @@ export default function ProfileScreen() {
               width: 72,
               height: 72,
               borderRadius: 36,
-              backgroundColor: BrandColors.coral,
+              backgroundColor: '#FFFFFF',
               alignItems: 'center',
               justifyContent: 'center',
               marginBottom: 12,
             }}
           >
-            <Text style={{ fontSize: 28, fontWeight: '700', color: BrandColors.enterpriseGreen }}>
+            <Text style={{ fontSize: 28, fontWeight: '700', color: colors.ink }}>
               {profile?.firstName?.[0] ?? '?'}
             </Text>
           </View>
 
-          <Text style={{ fontSize: 22, fontWeight: '700', color: '#FFFFFF' }}>
+          <Text style={[textStyle('cardHeading'), { color: colors.onPrimary }]}>
             {profile ? `${profile.firstName} ${profile.lastName}` : user?.name ?? 'Utilisateur'}
           </Text>
-          <Text style={{ fontSize: 14, color: '#FFFFFFAA', marginTop: 4 }}>
+          <Text style={[textStyle('caption'), { color: colors.dust, marginTop: 4 }]}>
             {user?.email}
           </Text>
 
           <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
             {profile?.isVerified && <Badge label={t('common.verified')} variant="verified" />}
             {profile?.isPremium && <Badge label={t('common.premium')} variant="premium" />}
-            {profile?.badge && (
-              <Badge label={t(`badges.${profile.badge}`)} variant="accent" />
-            )}
+            {profile?.badge && <Badge label={t(`badges.${profile.badge}`)} variant="accent" />}
           </View>
 
           {isProvider && profile && (
             <View style={{ flexDirection: 'row', gap: 24, marginTop: 16 }}>
               <View>
-                <Text style={{ fontSize: 20, fontWeight: '700', color: BrandColors.coral }}>
+                <Text style={{ fontSize: 20, fontWeight: '700', color: BrandColors.gold }}>
                   {profile.averageRating.toFixed(1)}
                 </Text>
-                <Text style={{ fontSize: 12, color: '#FFFFFFAA' }}>Note</Text>
+                <Text style={{ fontSize: 12, color: colors.dust }}>Note</Text>
               </View>
               <View>
-                <Text style={{ fontSize: 20, fontWeight: '700', color: BrandColors.coral }}>
+                <Text style={{ fontSize: 20, fontWeight: '700', color: BrandColors.gold }}>
                   {profile.completedOrders}
                 </Text>
-                <Text style={{ fontSize: 12, color: '#FFFFFFAA' }}>Prestations</Text>
+                <Text style={{ fontSize: 12, color: colors.dust }}>Prestations</Text>
               </View>
               <View>
-                <Text style={{ fontSize: 20, fontWeight: '700', color: BrandColors.coral }}>
+                <Text style={{ fontSize: 20, fontWeight: '700', color: BrandColors.gold }}>
                   {profile.trustScore}
                 </Text>
-                <Text style={{ fontSize: 12, color: '#FFFFFFAA' }}>Confiance</Text>
+                <Text style={{ fontSize: 12, color: colors.dust }}>Confiance</Text>
               </View>
             </View>
           )}
         </View>
 
-        <View style={{ padding: 16 }}>
-          <Text style={{ fontSize: 13, fontWeight: '600', color: colors.muted, marginBottom: 8, textTransform: 'uppercase' }}>
-            {t('profile.language')}
-          </Text>
+        <View style={{ padding: Spacing.four }}>
+          <Eyebrow label={t('profile.language')} />
           <View style={{ flexDirection: 'row', gap: 8, marginBottom: 20 }}>
             {SUPPORTED_LANGUAGES.map((lang) => (
               <Pressable
@@ -188,10 +182,10 @@ export default function ProfileScreen() {
                 style={{
                   paddingHorizontal: 14,
                   paddingVertical: 8,
-                  borderRadius: 9999,
-                  backgroundColor: language === lang.code ? colors.primary : colors.surfaceCard,
-                  borderWidth: 1,
-                  borderColor: language === lang.code ? colors.primary : colors.border,
+                  borderRadius: Radius.pill,
+                  backgroundColor: language === lang.code ? colors.primary : '#FFFFFF',
+                  borderWidth: 1.5,
+                  borderColor: colors.ink,
                 }}
               >
                 <Text
@@ -215,15 +209,13 @@ export default function ProfileScreen() {
                 flexDirection: 'row',
                 alignItems: 'center',
                 backgroundColor: colors.surfaceCard,
-                borderRadius: 14,
-                padding: 16,
-                marginBottom: 8,
-                borderWidth: 1,
-                borderColor: colors.border,
+                borderRadius: Radius.stadium,
+                padding: Spacing.four,
+                marginBottom: Spacing.two,
                 opacity: pressed ? 0.9 : 1,
               })}
             >
-              <item.icon size={20} color={colors.primary} />
+              <item.icon size={20} color={colors.ink} />
               <Text style={{ flex: 1, fontSize: 15, color: colors.ink, marginLeft: 12 }}>
                 {item.label}
               </Text>
@@ -237,21 +229,19 @@ export default function ProfileScreen() {
               flexDirection: 'row',
               alignItems: 'center',
               backgroundColor: colors.surfaceCard,
-              borderRadius: 14,
-              padding: 16,
-              marginBottom: 8,
-              borderWidth: 1,
-              borderColor: colors.border,
+              borderRadius: Radius.stadium,
+              padding: Spacing.four,
+              marginBottom: Spacing.two,
             }}
           >
-            <Moon size={20} color={colors.primary} />
+            <Moon size={20} color={colors.ink} />
             <Text style={{ flex: 1, fontSize: 15, color: colors.ink, marginLeft: 12 }}>
               {t('profile.theme')} ({isDark ? 'Sombre' : 'Clair'})
             </Text>
           </Pressable>
 
           <Button
-            title={t('auth.SignOut')}
+            title={t('auth.logout')}
             variant="outline"
             onPress={signOut}
             icon={<SignOut size={18} color={colors.error} />}

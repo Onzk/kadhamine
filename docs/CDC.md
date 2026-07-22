@@ -40,7 +40,7 @@ Au Tchad, de nombreux jeunes ont des compétences monnayables (dev, design, cout
 
 | Couche | Technologie |
 |--------|-------------|
-| Mobile | **Expo SDK 56** + React Native + Expo Router |
+| Mobile | **Expo SDK 54** + React Native + Expo Router |
 | UI | NativeWind / Tailwind, composants RN, **Phosphor** (`phosphor-react-native`) |
 | Backend | **Convex** (DB, functions, realtime, storage, auth) |
 | Auth | `@convex-dev/auth` — provider **Password** (email + mot de passe) |
@@ -48,7 +48,7 @@ Au Tchad, de nombreux jeunes ont des compétences monnayables (dev, design, cout
 | i18n | `i18next` / `react-i18next` — **fr**, **arabe tchadien**, **Sara** |
 | Notifications | `expo-notifications` (push basiques) |
 
-Référence docs Expo : [docs.expo.dev/versions/v56.0.0](https://docs.expo.dev/versions/v56.0.0/).
+Référence docs Expo : [docs.expo.dev/versions/v54.0.0](https://docs.expo.dev/versions/v54.0.0/).
 
 ---
 
@@ -112,7 +112,7 @@ Un seul opérateur au démarrage (compte seed).
 | Villes | 10 villes (voir §8) |
 | Push | Nouvelles commandes + nouveaux messages |
 | Admin | Écrans mobile existants à finaliser |
-| UI | Refonte selon `docs/design.png` + identité TalentTchad ; **zéro emoji** → Phosphor |
+| UI | Refonte selon `DESIGN.md` (cream/ink) ; **zéro emoji** → Phosphor |
 | Données test | `mock_data` avec URLs d’images **vérifiées** |
 | Logo | Logo actuel converti en **SVG** et utilisé dans l’app |
 
@@ -447,62 +447,61 @@ Exemple (prix 20 000 FCFA, commission 10 %) :
 
 ### 9.1 Référence visuelle
 
-Fichier : **`docs/design.png`**
+Fichier source de vérité : **`DESIGN.md`** (langage editorial Mastercard adapté à TalentTchad).
 
-Le style à reproduire (structure / patterns), **adapté** au contexte TalentTchad (marketplace de compétences, pas food delivery) :
+Tokens d'implémentation : `src/theme/tokens.ts`, `src/theme/typography.ts`, `src/global.css`.
 
-| Pattern référence | Application TalentTchad |
+| Pattern DESIGN.md | Application TalentTchad |
 |-------------------|-------------------------|
-| Fond blanc, beaucoup d’air | Écrans clairs, hiérarchie simple |
-| Pills catégories (actif = fond noir / texte blanc) | Filtres catégories / villes |
-| Segmented control (History / Ongoing…) | Onglets commandes (ex. En cours / Terminées) |
-| Tabs texte + underline accent | Sous-filtres |
-| Cards image + badge note (étoile) | Cartes services / talents |
-| Bannières promo arrondies | Premium, vérification, campagnes |
-| Lignes liste : icône dans cercle lavande/clair | Historique commandes / paiements |
-| Filtres chips + chevron | Historique transactions / recherche |
-| Bottom tabs 4 items, icône + label | Accueil, Recherche (ou Découvrir), Commandes, Messages (+ Profil selon IA) |
-| Coins très arrondis (16–24) | Boutons, cards, inputs |
-| Typo sans-serif bold titres / gris secondaire | Titres forts, meta en muted |
+| Canvas Cream `#F3F0EE` | Fond app par défaut (jamais blanc page) |
+| Ink Black `#141413` pills CTA (radius 20) | Boutons primaires, pills actives, tab active |
+| Secondary white outlined pill | Actions secondaires |
+| Signal Orange `#CF4500` | Consent / légal uniquement — **pas** CTA marketing |
+| Portraits circulaires + satellite CTA | Cartes services / talents |
+| Hero / banners stadium radius 40 | Premium, promo, media frames |
+| Floating pill nav / tab bar | Navigation bas + headers flottants |
+| Eyebrow (dot orange + uppercase) | Labels de section |
+| Sofia Sans (fallback MarkForMC) | Une seule famille — contraste par poids / tracking |
+| Radii 6 / 20 / 24 / 40 / 999 | Pas de coins « medium » 8–16 |
 
-### 9.2 Identité couleur (adaptée au logo TalentTchad)
+### 9.2 Identité couleur
 
-Le mockup référence utilise du violet ; **TalentTchad** s’appuie sur le logo actuel (`assets/images/logo.png`) :
+| Token | Hex | Usage |
+|-------|-----|--------|
+| Canvas | `#F3F0EE` | Fond app |
+| Lifted / cards | `#FCFBFA` | Surfaces relevées |
+| Ink / primary | `#141413` | Texte, CTA primaires, footer dark |
+| On primary | `#F3F0EE` | Texte sur ink |
+| Signal | `#CF4500` | Consent / légal |
+| Orbit | `#F37338` | Arcs décoratifs, indicateurs, accent dot eyebrow |
+| Link | `#3860BE` | Liens inline |
+| Muted | `#696969` | Meta / secondaire |
+| Dust | `#D1CDC7` | Placeholders / whisper |
+| Logo blue / gold / crimson | `#0B3D91` / `#F5C400` / `#E11D48` | **Assets logo + badges sémantiques uniquement** (pas CTA marketing) |
 
-| Token | Usage | Approximation logo |
-|-------|--------|-------------------|
-| Primary / ink | Textes, pills actives, CTA sombres | Noir / bleu profond |
-| Brand blue | Figure logo, accents UI | ~`#0B3D91` / bleu logo |
-| Accent success / vérifié | Check jaune logo | ~`#F5C400` |
-| Accent highlight | Étoile / alertes / promo | ~`#E11D48` (rouge logo) |
-| Surface | Fond app | `#FFFFFF` |
-| Surface muted | Inputs, chips inactifs | `#F2F4F7` |
-| Icon wash | Cercle derrière icônes liste | Bleu très pâle (équivalent du lavande référence) |
-| Muted text | Meta | Gris moyen |
-
-> Objectif : **mêmes patterns que `design.png`**, **palette alignée logo + contexte TalentTchad** (confiance, vérification, talent).
+> Objectif : look editorial cream/ink de `DESIGN.md` ; logo TalentTchad reste l'identité marque, sans conduire la palette UI.
 
 ### 9.3 Logo
 
 - Source : `assets/images/logo.png`
-- Livrable : **SVG vectoriel** du logo (le terme “csv” dans la demande est interprété comme **SVG**)
+- Livrable : **SVG vectoriel** du logo
 - Usage : splash, auth, headers, about
-- Fond sombre OK pour versions inversées ; version claire pour fonds blancs
+- Sur cream : version couleur ; sur ink : version claire / inversée
 
 ### 9.4 Iconographie
 
 | Règle | Détail |
 |-------|--------|
 | Librairie | **`phosphor-react-native`** |
-| Emojis | **Interdits** dans l’UI (écrans, tabs, catégories, empty states) |
-| Style | Préférer poids **regular / bold** cohérent avec le logo (formes rondes, traits nets) |
-| Exemples | `House`, `MagnifyingGlass`, `Receipt`, `ChatCircle`, `User`, `Star`, `MapPin`, `Camera`, `SealCheck`, `Crown`, etc. |
+| Emojis | **Interdits** dans l'UI |
+| Style | Regular / bold ; formes nettes |
+| Exemples | `House`, `MagnifyingGlass`, `Receipt`, `ChatCircle`, `User`, `Star`, `MapPin`, `Camera`, `SealCheck`, `Crown`, `ArrowRight` (satellite) |
 
 ### 9.5 Motion
 
-- Transitions légères (tabs, apparition listes)
-- Feedback press sur boutons / cards
-- Pas d’animations décoratives excessives
+- Transitions légères (tabs, listes)
+- Press feedback (scale léger sur CTA)
+- Satellite / portraits : présence, pas de bruit décoratif excessif
 
 ### 9.6 Écrans cibles (conformité CDC)
 
@@ -547,7 +546,7 @@ src/providers/    # Auth, Theme, Fonts, I18n
 src/locales/      # fr / ar / sara
 convex/           # schema, auth, orders, payments, fedapay, admin…
 assets/           # images, logo SVG
-docs/             # CDC.md, design.png, DRAFT.md (historique)
+docs/             # CDC.md, DESIGN.md (UI), design.png (historique), DRAFT.md
 ```
 
 ### Principes
@@ -565,7 +564,7 @@ Ordre recommandé :
 
 1. **Gel documentaire** — ce CDC validé  
 2. **Parité fonctionnelle** — combler les gaps vs §3–4 (auth, CNI settings, chat images, FedaPay commande→premium, admin commission, 10 villes, i18n)  
-3. **Design system** — tokens, logo SVG, Phosphor, composants de base alignés `design.png`  
+3. **Design system** — tokens, logo SVG, Phosphor, composants de base alignés `DESIGN.md`  
 4. **`mock_data`** — jeux de données + images vérifiées  
 5. **Refonte UI écran par écran**  
 6. **QA manuelle** — parcours client / prestataire / admin  
@@ -586,7 +585,7 @@ Le MVP est **conforme** si :
 5. Commission paramétrable visible au checkout.  
 6. Prestataire peut uploader CNI/passeport + selfie ; admin peut approuver → badge vérifié.  
 7. Premium : badge + boost ; attribution admin et/ou FedaPay selon disponibilité clés.  
-8. UI sans emoji ; icônes Phosphor ; look aligné `docs/design.png` + couleurs logo ; logo SVG en place.  
+8. UI sans emoji ; icônes Phosphor ; look aligné `DESIGN.md` (cream/ink/Sofia Sans) ; logo SVG en place.  
 9. App utilisable en **fr**, **ar**, **sara**.  
 10. Push basiques commande + message.  
 11. `mock_data` fourni avec images valides.  
@@ -615,10 +614,11 @@ Le MVP est **conforme** si :
 | Fichier | Rôle |
 |---------|------|
 | `docs/CDC.md` | **Fait foi** |
+| `docs/QA-MVP.md` | Checklist QA + build APK preview |
 | `docs/DRAFT.md` | Intention initiale (stack obsolète) |
-| `docs/design.png` | Référence UI patterns |
+| `DESIGN.md` | **Source de vérité design UI** |
+| `docs/design.png` | Ancienne référence patterns (historique) |
 | `assets/images/logo.png` | Source logo → à vectoriser en SVG |
-| `DESIGN.md` | Ancienne inspiration Cohere — **ne pas suivre** pour la refonte UI TalentTchad |
 
 ---
 
@@ -628,6 +628,7 @@ Le MVP est **conforme** si :
 |---------|------|-------|
 | 1.0 | 2025 | DRAFT initial (Django/Flutter) |
 | 2.0 | 2026-07-19 | CDC aligné stack Expo+Convex + décisions produit/UI verrouillées |
+| 2.1 | 2026-07-22 | Bascule UI vers DESIGN.md (Mastercard cream/ink) — remplace design.png + palette logo UI |
 
 ---
 

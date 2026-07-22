@@ -65,7 +65,7 @@ export default function MapScreen() {
               onPress={() => router.push(`/service/${t.serviceId}`)}
               style={{
                 backgroundColor: colors.surfaceCard,
-                borderRadius: 12,
+                borderRadius: 20,
                 padding: 14,
                 marginBottom: 8,
                 borderWidth: 1,
@@ -106,7 +106,7 @@ export default function MapScreen() {
               left: 16,
               right: 16,
               backgroundColor: colors.surfaceCard,
-              borderRadius: 14,
+              borderRadius: 20,
               padding: 14,
               borderWidth: 1,
               borderColor: colors.border,

@@ -25,7 +25,8 @@
     "available": "Disponible",
     "busy": "Occupé",
     "unavailable": "Indisponible",
-    "all": "Tous"
+    "all": "Tous",
+    "services": "Services"
   },
   "auth": {
     "login": "Connexion",
@@ -133,9 +134,20 @@
     "leaveReview": "Laisser un avis",
     "rating": "Note",
     "comment": "Commentaire",
+    "commentPlaceholder": "Décrivez votre expérience (optionnel)",
     "submit": "Publier",
+    "thanks": "Merci pour votre avis !",
     "officialOnly": "Avis officiel (paiement intégré)",
     "respond": "Répondre"
+  },
+  "services": {
+    "new": "Nouveau service",
+    "edit": "Modifier",
+    "pause": "Mettre en pause",
+    "activate": "Activer",
+    "active": "Actif",
+    "paused": "En pause",
+    "save": "Enregistrer le service"
   },
   "profile": {
     "title": "Profil",

@@ -31,13 +31,13 @@ export default function ProviderDashboardScreen() {
               style={{
                 width: '47%',
                 backgroundColor: colors.surfaceCard,
-                borderRadius: 16,
+                borderRadius: 20,
                 padding: 20,
                 borderWidth: 1,
                 borderColor: colors.border,
               }}
             >
-              <Text style={{ fontSize: 28, fontWeight: '700', color: BrandColors.enterpriseGreen }}>
+              <Text style={{ fontSize: 28, fontWeight: '700', color: BrandColors.ink }}>
                 {stat.value}
               </Text>
               <Text style={{ fontSize: 13, color: colors.muted, marginTop: 4 }}>{stat.label}</Text>

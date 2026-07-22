@@ -8,7 +8,10 @@ export function useColorScheme() {
   const [hasHydrated, setHasHydrated] = useState(false);
 
   useEffect(() => {
-    setHasHydrated(true);
+    // Defer hydration flag so the effect does not synchronously setState (lint: set-state-in-effect).
+    queueMicrotask(() => {
+      setHasHydrated(true);
+    });
   }, []);
 
   const colorScheme = useRNColorScheme();

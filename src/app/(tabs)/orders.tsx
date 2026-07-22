@@ -68,7 +68,7 @@ export default function OrdersScreen() {
         </ScrollView>
       ) : null}
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 24 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
         {!user ? (
           <EmptyState
             icon={Lock}
@@ -84,16 +84,16 @@ export default function OrdersScreen() {
         ) : filtered?.length === 0 ? (
           <EmptyState icon={ClipboardText} title={t('orders.empty')} />
         ) : (
-          filtered?.map(({ order, service }) => (
+          filtered?.map(({ order, service, payment, hasReview }) => (
             <View
               key={order._id}
               style={{
                 flexDirection: 'row',
                 backgroundColor: colors.surfaceCard,
-                borderRadius: Radius.xl,
-                padding: 16,
-                marginBottom: 12,
-                borderWidth: 1,
+                borderRadius: Radius.stadium,
+                padding: 24,
+                marginBottom: 16,
+                borderWidth: 0,
                 borderColor: colors.border,
                 gap: 14,
               }}
@@ -108,7 +108,7 @@ export default function OrdersScreen() {
                   justifyContent: 'center',
                 }}
               >
-                <Briefcase size={22} color={colors.primary} />
+                <Briefcase size={22} color={colors.ink} />
               </View>
 
               <View style={{ flex: 1 }}>
@@ -129,7 +129,7 @@ export default function OrdersScreen() {
                 ) : null}
 
                 {order.agreedPrice != null ? (
-                  <Text style={{ fontSize: 15, fontWeight: '700', color: colors.primary, marginBottom: 8 }}>
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: colors.ink, marginBottom: 8 }}>
                     {formatPrice(order.agreedPrice)}
                   </Text>
                 ) : null}
@@ -174,13 +174,37 @@ export default function OrdersScreen() {
                   />
                 ) : null}
 
-                {role === 'client' && order.status === 'completed' ? (
+                {role === 'client' &&
+                order.status === 'completed' &&
+                payment?.status === 'held' ? (
                   <Button
                     title={t('orders.validate')}
                     onPress={() => validate({ orderId: order._id })}
                     fullWidth
                     style={{ marginTop: 4 }}
                   />
+                ) : null}
+
+                {role === 'client' &&
+                order.status === 'completed' &&
+                order.canReview &&
+                !hasReview ? (
+                  <Button
+                    title={t('reviews.leaveReview')}
+                    variant={payment?.status === 'held' ? 'outline' : 'primary'}
+                    onPress={() => router.push(`/review/${order._id}`)}
+                    fullWidth
+                    style={{ marginTop: 4 }}
+                  />
+                ) : null}
+
+                {role === 'client' &&
+                order.status === 'completed' &&
+                order.canReview &&
+                hasReview ? (
+                  <Text style={{ fontSize: 12, color: colors.success, marginTop: 6 }}>
+                    {t('reviews.thanks')}
+                  </Text>
                 ) : null}
               </View>
             </View>

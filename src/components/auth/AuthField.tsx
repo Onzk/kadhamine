@@ -34,11 +34,11 @@ export function AuthField({
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          backgroundColor: colors.surface,
+          backgroundColor: '#FFFFFF',
           borderWidth: 1,
-          borderColor: error ? colors.error : colors.borderHairline,
-          borderRadius: Radius.sm,
-          paddingHorizontal: Spacing.four,
+          borderColor: error ? colors.error : 'rgba(20, 20, 19, 0.5)',
+          borderRadius: Radius.pill,
+          paddingHorizontal: Spacing.six,
           minHeight: 48,
         }}
       >
@@ -92,9 +92,11 @@ export function AuthPrimaryButton({ title, onPress, loading, disabled }: AuthPri
       disabled={disabled || loading}
       style={({ pressed }) => ({
         backgroundColor: colors.primary,
-        borderRadius: Radius.pill,
+        borderRadius: Radius.button,
+        borderWidth: 1.5,
+        borderColor: colors.primary,
         minHeight: 44,
-        paddingVertical: 12,
+        paddingVertical: 6,
         paddingHorizontal: 24,
         alignItems: 'center',
         justifyContent: 'center',
@@ -152,10 +154,10 @@ export function SocialAuthButton({ label, icon, onPress }: SocialAuthButtonProps
         gap: Spacing.twoHalf,
         minHeight: 44,
         paddingVertical: 12,
-        borderRadius: Radius.xl,
-        borderWidth: 1,
-        borderColor: colors.borderHairline,
-        backgroundColor: colors.surface,
+        borderRadius: Radius.button,
+        borderWidth: 1.5,
+        borderColor: colors.ink,
+        backgroundColor: '#FFFFFF',
         opacity: pressed ? 0.9 : 1,
       })}
     >

@@ -61,14 +61,28 @@ export default function ServiceDetailScreen() {
       <ScreenHeader title={t('service.details')} showBack />
 
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
-        <View style={{ height: 220, backgroundColor: colors.canvasSoft }}>
-          {service.photos[0] ? (
-            <Image source={{ uri: service.photos[0] }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
-          ) : (
-            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-              <CategoryPlaceholder size={64} />
-            </View>
-          )}
+        <View style={{ alignItems: 'center', paddingTop: 16, paddingBottom: 8 }}>
+          <View
+            style={{
+              width: 260,
+              height: 260,
+              borderRadius: 130,
+              overflow: 'hidden',
+              backgroundColor: colors.surfaceStrong,
+            }}
+          >
+            {service.photos[0] ? (
+              <Image
+                source={{ uri: service.photos[0] }}
+                style={{ width: '100%', height: '100%' }}
+                contentFit="cover"
+              />
+            ) : (
+              <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                <CategoryPlaceholder size={64} />
+              </View>
+            )}
+          </View>
         </View>
 
         <View style={{ padding: 16 }}>
@@ -111,7 +125,7 @@ export default function ServiceDetailScreen() {
             <View
               style={{
                 backgroundColor: colors.surfaceCard,
-                borderRadius: 16,
+                borderRadius: 20,
                 padding: 16,
                 borderWidth: 1,
                 borderColor: colors.border,
@@ -132,12 +146,12 @@ export default function ServiceDetailScreen() {
 
           <View
             style={{
-              backgroundColor: BrandColors.coral + '20',
-              borderRadius: 12,
+              backgroundColor: BrandColors.crimson + '20',
+              borderRadius: 20,
               padding: 14,
               marginBottom: 20,
               borderWidth: 1,
-              borderColor: BrandColors.coral + '60',
+              borderColor: BrandColors.crimson + '60',
             }}
           >
             <Text style={{ fontSize: 13, color: colors.ink, lineHeight: 18 }}>
@@ -158,7 +172,7 @@ export default function ServiceDetailScreen() {
                   key={review._id}
                   style={{
                     backgroundColor: colors.surfaceCard,
-                    borderRadius: 12,
+                    borderRadius: 20,
                     padding: 14,
                     marginBottom: 8,
                     borderWidth: 1,

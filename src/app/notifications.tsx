@@ -42,7 +42,7 @@ export default function NotificationsScreen() {
               key={n._id}
               style={{
                 backgroundColor: n.isRead ? colors.surfaceCard : colors.primary + '08',
-                borderRadius: 14,
+                borderRadius: 20,
                 padding: 16,
                 marginBottom: 8,
                 borderWidth: 1,

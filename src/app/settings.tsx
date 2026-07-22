@@ -65,7 +65,7 @@ export default function SettingsScreen() {
               flexDirection: 'row',
               alignItems: 'center',
               backgroundColor: colors.surfaceCard,
-              borderRadius: 16,
+              borderRadius: 20,
               padding: 16,
               marginBottom: 10,
               borderWidth: 1,
@@ -139,10 +139,10 @@ export default function SettingsScreen() {
         {user ? (
           <Pressable
             onPress={() => {
-              Alert.alert(t('auth.SignOut'), undefined, [
+              Alert.alert(t('auth.logout'), undefined, [
                 { text: t('common.cancel'), style: 'cancel' },
                 {
-                  text: t('auth.SignOut'),
+                  text: t('auth.logout'),
                   style: 'destructive',
                   onPress: () => signOut(),
                 },
@@ -154,13 +154,13 @@ export default function SettingsScreen() {
               justifyContent: 'center',
               gap: 8,
               padding: 16,
-              borderRadius: 16,
+              borderRadius: 20,
               borderWidth: 1,
               borderColor: colors.error,
             }}
           >
             <SignOut size={18} color={colors.error} />
-            <Text style={{ color: colors.error, fontWeight: '600' }}>{t('auth.SignOut')}</Text>
+            <Text style={{ color: colors.error, fontWeight: '600' }}>{t('auth.logout')}</Text>
           </Pressable>
         ) : null}
       </ScrollView>

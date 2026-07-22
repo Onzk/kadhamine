@@ -107,7 +107,7 @@ export default function VerificationScreen() {
             <View
               style={{
                 height: 120,
-                borderRadius: 12,
+                borderRadius: 20,
                 backgroundColor: colors.canvasSoft,
                 borderWidth: 1,
                 borderColor: colors.border,
@@ -128,7 +128,7 @@ export default function VerificationScreen() {
             <View
               style={{
                 height: 120,
-                borderRadius: 12,
+                borderRadius: 20,
                 backgroundColor: colors.canvasSoft,
                 borderWidth: 1,
                 borderColor: colors.border,

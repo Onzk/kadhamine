@@ -23,7 +23,7 @@ export default function MessagesScreen() {
     <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <ScreenHeader title={t('messages.title')} />
 
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
         {!user ? (
           <EmptyState
             icon={Lock}
@@ -47,10 +47,10 @@ export default function MessagesScreen() {
                 flexDirection: 'row',
                 alignItems: 'center',
                 backgroundColor: colors.surfaceCard,
-                borderRadius: Radius.xl,
-                padding: 14,
-                marginBottom: 10,
-                borderWidth: 1,
+                borderRadius: Radius.stadium,
+                padding: 16,
+                marginBottom: 12,
+                borderWidth: 0,
                 borderColor: colors.border,
                 opacity: pressed ? 0.9 : 1,
                 gap: 12,
@@ -66,7 +66,7 @@ export default function MessagesScreen() {
                   justifyContent: 'center',
                 }}
               >
-                <ChatCircleDots size={22} color={colors.primary} weight="fill" />
+                <ChatCircleDots size={22} color={colors.ink} weight="fill" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 15, fontWeight: '600', color: colors.ink }}>

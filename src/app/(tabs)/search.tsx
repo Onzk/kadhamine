@@ -50,12 +50,12 @@ export default function SearchScreen() {
           style={{
             flexDirection: 'row',
             alignItems: 'center',
-            backgroundColor: colors.surfaceCard,
-            borderRadius: 14,
-            paddingHorizontal: 14,
+            backgroundColor: '#FFFFFF',
+            borderRadius: 999,
+            paddingHorizontal: 24,
             height: 48,
             borderWidth: 1,
-            borderColor: colors.border,
+            borderColor: 'rgba(20, 20, 19, 0.5)',
             gap: 10,
           }}
         >
@@ -117,7 +117,7 @@ export default function SearchScreen() {
         </ScrollView>
       )}
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}>
         {services === undefined ? (
           <>
             <ServiceCardSkeleton />
