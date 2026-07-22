@@ -15,6 +15,36 @@ export const list = query({
   },
 });
 
+export const listWithCounts = query({
+  args: { activeOnly: v.optional(v.boolean()) },
+  handler: async (ctx, args) => {
+    const categories = args.activeOnly
+      ? await ctx.db
+          .query('categories')
+          .withIndex('by_active', (q) => q.eq('isActive', true))
+          .collect()
+      : await ctx.db.query('categories').collect();
+
+    const services = await ctx.db
+      .query('services')
+      .withIndex('by_active', (q) => q.eq('isActive', true))
+      .collect();
+
+    const counts = new Map<string, number>();
+    for (const service of services) {
+      const key = service.categoryId as string;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+
+    return categories
+      .map((category) => ({
+        ...category,
+        serviceCount: counts.get(category._id as string) ?? 0,
+      }))
+      .sort((a, b) => b.serviceCount - a.serviceCount || a.sortOrder - b.sortOrder);
+  },
+});
+
 export const getBySlug = query({
   args: { slug: v.string() },
   handler: async (ctx, args) => {

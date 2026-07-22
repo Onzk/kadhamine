@@ -4,7 +4,7 @@ import { CaretLeft } from 'phosphor-react-native';
 import { useRouter } from 'expo-router';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { textStyle } from '@/theme/typography';
-import { Radius, Shadows, Spacing } from '@/theme/tokens';
+import { Spacing } from '@/theme/tokens';
 
 interface ScreenHeaderProps {
   title: string;
@@ -20,52 +20,45 @@ export function ScreenHeader({ title, subtitle, showBack, rightAction }: ScreenH
   return (
     <View
       style={{
-        paddingTop: Spacing.three,
-        paddingBottom: Spacing.three,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: Spacing.three,
         paddingHorizontal: Spacing.four,
         backgroundColor: colors.canvas,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.border,
       }}
     >
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          backgroundColor: colors.surfaceCard,
-          borderRadius: Radius.pill,
-          paddingVertical: Spacing.two,
-          paddingHorizontal: Spacing.four,
-          ...Shadows.nav,
-        }}
-      >
-        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: Spacing.two }}>
-          {showBack && (
-            <Pressable
-              onPress={() => router.back()}
-              style={({ pressed }) => ({
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                backgroundColor: colors.surfaceStrong,
-                alignItems: 'center',
-                justifyContent: 'center',
-                opacity: pressed ? 0.7 : 1,
-              })}
-            >
-              <CaretLeft size={20} color={colors.ink} weight="bold" />
-            </Pressable>
+      <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: Spacing.two }}>
+        {showBack && (
+          <Pressable
+            onPress={() => router.back()}
+            style={({ pressed }) => ({
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: colors.surfaceCard,
+              borderWidth: 1.5,
+              borderColor: colors.ink,
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: pressed ? 0.7 : 1,
+            })}
+          >
+            <CaretLeft size={20} color={colors.ink} weight="bold" />
+          </Pressable>
+        )}
+        <View style={{ flex: 1 }}>
+          <Text style={[textStyle('featureHeading'), { color: colors.ink }]}>{title}</Text>
+          {subtitle && (
+            <Text style={[textStyle('caption'), { color: colors.muted, marginTop: 2 }]}>
+              {subtitle}
+            </Text>
           )}
-          <View style={{ flex: 1 }}>
-            <Text style={[textStyle('featureHeading'), { color: colors.ink }]}>{title}</Text>
-            {subtitle && (
-              <Text style={[textStyle('caption'), { color: colors.muted, marginTop: 2 }]}>
-                {subtitle}
-              </Text>
-            )}
-          </View>
         </View>
-        {rightAction}
       </View>
+      {rightAction}
     </View>
   );
 }

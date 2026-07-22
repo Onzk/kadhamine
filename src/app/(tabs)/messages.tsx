@@ -23,7 +23,7 @@ export default function MessagesScreen() {
     <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <ScreenHeader title={t('messages.title')} />
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
         {!user ? (
           <EmptyState
             icon={Lock}

@@ -117,7 +117,7 @@ export default function SearchScreen() {
         </ScrollView>
       )}
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32, gap: 20 }}>
         {services === undefined ? (
           <>
             <ServiceCardSkeleton />
@@ -143,10 +143,12 @@ export default function SearchScreen() {
               providerName={
                 item.profile ? `${item.profile.firstName} ${item.profile.lastName}` : 'Prestataire'
               }
+              providerAvatar={item.profile?.avatarUrl}
               city={item.service.city}
               isVerified={item.profile?.isVerified}
               isPremium={item.profile?.isPremium}
               categoryIcon={item.category?.icon}
+              categoryLabel={item.category?.nameFr}
               onPress={() => router.push(`/service/${item.service._id}`)}
             />
           ))

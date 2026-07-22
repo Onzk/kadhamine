@@ -68,7 +68,7 @@ export default function OrdersScreen() {
         </ScrollView>
       ) : null}
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
         {!user ? (
           <EmptyState
             icon={Lock}

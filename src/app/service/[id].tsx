@@ -60,7 +60,7 @@ export default function ServiceDetailScreen() {
     <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <ScreenHeader title={t('service.details')} showBack />
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
         <View style={{ alignItems: 'center', paddingTop: 16, paddingBottom: 8 }}>
           <View
             style={{

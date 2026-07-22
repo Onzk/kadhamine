@@ -40,7 +40,7 @@ export default function ProfileScreen() {
   if (isGuest) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-        <ScrollView contentContainerStyle={{ padding: 28, paddingTop: 48, paddingBottom: 100 }}>
+        <ScrollView contentContainerStyle={{ padding: 28, paddingTop: 48, paddingBottom: 32 }}>
           <Text style={[textStyle('productDisplay'), { color: colors.ink, marginBottom: 12 }]}>
             {t('auth.guestTitle')}
           </Text>
@@ -109,7 +109,7 @@ export default function ProfileScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
         <View
           style={{
             backgroundColor: colors.ink,

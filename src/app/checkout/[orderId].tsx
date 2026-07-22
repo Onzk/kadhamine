@@ -107,7 +107,7 @@ export default function CheckoutScreen() {
     <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <ScreenHeader title={t('payment.title')} showBack />
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
         <View
           style={{
             backgroundColor: colors.surfaceCard,

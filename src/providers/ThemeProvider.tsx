@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useMemo, useState, useCallback, useEffect } from 'react';
 import { Appearance, View, useColorScheme } from 'react-native';
 import { LightTheme, DarkTheme, type ThemeColors } from '@/theme/tokens';
+import { useSystemChrome } from '@/hooks/useSystemChrome';
 
 type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -20,6 +21,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const isDark = mode === 'system' ? systemScheme === 'dark' : mode === 'dark';
   const colors = isDark ? DarkTheme : LightTheme;
+
+  useSystemChrome(colors.canvas, isDark);
 
   const setMode = useCallback((next: ThemeMode) => {
     setModeState(next);

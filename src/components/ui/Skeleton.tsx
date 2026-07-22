@@ -7,7 +7,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useAppTheme } from '@/providers/ThemeProvider';
-import { Spacing } from '@/theme/tokens';
+import { Radius, Spacing } from '@/theme/tokens';
 
 interface SkeletonProps {
   width?: number | string;
@@ -41,14 +41,27 @@ export function Skeleton({ width = '100%', height = 16, borderRadius = 20 }: Ske
 }
 
 export function ServiceCardSkeleton() {
+  const { colors } = useAppTheme();
   return (
-    <View style={{ marginBottom: Spacing.twelve, alignItems: 'center' }}>
-      <Skeleton width={220} height={220} borderRadius={110} />
-      <View style={{ width: '100%', paddingTop: Spacing.four, gap: 8 }}>
-        <Skeleton height={14} width="30%" />
-        <Skeleton height={24} width="70%" />
-        <Skeleton height={14} width="90%" />
-        <Skeleton height={16} width="40%" />
+    <View
+      style={{
+        width: '100%',
+        borderRadius: Radius.lg,
+        borderWidth: 1.5,
+        borderColor: colors.border,
+        backgroundColor: colors.surfaceCard,
+        overflow: 'hidden',
+      }}
+    >
+      <Skeleton width="100%" height={190} borderRadius={0} />
+      <View style={{ padding: Spacing.four, gap: 10 }}>
+        <Skeleton height={18} width="75%" />
+        <Skeleton height={13} width="95%" />
+        <Skeleton height={1} width="100%" />
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Skeleton height={30} width={120} borderRadius={Radius.pill} />
+          <Skeleton height={18} width={60} />
+        </View>
       </View>
     </View>
   );

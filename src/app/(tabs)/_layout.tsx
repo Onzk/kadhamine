@@ -1,17 +1,38 @@
 import { Tabs } from 'expo-router';
-import { Text } from 'react-native';
+import { Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { House, MagnifyingGlass, ClipboardText, ChatCircleDots, User } from 'phosphor-react-native';
+import { House, MagnifyingGlass, ClipboardText, ChatCircleDots, User, type Icon as PhosphorIcon } from 'phosphor-react-native';
 import { useAppTheme } from '@/providers/ThemeProvider';
-import { textStyle } from '@/theme/typography';
-import { Shadows } from '@/theme/tokens';
+import { fontFamily, textStyle } from '@/theme/typography';
+import { Spacing } from '@/theme/tokens';
 
 export default function TabsLayout() {
   const { t } = useTranslation();
   const { colors, isDark } = useAppTheme();
 
-  const activeColor = colors.ink;
+  const activeColor = colors.orbit;
   const inactiveColor = colors.muted;
+
+  const renderIcon =
+    (IconComponent: PhosphorIcon) =>
+    ({ focused }: { focused: boolean }) => (
+      <View
+        style={{
+          width: 40,
+          height: 28,
+          borderRadius: 999,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: focused ? colors.orbit + '22' : 'transparent',
+        }}
+      >
+        <IconComponent
+          size={22}
+          color={focused ? activeColor : inactiveColor}
+          weight={focused ? 'fill' : 'regular'}
+        />
+      </View>
+    );
 
   return (
     <Tabs
@@ -21,19 +42,12 @@ export default function TabsLayout() {
         tabBarActiveTintColor: activeColor,
         tabBarInactiveTintColor: inactiveColor,
         tabBarStyle: {
-          backgroundColor: colors.surfaceCard,
-          borderTopColor: 'transparent',
+          backgroundColor: colors.canvas,
           borderTopWidth: 0,
-          borderWidth: 1,
-          borderColor: colors.border,
-          height: 64,
+          elevation: 0,
+          height: 60,
           paddingTop: 8,
-          paddingBottom: 10,
-          marginHorizontal: 16,
-          marginBottom: 12,
-          borderRadius: 999,
-          position: 'absolute',
-          ...Shadows.nav,
+          paddingBottom: Spacing.four,
         },
         tabBarLabelStyle: {
           ...textStyle('micro'),
@@ -43,6 +57,7 @@ export default function TabsLayout() {
             style={[
               textStyle('micro'),
               {
+                fontFamily: focused ? fontFamily('body', 'bold') : fontFamily('body', 'regular'),
                 color: focused ? activeColor : inactiveColor,
                 textAlign: 'center',
                 marginTop: 2,
@@ -56,68 +71,44 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen
+        name="categories"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
         name="index"
         options={{
           title: t('tabs.home'),
-          tabBarIcon: ({ size, focused }) => (
-            <House
-              size={size}
-              color={focused ? activeColor : inactiveColor}
-              weight={focused ? 'fill' : 'regular'}
-            />
-          ),
+          tabBarIcon: renderIcon(House),
         }}
       />
       <Tabs.Screen
         name="search"
         options={{
           title: t('tabs.search'),
-          tabBarIcon: ({ size, focused }) => (
-            <MagnifyingGlass
-              size={size}
-              color={focused ? activeColor : inactiveColor}
-              weight={focused ? 'bold' : 'regular'}
-            />
-          ),
+          tabBarIcon: renderIcon(MagnifyingGlass),
         }}
       />
       <Tabs.Screen
         name="orders"
         options={{
           title: t('tabs.orders'),
-          tabBarIcon: ({ size, focused }) => (
-            <ClipboardText
-              size={size}
-              color={focused ? activeColor : inactiveColor}
-              weight={focused ? 'fill' : 'regular'}
-            />
-          ),
+          tabBarIcon: renderIcon(ClipboardText),
         }}
       />
       <Tabs.Screen
         name="messages"
         options={{
           title: t('tabs.messages'),
-          tabBarIcon: ({ size, focused }) => (
-            <ChatCircleDots
-              size={size}
-              color={focused ? activeColor : inactiveColor}
-              weight={focused ? 'fill' : 'regular'}
-            />
-          ),
+          tabBarIcon: renderIcon(ChatCircleDots),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: t('tabs.profile'),
-          tabBarIcon: ({ size, focused }) => (
-            <User
-              size={size}
-              color={focused ? activeColor : inactiveColor}
-              weight={focused ? 'fill' : 'regular'}
-            />
-          ),
+          tabBarIcon: renderIcon(User),
         }}
       />
     </Tabs>

@@ -22,6 +22,16 @@ const convex = new ConvexReactClient(convexUrl, {
   unsavedChangesWarning: false,
 });
 
+function ThemedGestureRoot({ children }: { children: React.ReactNode }) {
+  const { colors } = useAppTheme();
+
+  return (
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.canvas }}>
+      {children}
+    </GestureHandlerRootView>
+  );
+}
+
 function RootContent() {
   const { isDark } = useAppTheme();
   const navTheme = isDark ? NAV_THEME.dark : NAV_THEME.light;
@@ -42,18 +52,18 @@ function RootContent() {
 
 export default function RootLayout() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <ConvexAuthProvider client={convex} storage={convexAuthStorage}>
-          <ThemeProvider>
+    <SafeAreaProvider>
+      <ConvexAuthProvider client={convex} storage={convexAuthStorage}>
+        <ThemeProvider>
+          <ThemedGestureRoot>
             <FontProvider>
               <I18nProvider>
                 <RootContent />
               </I18nProvider>
             </FontProvider>
-          </ThemeProvider>
-        </ConvexAuthProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+          </ThemedGestureRoot>
+        </ThemeProvider>
+      </ConvexAuthProvider>
+    </SafeAreaProvider>
   );
 }
