@@ -50,12 +50,12 @@ export default function SearchScreen() {
           style={{
             flexDirection: 'row',
             alignItems: 'center',
-            backgroundColor: '#FFFFFF',
+            backgroundColor: colors.surfaceCard,
             borderRadius: 999,
             paddingHorizontal: 24,
             height: 48,
             borderWidth: 1,
-            borderColor: 'rgba(20, 20, 19, 0.5)',
+            borderColor: colors.border,
             gap: 10,
           }}
         >

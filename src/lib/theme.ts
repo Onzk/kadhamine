@@ -19,7 +19,7 @@ export const THEME = {
     accentForeground: LightTheme.onAccent,
     destructive: LightTheme.error,
     border: LightTheme.border,
-    input: '#FFFFFF',
+    input: LightTheme.surfaceCard,
     ring: LightTheme.focus,
     radius: '20px',
   },

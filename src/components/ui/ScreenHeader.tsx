@@ -31,7 +31,7 @@ export function ScreenHeader({ title, subtitle, showBack, rightAction }: ScreenH
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
-          backgroundColor: '#FFFFFF',
+          backgroundColor: colors.surfaceCard,
           borderRadius: Radius.pill,
           paddingVertical: Spacing.two,
           paddingHorizontal: Spacing.four,

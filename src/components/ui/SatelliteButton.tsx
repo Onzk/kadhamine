@@ -20,7 +20,7 @@ export function SatelliteButton({ onPress, size = 52 }: SatelliteButtonProps) {
         width: size,
         height: size,
         borderRadius: size / 2,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.surfaceCard,
         alignItems: 'center',
         justifyContent: 'center',
         opacity: pressed ? 0.88 : 1,

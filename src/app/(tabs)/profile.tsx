@@ -70,7 +70,7 @@ export default function ProfileScreen() {
                     paddingHorizontal: 14,
                     paddingVertical: 8,
                     borderRadius: Radius.pill,
-                    backgroundColor: language === lang.code ? colors.primary : '#FFFFFF',
+                    backgroundColor: language === lang.code ? colors.primary : colors.surfaceCard,
                     borderWidth: 1.5,
                     borderColor: colors.ink,
                   }}
@@ -124,7 +124,7 @@ export default function ProfileScreen() {
               width: 72,
               height: 72,
               borderRadius: 36,
-              backgroundColor: '#FFFFFF',
+              backgroundColor: colors.surfaceCard,
               alignItems: 'center',
               justifyContent: 'center',
               marginBottom: 12,
@@ -183,7 +183,7 @@ export default function ProfileScreen() {
                   paddingHorizontal: 14,
                   paddingVertical: 8,
                   borderRadius: Radius.pill,
-                  backgroundColor: language === lang.code ? colors.primary : '#FFFFFF',
+                  backgroundColor: language === lang.code ? colors.primary : colors.surfaceCard,
                   borderWidth: 1.5,
                   borderColor: colors.ink,
                 }}

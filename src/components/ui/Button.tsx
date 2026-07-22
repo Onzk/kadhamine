@@ -86,7 +86,7 @@ export function Button({
       padH: 24,
     },
     secondary: {
-      bg: '#FFFFFF',
+      bg: colors.surfaceCard,
       text: colors.ink,
       border: colors.ink,
       borderWidth: 1.5,
@@ -95,7 +95,7 @@ export function Button({
       padH: 24,
     },
     outline: {
-      bg: '#FFFFFF',
+      bg: colors.surfaceCard,
       text: colors.ink,
       border: colors.ink,
       borderWidth: 1.5,
@@ -112,7 +112,7 @@ export function Button({
     },
     danger: {
       bg: colors.error,
-      text: '#FFFFFF',
+      text: colors.onAccent,
       radius: Radius.button,
       padV: 6,
       padH: 24,
@@ -126,7 +126,7 @@ export function Button({
     },
     consent: {
       bg: colors.signal,
-      text: '#FFFFFF',
+      text: colors.onAccent,
       radius: Radius.consent,
       padV: 1,
       padH: 30,

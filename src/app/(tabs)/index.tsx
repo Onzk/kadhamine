@@ -38,7 +38,7 @@ export default function HomeScreen() {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surfaceCard,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
     borderWidth: 1.5,
@@ -85,12 +85,12 @@ export default function HomeScreen() {
           style={{
             flexDirection: 'row',
             alignItems: 'center',
-            backgroundColor: '#FFFFFF',
+            backgroundColor: colors.surfaceCard,
             borderRadius: Radius.pill,
             paddingHorizontal: Spacing.six,
             height: 48,
             borderWidth: 1,
-            borderColor: 'rgba(20, 20, 19, 0.5)',
+            borderColor: colors.border,
             gap: 10,
             ...Shadows.nav,
           }}

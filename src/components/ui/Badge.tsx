@@ -18,7 +18,7 @@ export function Badge({ label, variant = 'default' }: BadgeProps) {
     premium: { bg: colors.accent, text: colors.onAccent, border: colors.accent },
     danger: { bg: colors.error + '12', text: colors.error, border: colors.error + '30' },
     accent: { bg: colors.iconWash, text: colors.ink, border: colors.border },
-    taxonomy: { bg: '#FFFFFF', text: colors.ink, border: colors.ink },
+    taxonomy: { bg: colors.surfaceCard, text: colors.ink, border: colors.ink },
   };
 
   const s = styles[variant];

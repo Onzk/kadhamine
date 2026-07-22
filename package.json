@@ -73,6 +73,8 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "auth:setup": "node scripts/setup-convex-auth.mjs",
+    "seed:demo": "npx convex run seedDemo:seedAll",
+    "seed:demo:force": "npx convex run seedDemo:seedAll '{\"force\": true}'",
     "ui:add": "npx @react-native-reusables/cli@latest add"
   },
   "private": true

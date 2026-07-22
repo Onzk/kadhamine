@@ -1,4 +1,5 @@
 import { Tabs } from 'expo-router';
+import { Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { House, MagnifyingGlass, ClipboardText, ChatCircleDots, User } from 'phosphor-react-native';
 import { useAppTheme } from '@/providers/ThemeProvider';
@@ -7,18 +8,24 @@ import { Shadows } from '@/theme/tokens';
 
 export default function TabsLayout() {
   const { t } = useTranslation();
-  const { colors } = useAppTheme();
+  const { colors, isDark } = useAppTheme();
+
+  const activeColor = colors.ink;
+  const inactiveColor = colors.muted;
 
   return (
     <Tabs
+      key={isDark ? 'dark' : 'light'}
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.ink,
-        tabBarInactiveTintColor: colors.muted,
+        tabBarActiveTintColor: activeColor,
+        tabBarInactiveTintColor: inactiveColor,
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
+          backgroundColor: colors.surfaceCard,
           borderTopColor: 'transparent',
           borderTopWidth: 0,
+          borderWidth: 1,
+          borderColor: colors.border,
           height: 64,
           paddingTop: 8,
           paddingBottom: 10,
@@ -28,17 +35,34 @@ export default function TabsLayout() {
           position: 'absolute',
           ...Shadows.nav,
         },
-        tabBarLabelStyle: { ...textStyle('micro'), color: undefined },
+        tabBarLabelStyle: {
+          ...textStyle('micro'),
+        },
+        tabBarLabel: ({ focused, children }) => (
+          <Text
+            style={[
+              textStyle('micro'),
+              {
+                color: focused ? activeColor : inactiveColor,
+                textAlign: 'center',
+                marginTop: 2,
+              },
+            ]}
+            numberOfLines={1}
+          >
+            {children}
+          </Text>
+        ),
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: t('tabs.home'),
-          tabBarIcon: ({ color, size, focused }) => (
+          tabBarIcon: ({ size, focused }) => (
             <House
               size={size}
-              color={String(color)}
+              color={focused ? activeColor : inactiveColor}
               weight={focused ? 'fill' : 'regular'}
             />
           ),
@@ -48,10 +72,10 @@ export default function TabsLayout() {
         name="search"
         options={{
           title: t('tabs.search'),
-          tabBarIcon: ({ color, size, focused }) => (
+          tabBarIcon: ({ size, focused }) => (
             <MagnifyingGlass
               size={size}
-              color={String(color)}
+              color={focused ? activeColor : inactiveColor}
               weight={focused ? 'bold' : 'regular'}
             />
           ),
@@ -61,10 +85,10 @@ export default function TabsLayout() {
         name="orders"
         options={{
           title: t('tabs.orders'),
-          tabBarIcon: ({ color, size, focused }) => (
+          tabBarIcon: ({ size, focused }) => (
             <ClipboardText
               size={size}
-              color={String(color)}
+              color={focused ? activeColor : inactiveColor}
               weight={focused ? 'fill' : 'regular'}
             />
           ),
@@ -74,10 +98,10 @@ export default function TabsLayout() {
         name="messages"
         options={{
           title: t('tabs.messages'),
-          tabBarIcon: ({ color, size, focused }) => (
+          tabBarIcon: ({ size, focused }) => (
             <ChatCircleDots
               size={size}
-              color={String(color)}
+              color={focused ? activeColor : inactiveColor}
               weight={focused ? 'fill' : 'regular'}
             />
           ),
@@ -87,10 +111,10 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: t('tabs.profile'),
-          tabBarIcon: ({ color, size, focused }) => (
+          tabBarIcon: ({ size, focused }) => (
             <User
               size={size}
-              color={String(color)}
+              color={focused ? activeColor : inactiveColor}
               weight={focused ? 'fill' : 'regular'}
             />
           ),

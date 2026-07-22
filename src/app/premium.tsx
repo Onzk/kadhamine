@@ -160,10 +160,10 @@ export default function PremiumScreen() {
               placeholder="66 XX XX XX"
               placeholderTextColor={colors.muted}
               style={{
-                backgroundColor: '#FFFFFF',
+                backgroundColor: colors.surfaceCard,
                 borderRadius: 999,
                 borderWidth: 1,
-                borderColor: 'rgba(20, 20, 19, 0.5)',
+                borderColor: colors.border,
                 paddingHorizontal: 24,
                 paddingVertical: 12,
                 color: colors.ink,

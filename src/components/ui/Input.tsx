@@ -24,9 +24,9 @@ export function Input({ label, error, leftIcon, style, ...props }: InputProps) {
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          backgroundColor: '#FFFFFF',
+          backgroundColor: colors.surfaceCard,
           borderWidth: 1,
-          borderColor: error ? colors.error : 'rgba(20, 20, 19, 0.5)',
+          borderColor: error ? colors.error : colors.border,
           borderRadius: Radius.pill,
           paddingHorizontal: Spacing.six,
           minHeight: 48,

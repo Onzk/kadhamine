@@ -24,7 +24,7 @@ export function CategoryChip({ label, selected, onPress }: CategoryChipProps) {
         paddingHorizontal: Spacing.five,
         paddingVertical: Spacing.two,
         borderRadius: Radius.pill,
-        backgroundColor: selected ? colors.ink : '#FFFFFF',
+        backgroundColor: selected ? colors.ink : colors.surfaceCard,
         borderWidth: 1.5,
         borderColor: colors.ink,
         opacity: pressed ? 0.88 : 1,

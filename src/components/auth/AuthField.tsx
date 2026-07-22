@@ -34,9 +34,9 @@ export function AuthField({
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          backgroundColor: '#FFFFFF',
+          backgroundColor: colors.surfaceCard,
           borderWidth: 1,
-          borderColor: error ? colors.error : 'rgba(20, 20, 19, 0.5)',
+          borderColor: error ? colors.error : colors.border,
           borderRadius: Radius.pill,
           paddingHorizontal: Spacing.six,
           minHeight: 48,
@@ -157,7 +157,7 @@ export function SocialAuthButton({ label, icon, onPress }: SocialAuthButtonProps
         borderRadius: Radius.button,
         borderWidth: 1.5,
         borderColor: colors.ink,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.surfaceCard,
         opacity: pressed ? 0.9 : 1,
       })}
     >

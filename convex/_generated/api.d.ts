@@ -25,6 +25,7 @@ import type * as profiles from "../profiles.js";
 import type * as reports from "../reports.js";
 import type * as reviews from "../reviews.js";
 import type * as seed from "../seed.js";
+import type * as seedDemo from "../seedDemo.js";
 import type * as services from "../services.js";
 import type * as settings from "../settings.js";
 import type * as subscriptions from "../subscriptions.js";
@@ -55,6 +56,7 @@ declare const fullApi: ApiFromModules<{
   reports: typeof reports;
   reviews: typeof reviews;
   seed: typeof seed;
+  seedDemo: typeof seedDemo;
   services: typeof services;
   settings: typeof settings;
   subscriptions: typeof subscriptions;
