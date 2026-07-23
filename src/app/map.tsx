@@ -1,11 +1,9 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
-  Platform,
   Pressable,
   Dimensions,
-  ScrollView as RNScrollView,
   type LayoutChangeEvent,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -29,30 +27,28 @@ import { SearchBar } from '@/components/ui/SearchBar';
 import { ServiceCardSkeleton } from '@/components/ui/Skeleton';
 import { FlutterFab, FLUTTER_FAB } from '@/components/ui/FlutterFab';
 import { ServiceCard } from '@/components/cards/ServiceCard';
-import { TalentMapMarker } from '@/components/map/TalentMapMarker';
+import {
+  LeafletMapView,
+  type LeafletMapHandle,
+  type LeafletMapTheme,
+  type LeafletMarkerData,
+} from '@/components/map/LeafletMapView';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { useLocation } from '@/hooks/useLocation';
-import { NDJAMENA } from '@/utils/geo';
 import { Radius, Shadows, Spacing } from '@/theme/tokens';
 import { fontFamily, textStyle } from '@/theme/typography';
+import { formatPrice, formatRating } from '@/types';
 import { api } from '../../convex/_generated/api';
-
-let MapView: React.ComponentType<any> | null = null;
-let Marker: React.ComponentType<any> | null = null;
-
-if (Platform.OS !== 'web') {
-  const maps = require('react-native-maps');
-  MapView = maps.default;
-  Marker = maps.Marker;
-}
 
 const { height: SCREEN_H } = Dimensions.get('window');
 const SHEET_COLLAPSED = 110;
 const SHEET_MID = Math.round(SCREEN_H * 0.42);
 const SHEET_EXPANDED = Math.round(SCREEN_H * 0.72);
 const SNAP_POINTS = [SHEET_COLLAPSED, SHEET_MID, SHEET_EXPANDED];
-/** Rayon partagé : bas de l’appbar = haut du panneau. */
 const PANEL_RADIUS = Radius.xl;
+/** Search bar + chips + in-map callout — leave room above pin. */
+const MAP_FOCUS_TOP_PAD = 160;
+const FOCUS_ZOOM = 15;
 
 function nearestSnap(value: number) {
   'worklet';
@@ -81,10 +77,48 @@ export default function MapScreen() {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>();
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [mapReady, setMapReady] = useState(false);
-  const mapRef = useRef<any>(null);
+  const mapRef = useRef<LeafletMapHandle>(null);
+  const appliedLocKey = useRef<string | null>(null);
 
   const panelBg = colors.surfaceCard;
+  const orbitColor = colors.orbit;
+
+  const mapTheme: LeafletMapTheme = useMemo(
+    () => ({
+      surface: colors.surfaceCard,
+      surfaceStrong: colors.surfaceStrong,
+      ink: colors.ink,
+      muted: colors.muted,
+      border: colors.borderStrong,
+      orbit: colors.orbit,
+      rating: colors.rating ?? colors.accentSoft,
+      info: colors.info,
+    }),
+    [colors],
+  );
+
+  const focusPadding = useMemo(
+    () => ({
+      top: MAP_FOCUS_TOP_PAD + 130,
+      bottom: SHEET_MID,
+      left: PAGE_H_PAD,
+      right: PAGE_H_PAD,
+    }),
+    [],
+  );
+
+  // When GPS becomes available after the N'Djamena fallback, move the map once.
+  useEffect(() => {
+    if (locLoading) return;
+    const key = `${latitude},${longitude}`;
+    if (appliedLocKey.current === null) {
+      appliedLocKey.current = key;
+      return;
+    }
+    if (appliedLocKey.current === key) return;
+    appliedLocKey.current = key;
+    mapRef.current?.setView(latitude, longitude, 12);
+  }, [latitude, longitude, locLoading]);
 
   const categories = useQuery(api.categories.list, { activeOnly: true });
   const talents = useQuery(api.services.listForMap, {
@@ -112,6 +146,41 @@ export default function MapScreen() {
     return list;
   }, [talents, selectedCategory, search]);
 
+  const leafletMarkers: LeafletMarkerData[] = useMemo(
+    () =>
+      (filtered ?? []).map((t) => {
+        const selected = selectedId === t.serviceId;
+        const priceLabel =
+          t.pricingType === 'negotiable'
+            ? 'Négociable'
+            : t.price != null
+              ? formatPrice(t.price)
+              : undefined;
+        return {
+          id: t.serviceId,
+          lat: t.latitude,
+          lng: t.longitude,
+          selected,
+          categoryIcon: t.categoryIcon,
+          isPremium: t.isPremium,
+          tooltip: selected
+            ? {
+                title: t.title,
+                providerName: t.providerName,
+                photoUrl: t.photos[0],
+                priceLabel,
+                ratingLabel:
+                  (t.reviewCount ?? 0) > 0 ? formatRating(t.rating) : undefined,
+                categoryLabel: t.categoryLabel,
+                isPremium: t.isPremium,
+                isVerified: t.isVerified,
+              }
+            : undefined,
+        };
+      }),
+    [filtered, selectedId],
+  );
+
   const sheetHeight = useSharedValue(SHEET_COLLAPSED);
   const dragStart = useSharedValue(SHEET_COLLAPSED);
   const headerHeight = useSharedValue(72);
@@ -135,12 +204,10 @@ export default function MapScreen() {
     height: sheetHeight.value,
   }));
 
-  /** Hauteur explicite (pas flex) — fiable avec une sheet à height animée. */
   const listWrapStyle = useAnimatedStyle(() => ({
     height: Math.max(0, sheetHeight.value - headerHeight.value),
   }));
 
-  // Le mini FAB de recentrage suit le sheet (reste 16px au-dessus).
   const recenterStyle = useAnimatedStyle(() => ({
     bottom: sheetHeight.value + FLUTTER_FAB.edgeMargin,
   }));
@@ -151,106 +218,55 @@ export default function MapScreen() {
     },
     [headerHeight],
   );
+
   const focusTalent = useCallback(
     (serviceId: string, lat: number, lng: number) => {
       setSelectedId(serviceId);
-      mapRef.current?.animateToRegion?.(
-        {
-          latitude: lat,
-          longitude: lng,
-          latitudeDelta: 0.04,
-          longitudeDelta: 0.04,
-        },
-        350,
-      );
+      mapRef.current?.setPadding(focusPadding);
+      mapRef.current?.flyTo(lat, lng, FOCUS_ZOOM);
       sheetHeight.value = withSpring(SHEET_MID, { damping: 20, stiffness: 200 });
     },
-    [sheetHeight],
+    [sheetHeight, focusPadding],
+  );
+
+  const openService = useCallback(
+    (id: string) => {
+      router.push(`/service/${id}`);
+    },
+    [router],
   );
 
   const recenter = useCallback(() => {
     refresh();
-    mapRef.current?.animateToRegion?.(
-      {
-        latitude,
-        longitude,
-        latitudeDelta: NDJAMENA.latitudeDelta,
-        longitudeDelta: NDJAMENA.longitudeDelta,
-      },
-      400,
-    );
+    mapRef.current?.setView(latitude, longitude, 12);
   }, [refresh, latitude, longitude]);
 
   const count = filtered?.length ?? 0;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-      {/* Carte plein écran */}
-      {Platform.OS === 'web' || !MapView ? (
-        <View style={{ flex: 1, paddingTop: 160, paddingHorizontal: Spacing.four }}>
-          <Text style={{ color: colors.muted, marginBottom: Spacing.four }}>
-            La carte interactive est disponible sur iOS et Android.
-          </Text>
-          <RNScrollView contentContainerStyle={{ gap: Spacing.four, paddingBottom: Spacing.eight }}>
-            {filtered?.map((t) => (
-              <ServiceCard
-                key={t.serviceId}
-                title={t.title}
-                description={t.description}
-                price={t.price}
-                pricingType={t.pricingType}
-                photo={t.photos[0]}
-                rating={t.rating}
-                reviewCount={t.reviewCount ?? 0}
-                providerName={t.providerName}
-                providerAvatar={t.avatarUrl}
-                city={t.city}
-                isVerified={t.isVerified}
-                isPremium={t.isPremium}
-                categoryIcon={t.categoryIcon}
-                categoryLabel={t.categoryLabel}
-                layout={t.isPremium ? 'card' : 'list'}
-                onPress={() => router.push(`/service/${t.serviceId}`)}
-              />
-            ))}
-          </RNScrollView>
-        </View>
-      ) : (
-        <MapView
-          ref={mapRef}
-          style={{ flex: 1 }}
-          onMapReady={() => setMapReady(true)}
-          initialRegion={{
-            latitude,
-            longitude,
-            latitudeDelta: NDJAMENA.latitudeDelta,
-            longitudeDelta: NDJAMENA.longitudeDelta,
-          }}
-          showsUserLocation
-          showsMyLocationButton={false}
-          showsCompass={false}
-        >
-          {Marker &&
-            filtered?.map((t) => {
-              const isSelected = selectedId === t.serviceId;
-              return (
-                <TalentMapMarker
-                  key={t.serviceId}
-                  MarkerComponent={Marker}
-                  coordinate={{ latitude: t.latitude, longitude: t.longitude }}
-                  onPress={() => focusTalent(t.serviceId, t.latitude, t.longitude)}
-                  selected={isSelected}
-                  mapReady={mapReady}
-                  categoryIcon={t.categoryIcon}
-                  categoryLabel={t.categoryLabel}
-                  isPremium={t.isPremium}
-                />
-              );
-            })}
-        </MapView>
-      )}
+      <LeafletMapView
+        ref={mapRef}
+        style={{ flex: 1 }}
+        center={{ lat: latitude, lng: longitude }}
+        zoom={12}
+        markers={leafletMarkers}
+        userLocation={{ lat: latitude, lng: longitude }}
+        orbitColor={orbitColor}
+        theme={mapTheme}
+        focusPadding={focusPadding}
+        onTooltipPress={openService}
+        onMarkerPress={(id) => {
+          const t = filtered?.find((x) => x.serviceId === id);
+          if (!t) return;
+          if (selectedId === id) {
+            openService(id);
+            return;
+          }
+          focusTalent(t.serviceId, t.latitude, t.longitude);
+        }}
+      />
 
-      {/* Header flottant — chevron + recherche */}
       <View
         style={{
           position: 'absolute',
@@ -288,7 +304,6 @@ export default function MapScreen() {
         />
       </View>
 
-      {/* Chips catégories — masonry léger 2 rangées */}
       <CategoryChipMasonry
         style={{ position: 'absolute', top: 68, left: 0, right: 0, zIndex: 30 }}
         categories={categories?.slice(0, 12).map((cat) => ({
@@ -300,7 +315,6 @@ export default function MapScreen() {
         onSelect={setSelectedCategory}
       />
 
-      {/* Indicateur rayon — bas gauche, suit le sheet */}
       <Animated.View
         style={[
           {
@@ -343,7 +357,6 @@ export default function MapScreen() {
         ))}
       </Animated.View>
 
-      {/* Mini FAB recentrage — suit le sheet, reste visible au-dessus */}
       <Animated.View
         pointerEvents="box-none"
         style={[{ position: 'absolute', right: FLUTTER_FAB.edgeMargin, zIndex: 20 }, recenterStyle]}
@@ -359,7 +372,6 @@ export default function MapScreen() {
         />
       </Animated.View>
 
-      {/* Bottom sheet — drag header ; liste à hauteur explicite + GH ScrollView */}
       <Animated.View
         style={[
           {
@@ -413,7 +425,7 @@ export default function MapScreen() {
                 </Text>
               </View>
               {selectedId ? (
-                <Pressable onPress={() => router.push(`/service/${selectedId}`)}>
+                <Pressable onPress={() => openService(selectedId)}>
                   <Text style={[textStyle('button'), { color: colors.orbit }]}>Voir →</Text>
                 </Pressable>
               ) : null}
@@ -489,7 +501,7 @@ export default function MapScreen() {
                       layout={t.isPremium ? 'card' : 'list'}
                       onPress={() => {
                         if (isSelected) {
-                          router.push(`/service/${t.serviceId}`);
+                          openService(t.serviceId);
                           return;
                         }
                         focusTalent(t.serviceId, t.latitude, t.longitude);

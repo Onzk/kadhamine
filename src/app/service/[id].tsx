@@ -6,7 +6,6 @@ import {
   Pressable,
   Dimensions,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -27,6 +26,7 @@ import { StarRating } from '@/components/ui/StarRating';
 import { CategoryIcon } from '@/lib/categoryIcons';
 import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
+import { useAppDialog } from '@/providers/AppDialogProvider';
 import { formatPrice } from '@/types';
 import { Radius, Shadows, Spacing } from '@/theme/tokens';
 import { fontFamily, textStyle } from '@/theme/typography';
@@ -41,6 +41,7 @@ export default function ServiceDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
   const { colors, isDark } = useAppTheme();
+  const { alert, confirm } = useAppDialog();
   const { user } = useAuth();
   const router = useRouter();
   const [contactLoading, setContactLoading] = useState(false);
@@ -58,13 +59,12 @@ export default function ServiceDetailScreen() {
   }, [id, incrementView]);
 
   const requireLogin = (actionLabel: string) => {
-    Alert.alert(t('auth.loginRequiredTitle'), t('auth.loginRequiredBody', { action: actionLabel }), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('auth.signIn'),
-        onPress: () => router.push('/(auth)/login' as never),
-      },
-    ]);
+    confirm({
+      title: t('auth.loginRequiredTitle'),
+      message: t('auth.loginRequiredBody', { action: actionLabel }),
+      confirmLabel: t('auth.signIn'),
+      onConfirm: () => router.push('/(auth)/login' as never),
+    });
   };
 
   if (!data) {
@@ -97,7 +97,7 @@ export default function ServiceDetailScreen() {
       if (/non authentifié/i.test(message)) {
         requireLogin(t('service.order'));
       } else {
-        Alert.alert(t('common.error'), message);
+        alert({ title: t('common.error'), message });
       }
     } finally {
       setOrderLoading(false);
@@ -120,7 +120,7 @@ export default function ServiceDetailScreen() {
       if (/non authentifié/i.test(message)) {
         requireLogin(t('service.contact'));
       } else {
-        Alert.alert(t('common.error'), message);
+        alert({ title: t('common.error'), message });
       }
     } finally {
       setContactLoading(false);
@@ -128,7 +128,10 @@ export default function ServiceDetailScreen() {
   };
 
   const handleWriteReview = () => {
-    Alert.alert(t('service.writeReview'), t('service.writeReviewHint'));
+    alert({
+      title: t('service.writeReview'),
+      message: t('service.writeReviewHint'),
+    });
   };
 
   return (

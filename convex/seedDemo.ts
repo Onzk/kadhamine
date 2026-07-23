@@ -1123,33 +1123,42 @@ export const seedAllDev = mutation({
 });
 
 /**
- * Re-patch lat/lng on existing profiles & services (no inserts).
- * Spreads pins across MVP cities with jitter. Safe to re-run.
+ * Re-patch lat/lng (+ ville) on existing profiles & services (no inserts).
+ * ~60 % concentrés à N'Djamena (marché MVP / carte « près de moi »),
+ * le reste réparti sur les autres villes — jitter pour des pins distincts.
+ * Safe to re-run.
  */
 async function runUpdateDemoGeoPositions(ctx: MutationCtx) {
   const ts = now();
   let profilesPatched = 0;
   let servicesPatched = 0;
 
+  const ndj = MVP_CITIES[0]!;
+  const otherCities = MVP_CITIES.slice(1);
+
   const profiles = await ctx.db.query('profiles').collect();
-  const profileGeo = new Map<Id<'profiles'>, { latitude: number; longitude: number; city: string; region: string }>();
+  const profileGeo = new Map<
+    Id<'profiles'>,
+    { latitude: number; longitude: number; city: string; region: string }
+  >();
 
   for (let i = 0; i < profiles.length; i++) {
     const profile = profiles[i]!;
-    const base = coordsForCity(profile.city);
-    const geo = jitterCoords(base.lat, base.lng, i + 100, 0.014);
+    // 6 sur 10 → N'Djamena ; sinon autre ville MVP
+    const cityEntry = i % 10 < 6 ? ndj : otherCities[i % otherCities.length]!;
+    const geo = jitterCoords(cityEntry.lat, cityEntry.lng, i + 100, 0.016);
     await ctx.db.patch(profile._id, {
+      city: cityEntry.city,
+      region: cityEntry.region,
       latitude: geo.latitude,
       longitude: geo.longitude,
-      // keep city/region; only refresh region if empty mismatch from known city
-      region: profile.region || base.region,
       updatedAt: ts,
     });
     profileGeo.set(profile._id, {
       latitude: geo.latitude,
       longitude: geo.longitude,
-      city: profile.city,
-      region: profile.region || base.region,
+      city: cityEntry.city,
+      region: cityEntry.region,
     });
     profilesPatched++;
   }
@@ -1158,22 +1167,34 @@ async function runUpdateDemoGeoPositions(ctx: MutationCtx) {
   for (let i = 0; i < services.length; i++) {
     const service = services[i]!;
     const providerPos = profileGeo.get(service.profileId);
-    const base = coordsForCity(service.city || providerPos?.city || "N'Djamena");
-    // Alternate: inherit provider coords vs own offset (demo both modes)
+
+    const resolved =
+      i % 10 < 6
+        ? { city: ndj.city, region: ndj.region, lat: ndj.lat, lng: ndj.lng }
+        : providerPos
+          ? {
+              city: providerPos.city,
+              region: providerPos.region,
+              lat: providerPos.latitude,
+              lng: providerPos.longitude,
+            }
+          : {
+              city: otherCities[i % otherCities.length]!.city,
+              region: otherCities[i % otherCities.length]!.region,
+              lat: otherCities[i % otherCities.length]!.lat,
+              lng: otherCities[i % otherCities.length]!.lng,
+            };
+
     const geo =
-      i % 2 === 0 && providerPos
+      i % 3 === 0 && providerPos && resolved.city === providerPos.city
         ? { latitude: providerPos.latitude, longitude: providerPos.longitude }
-        : jitterCoords(
-            providerPos?.latitude ?? base.lat,
-            providerPos?.longitude ?? base.lng,
-            i + 200,
-            0.018,
-          );
+        : jitterCoords(resolved.lat, resolved.lng, i + 200, 0.018);
+
     await ctx.db.patch(service._id, {
       latitude: geo.latitude,
       longitude: geo.longitude,
-      city: service.city || providerPos?.city || "N'Djamena",
-      region: service.region || providerPos?.region || base.region,
+      city: resolved.city,
+      region: resolved.region,
       updatedAt: ts,
     });
     servicesPatched++;
@@ -1181,7 +1202,8 @@ async function runUpdateDemoGeoPositions(ctx: MutationCtx) {
 
   return {
     updated: true,
-    message: 'Positions géo démo mises à jour (patch only).',
+    message:
+      "Positions géo démo mises à jour (patch only) — ~60 % à N'Djamena pour la carte locale.",
     profilesPatched,
     servicesPatched,
   };

@@ -10,6 +10,7 @@ import { Radius, Spacing } from '@/theme/tokens';
 import { textStyle } from '@/theme/typography';
 
 const AVATAR_SIZE = 104;
+const AVATAR_SIZE_COMPACT = 80;
 const BADGE_SIZE = 32;
 const CTA_HEIGHT = 52;
 
@@ -44,73 +45,73 @@ export function ProfileHeader({
         style={{ width: AVATAR_SIZE, height: AVATAR_SIZE }}
       >
         <View style={{ position: 'relative', width: AVATAR_SIZE, height: AVATAR_SIZE }}>
-        <View
-          style={{
-            width: AVATAR_SIZE,
-            height: AVATAR_SIZE,
-            borderRadius: AVATAR_SIZE / 2,
-            overflow: 'hidden',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderWidth: 0.1,
-            borderColor: colors.borderHairline,
-          }}
-        >
-          {avatarLoading ? (
-            <View
-              style={{
-                width: '100%',
-                height: '100%',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: colors.surfaceStrong,
-              }}
-            >
-              <ActivityIndicator color={colors.orbit} />
-            </View>
-          ) : avatarUrl ? (
-            <Image
-              source={{ uri: avatarUrl }}
-              style={{ width: '100%', height: '100%' }}
-              contentFit="cover"
-            />
-          ) : (
-            <LinearGradient
-              colors={[...colors.orbitGradient]}
-              start={{ x: 0.15, y: 0 }}
-              end={{ x: 0.85, y: 1 }}
-              style={{
-                width: '100%',
-                height: '100%',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Text style={{ fontSize: 34, fontWeight: '700', color: colors.onOrbit }}>
-                {initials}
-              </Text>
-            </LinearGradient>
-          )}
-        </View>
-        {onEditAvatar ? (
           <View
             style={{
-              position: 'absolute',
-              bottom: 2,
-              right: 2,
-              width: BADGE_SIZE,
-              height: BADGE_SIZE,
-              borderRadius: BADGE_SIZE / 2,
-              backgroundColor: colors.orbit,
-              borderWidth: 0.1,
-              borderColor: colors.canvas,
+              width: AVATAR_SIZE,
+              height: AVATAR_SIZE,
+              borderRadius: AVATAR_SIZE / 2,
+              overflow: 'hidden',
               alignItems: 'center',
               justifyContent: 'center',
+              borderWidth: 0.1,
+              borderColor: colors.borderHairline,
             }}
           >
-            <PencilSimple size={14} color={colors.onOrbit} weight="bold" />
+            {avatarLoading ? (
+              <View
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: colors.surfaceStrong,
+                }}
+              >
+                <ActivityIndicator color={colors.orbit} />
+              </View>
+            ) : avatarUrl ? (
+              <Image
+                source={{ uri: avatarUrl }}
+                style={{ width: '100%', height: '100%' }}
+                contentFit="cover"
+              />
+            ) : (
+              <LinearGradient
+                colors={[...colors.orbitGradient]}
+                start={{ x: 0.15, y: 0 }}
+                end={{ x: 0.85, y: 1 }}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text style={{ fontSize: 34, fontWeight: '700', color: colors.onOrbit }}>
+                  {initials}
+                </Text>
+              </LinearGradient>
+            )}
           </View>
-        ) : null}
+          {onEditAvatar ? (
+            <View
+              style={{
+                position: 'absolute',
+                bottom: 2,
+                right: 2,
+                width: BADGE_SIZE,
+                height: BADGE_SIZE,
+                borderRadius: BADGE_SIZE / 2,
+                backgroundColor: colors.orbit,
+                borderWidth: 0.1,
+                borderColor: colors.canvas,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <PencilSimple size={14} color={colors.onOrbit} weight="bold" />
+            </View>
+          ) : null}
         </View>
       </Pressable>
 
@@ -144,121 +145,210 @@ export function ProfileHeader({
 }
 
 interface GuestProfileHeaderProps {
-  ctaLabel: string;
-  onPressCta: () => void;
+  title?: string;
+  subtitle?: string;
+  signInLabel: string;
+  signUpLabel: string;
+  onPressSignIn: () => void;
+  onPressSignUp: () => void;
   onPressAvatar?: () => void;
+  /** Tighter spacing for bottom panel embedding. */
+  compact?: boolean;
 }
 
 export function GuestProfileHeader({
-  ctaLabel,
-  onPressCta,
+  title,
+  subtitle,
+  signInLabel,
+  signUpLabel,
+  onPressSignIn,
+  onPressSignUp,
   onPressAvatar,
+  compact = false,
 }: GuestProfileHeaderProps) {
   const { colors, isDark } = useAppTheme();
-  const avatarAction = onPressAvatar ?? onPressCta;
+  const avatarAction = onPressAvatar ?? onPressSignIn;
+  const avatarSize = compact ? AVATAR_SIZE_COMPACT : AVATAR_SIZE;
+  const iconSize = compact ? 36 : 44;
 
   return (
-    <View style={{ alignItems: 'center', paddingTop: Spacing.five, paddingBottom: Spacing.six }}>
-      <View style={{ marginBottom: Spacing.six }}>
-      <Pressable
-        onPress={avatarAction}
-        accessibilityRole="button"
-        accessibilityLabel={ctaLabel}
-        style={{ width: AVATAR_SIZE, height: AVATAR_SIZE }}
-      >
-        <View style={{ position: 'relative', width: AVATAR_SIZE, height: AVATAR_SIZE }}>
-        <View
-          style={{
-            width: AVATAR_SIZE,
-            height: AVATAR_SIZE,
-            borderRadius: AVATAR_SIZE / 2,
-            overflow: 'hidden',
-            borderWidth: 0.1,
-            borderColor: isDark ? colors.borderHairline : colors.borderLight,
-          }}
+    <View
+      style={{
+        alignItems: 'center',
+        paddingTop: compact ? 0 : Spacing.five,
+        paddingBottom: compact ? 0 : Spacing.six,
+        width: '100%',
+      }}
+    >
+      <View style={{ marginBottom: compact ? Spacing.three : Spacing.six }}>
+        <Pressable
+          onPress={avatarAction}
+          accessibilityRole="button"
+          accessibilityLabel={signInLabel}
+          style={{ width: avatarSize, height: avatarSize }}
         >
-          <LinearGradient
-            colors={[...colors.orbitGradient]}
-            start={{ x: 0.1, y: 0 }}
-            end={{ x: 0.9, y: 1 }}
+          <View style={{ position: 'relative', width: avatarSize, height: avatarSize }}>
+            <View
+              style={{
+                width: avatarSize,
+                height: avatarSize,
+                borderRadius: avatarSize / 2,
+                overflow: 'hidden',
+                borderWidth: 0.1,
+                borderColor: isDark ? colors.borderHairline : colors.borderLight,
+              }}
+            >
+              <LinearGradient
+                colors={[...colors.orbitGradient]}
+                start={{ x: 0.1, y: 0 }}
+                end={{ x: 0.9, y: 1 }}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <View
+                  pointerEvents="none"
+                  style={{
+                    position: 'absolute',
+                    top: -avatarSize * 0.15,
+                    left: -avatarSize * 0.1,
+                    width: avatarSize * 0.7,
+                    height: avatarSize * 0.55,
+                    borderRadius: avatarSize,
+                    backgroundColor: 'rgba(255,255,255,0.14)',
+                  }}
+                />
+                <User size={iconSize} color={colors.onOrbit} weight="duotone" />
+              </LinearGradient>
+            </View>
+
+            <View
+              style={{
+                position: 'absolute',
+                bottom: 2,
+                right: 2,
+                width: BADGE_SIZE,
+                height: BADGE_SIZE,
+                borderRadius: BADGE_SIZE / 2,
+                backgroundColor: colors.orbit,
+                borderWidth: 0.1,
+                borderColor: colors.canvas,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Plus size={16} color={colors.onOrbit} weight="bold" />
+            </View>
+          </View>
+        </Pressable>
+      </View>
+
+      {title ? (
+        <Text
+          style={[
+            textStyle('featureHeading'),
+            {
+              color: colors.ink,
+              textAlign: 'center',
+              marginBottom: subtitle ? Spacing.one : Spacing.three,
+              ...(compact ? { fontSize: 18, lineHeight: 22 } : null),
+            },
+          ]}
+        >
+          {title}
+        </Text>
+      ) : null}
+
+      {subtitle ? (
+        <Text
+          style={[
+            textStyle('caption'),
+            {
+              color: colors.muted,
+              textAlign: 'center',
+              marginBottom: Spacing.four,
+              lineHeight: 18,
+              maxWidth: 320,
+            },
+          ]}
+          numberOfLines={2}
+        >
+          {subtitle}
+        </Text>
+      ) : null}
+
+      <View style={{ width: '100%', gap: Spacing.two }}>
+        <Pressable
+          onPress={onPressSignIn}
+          accessibilityRole="button"
+          accessibilityLabel={signInLabel}
+          style={({ pressed }) => ({
+            width: '100%',
+            minHeight: CTA_HEIGHT,
+            opacity: pressed ? 0.88 : 1,
+            transform: pressed ? [{ scale: 0.985 }] : undefined,
+          })}
+        >
+          <View
             style={{
-              width: '100%',
-              height: '100%',
+              minHeight: CTA_HEIGHT,
+              paddingVertical: Spacing.three,
+              paddingHorizontal: Spacing.five,
+              borderRadius: Radius.button,
+              backgroundColor: colors.orbit,
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            {/* Soft inner highlight for depth */}
-            <View
-              pointerEvents="none"
-              style={{
-                position: 'absolute',
-                top: -AVATAR_SIZE * 0.15,
-                left: -AVATAR_SIZE * 0.1,
-                width: AVATAR_SIZE * 0.7,
-                height: AVATAR_SIZE * 0.55,
-                borderRadius: AVATAR_SIZE,
-                backgroundColor: 'rgba(255,255,255,0.14)',
-              }}
-            />
-            <User size={44} color={colors.onOrbit} weight="duotone" />
-          </LinearGradient>
-        </View>
+            <Text
+              style={[
+                textStyle('button'),
+                { color: colors.onOrbit, fontSize: 16, lineHeight: 20, textAlign: 'center' },
+              ]}
+            >
+              {signInLabel}
+            </Text>
+          </View>
+        </Pressable>
 
-        <View
-          style={{
-            position: 'absolute',
-            bottom: 2,
-            right: 2,
-            width: BADGE_SIZE,
-            height: BADGE_SIZE,
-            borderRadius: BADGE_SIZE / 2,
-            backgroundColor: colors.orbit,
-            borderWidth: 0.1,
-            borderColor: colors.canvas,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Plus size={16} color={colors.onOrbit} weight="bold" />
-        </View>
-        </View>
-      </Pressable>
-      </View>
-
-      <Pressable
-        onPress={onPressCta}
-        accessibilityRole="button"
-        accessibilityLabel={ctaLabel}
-        style={({ pressed }) => ({
-          width: '100%',
-          maxWidth: 360,
-          minHeight: CTA_HEIGHT,
-          opacity: pressed ? 0.88 : 1,
-          transform: pressed ? [{ scale: 0.985 }] : undefined,
-        })}
-      >
-        <View
-          style={{
+        <Pressable
+          onPress={onPressSignUp}
+          accessibilityRole="button"
+          accessibilityLabel={signUpLabel}
+          style={({ pressed }) => ({
+            width: '100%',
             minHeight: CTA_HEIGHT,
-            paddingVertical: Spacing.three,
-            paddingHorizontal: Spacing.five,
-            borderRadius: Radius.button,
-            backgroundColor: colors.orbit,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
+            opacity: pressed ? 0.88 : 1,
+            transform: pressed ? [{ scale: 0.985 }] : undefined,
+          })}
         >
-          <Text
-            style={[
-              textStyle('button'),
-              { color: colors.onOrbit, fontSize: 16, lineHeight: 20, textAlign: 'center' },
-            ]}
+          <View
+            style={{
+              minHeight: CTA_HEIGHT,
+              paddingVertical: Spacing.three,
+              paddingHorizontal: Spacing.five,
+              borderRadius: Radius.button,
+              backgroundColor: colors.surfaceCard,
+              borderWidth: 0.1,
+              borderColor: colors.ink,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
           >
-            {ctaLabel}
-          </Text>
-        </View>
-      </Pressable>
+            <Text
+              style={[
+                textStyle('button'),
+                { color: colors.ink, fontSize: 16, lineHeight: 20, textAlign: 'center' },
+              ]}
+            >
+              {signUpLabel}
+            </Text>
+          </View>
+        </Pressable>
+      </View>
     </View>
   );
 }

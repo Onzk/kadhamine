@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Alert } from 'react-native';
+import { View, Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useAction } from 'convex/react';
 import * as WebBrowser from 'expo-web-browser';
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
+import { useAppDialog } from '@/providers/AppDialogProvider';
 import { formatPrice } from '@/types';
 import { BrandColors, Spacing } from '@/theme/tokens';
 import { api } from '../../convex/_generated/api';
@@ -17,6 +18,7 @@ import { api } from '../../convex/_generated/api';
 export default function PremiumScreen() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
+  const { alert } = useAppDialog();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -33,7 +35,10 @@ export default function PremiumScreen() {
 
   const handleSubscribe = async () => {
     if (!phoneNumber.trim()) {
-      Alert.alert('Numéro requis', 'Entrez votre numéro Mobile Money pour effectuer un paiement sécurisé.');
+      alert({
+        title: 'Numéro requis',
+        message: 'Entrez votre numéro Mobile Money pour effectuer un paiement sécurisé.',
+      });
       return;
     }
 
@@ -53,18 +58,21 @@ export default function PremiumScreen() {
 
       if (result.paymentUrl) {
         await WebBrowser.openBrowserAsync(result.paymentUrl);
-        Alert.alert(
-          'Paiement en cours',
-          'Confirmez le paiement. Votre Premium sera activé automatiquement.',
-        );
+        alert({
+          title: 'Paiement en cours',
+          message: 'Confirmez le paiement. Votre Premium sera activé automatiquement.',
+        });
       } else if (result.sandbox) {
-        Alert.alert(
-          'Mode sandbox',
-          result.message ?? 'Premium activé en mode sandbox local.',
-        );
+        alert({
+          title: 'Mode sandbox',
+          message: result.message ?? 'Premium activé en mode sandbox local.',
+        });
       }
     } catch (err) {
-      Alert.alert('Erreur', err instanceof Error ? err.message : 'Échec abonnement');
+      alert({
+        title: 'Erreur',
+        message: err instanceof Error ? err.message : 'Échec abonnement',
+      });
     } finally {
       setLoading(false);
     }

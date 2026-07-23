@@ -1,3 +1,4 @@
+/** N'Djamena urban center — app-wide fallback when device GPS is off / denied. */
 export const NDJAMENA = {
   latitude: 12.1348,
   longitude: 15.0557,

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Alert, Linking } from 'react-native';
+import { View, Text, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAction } from 'convex/react';
@@ -12,6 +12,7 @@ import {
 import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
+import { useAppDialog } from '@/providers/AppDialogProvider';
 import { Radius, Spacing } from '@/theme/tokens';
 import { textStyle } from '@/theme/typography';
 import { api } from '../../../convex/_generated/api';
@@ -19,6 +20,7 @@ import { api } from '../../../convex/_generated/api';
 export default function DangerZoneScreen() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
+  const { confirm } = useAppDialog();
   const { signOut } = useAuth();
   const router = useRouter();
   const deleteAccount = useAction(api.account.deleteAccount);
@@ -29,31 +31,31 @@ export default function DangerZoneScreen() {
   const [error, setError] = useState('');
 
   const handleDelete = () => {
-    Alert.alert(t('profile.deleteAccountTitle'), t('profile.deleteAccountConfirm'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.delete'),
-        style: 'destructive',
-        onPress: async () => {
-          if (password.length < 6) {
-            setError(t('profile.deleteAccountPasswordRequired'));
-            return;
-          }
-          setLoading(true);
-          setError('');
-          try {
-            await deleteAccount({ password });
-            await signOut();
-            router.replace('/(tabs)/profile');
-          } catch (err) {
-            console.error(err);
-            setError(t('profile.deleteAccountError'));
-          } finally {
-            setLoading(false);
-          }
-        },
+    confirm({
+      title: t('profile.deleteAccountTitle'),
+      message: t('profile.deleteAccountConfirm'),
+      confirmLabel: t('common.delete'),
+      destructive: true,
+      onConfirm: async () => {
+        if (password.length < 6) {
+          setError(t('profile.deleteAccountPasswordRequired'));
+          return false;
+        }
+        setLoading(true);
+        setError('');
+        try {
+          await deleteAccount({ password });
+          await signOut();
+          router.replace('/(tabs)/profile');
+        } catch (err) {
+          console.error(err);
+          setError(t('profile.deleteAccountError'));
+          return false;
+        } finally {
+          setLoading(false);
+        }
       },
-    ]);
+    });
   };
 
   return (

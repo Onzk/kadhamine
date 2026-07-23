@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, Alert } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
 import { Image } from 'expo-image';
@@ -10,6 +10,7 @@ import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAppTheme } from '@/providers/ThemeProvider';
+import { useAppDialog } from '@/providers/AppDialogProvider';
 import { useUpload } from '@/hooks/useUpload';
 import { Spacing } from '@/theme/tokens';
 import { api } from '../../convex/_generated/api';
@@ -18,6 +19,7 @@ import type { Id } from '../../convex/_generated/dataModel';
 export default function PortfolioScreen() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
+  const { alert, confirm } = useAppDialog();
   const { uploadFromUri } = useUpload();
 
   const items = useQuery(api.portfolio.listMine);
@@ -32,7 +34,7 @@ export default function PortfolioScreen() {
     if (useCamera) {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission caméra requise');
+        alert({ title: 'Permission caméra requise' });
         return null;
       }
       const result = await ImagePicker.launchCameraAsync({
@@ -45,7 +47,7 @@ export default function PortfolioScreen() {
 
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission galerie requise');
+      alert({ title: 'Permission galerie requise' });
       return null;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -58,7 +60,7 @@ export default function PortfolioScreen() {
 
   const handleAdd = async (useCamera: boolean) => {
     if (!title.trim()) {
-      Alert.alert('Titre requis');
+      alert({ title: 'Titre requis' });
       return;
     }
 
@@ -81,7 +83,7 @@ export default function PortfolioScreen() {
       setTitle('');
       setDescription('');
     } catch (err) {
-      Alert.alert('Erreur', 'Impossible d\'ajouter au portfolio');
+      alert({ title: 'Erreur', message: "Impossible d'ajouter au portfolio" });
       console.error(err);
     } finally {
       setLoading(false);
@@ -89,10 +91,14 @@ export default function PortfolioScreen() {
   };
 
   const handleDelete = (itemId: Id<'portfolio'>) => {
-    Alert.alert('Supprimer', 'Retirer cet élément du portfolio ?', [
-      { text: 'Annuler', style: 'cancel' },
-      { text: 'Supprimer', style: 'destructive', onPress: () => removeItem({ itemId }) },
-    ]);
+    confirm({
+      title: 'Supprimer',
+      message: 'Retirer cet élément du portfolio ?',
+      confirmLabel: 'Supprimer',
+      cancelLabel: 'Annuler',
+      destructive: true,
+      onConfirm: () => removeItem({ itemId }),
+    });
   };
 
   return (

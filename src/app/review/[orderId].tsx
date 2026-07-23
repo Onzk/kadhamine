@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, Alert } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery } from 'convex/react';
@@ -10,6 +10,7 @@ import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useAppTheme } from '@/providers/ThemeProvider';
+import { useAppDialog } from '@/providers/AppDialogProvider';
 import { Radius, Spacing } from '@/theme/tokens';
 import { api } from '../../../convex/_generated/api';
 
@@ -17,6 +18,7 @@ export default function ReviewScreen() {
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const { t } = useTranslation();
   const { colors } = useAppTheme();
+  const { alert } = useAppDialog();
   const router = useRouter();
 
   const [rating, setRating] = useState(5);
@@ -33,7 +35,7 @@ export default function ReviewScreen() {
   const handleSubmit = async () => {
     if (!orderId) return;
     if (rating < 1 || rating > 5) {
-      Alert.alert(t('common.error'), t('reviews.rating'));
+      alert({ title: t('common.error'), message: t('reviews.rating') });
       return;
     }
     setLoading(true);
@@ -43,11 +45,16 @@ export default function ReviewScreen() {
         rating,
         comment: comment.trim() || undefined,
       });
-      Alert.alert(t('reviews.thanks'), undefined, [
-        { text: t('common.done'), onPress: () => router.replace('/(tabs)/orders') },
-      ]);
+      alert({
+        title: t('reviews.thanks'),
+        buttonLabel: t('common.done'),
+        onPress: () => router.replace('/(tabs)/orders'),
+      });
     } catch (err) {
-      Alert.alert(t('common.error'), err instanceof Error ? err.message : t('common.error'));
+      alert({
+        title: t('common.error'),
+        message: err instanceof Error ? err.message : t('common.error'),
+      });
     } finally {
       setLoading(false);
     }

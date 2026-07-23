@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useMutation } from 'convex/react';
+import { User } from 'phosphor-react-native';
 
-import { CityChips } from '@/components/auth/AuthExtras';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { CategoryChip } from '@/components/ui/CategoryChip';
-import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
+import { AuthField, AuthPrimaryButton } from '@/components/auth/AuthField';
+import { CityChips, RolePicker } from '@/components/auth/AuthExtras';
+import { AuthScaffold } from '@/components/auth/AuthScaffold';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { useAuth } from '@/providers/AuthProvider';
 import { MVP_CITIES, MVP_CITY_REGION, type MvpCity } from '@/constants/chad';
 import { withAuthRetry } from '@/lib/authRetry';
 import { Spacing } from '@/theme/tokens';
+import { textStyle } from '@/theme/typography';
 import { api } from '../../../convex/_generated/api';
 
 type Role = 'client' | 'provider';
@@ -68,34 +68,52 @@ export default function CompleteProfileScreen() {
   };
 
   return (
-    <PageScaffold
+    <AuthScaffold
+      barTitle={t('auth.register')}
       title="Complétez votre profil"
       subtitle={t('auth.chooseRole')}
-      headerActions={
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          {(['client', 'provider'] as Role[]).map((r) => (
-            <CategoryChip
-              key={r}
-              label={t(`auth.${r}`)}
-              selected={role === r}
-              onPress={() => setRole(r)}
-            />
-          ))}
-        </View>
-      }
+      onBack={router.canGoBack() ? () => router.back() : undefined}
     >
-      <View style={{ paddingHorizontal: PAGE_H_PAD, marginTop: Spacing.two }}>
+      <View style={styles.body}>
+        <RolePicker value={role} onChange={setRole} />
+
         {error ? (
-          <Text style={{ color: colors.error, marginBottom: 12 }}>{error}</Text>
+          <Text style={[textStyle('caption'), { color: colors.error, marginBottom: Spacing.three }]}>
+            {error}
+          </Text>
         ) : null}
 
-        <Input label="Prénom" value={firstName} onChangeText={setFirstName} />
-        <Input label="Nom" value={lastName} onChangeText={setLastName} />
+        <AuthField
+          variant="light"
+          label="Prénom"
+          value={firstName}
+          onChangeText={setFirstName}
+          autoCapitalize="words"
+          leftIcon={<User size={20} />}
+        />
+        <AuthField
+          variant="light"
+          label="Nom"
+          value={lastName}
+          onChangeText={setLastName}
+          autoCapitalize="words"
+          leftIcon={<User size={20} />}
+        />
 
         <CityChips cities={MVP_CITIES} value={city} onChange={(c) => setCity(c as MvpCity)} />
 
-        <Button title={t('common.confirm')} onPress={handleSubmit} loading={loading} fullWidth />
+        <AuthPrimaryButton
+          title={t('common.confirm')}
+          onPress={handleSubmit}
+          loading={loading}
+        />
       </View>
-    </PageScaffold>
+    </AuthScaffold>
   );
 }
+
+const styles = StyleSheet.create({
+  body: {
+    marginTop: Spacing.six,
+  },
+});

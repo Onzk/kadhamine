@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, Alert } from 'react-native';
+import { View, Text, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
 import { Wrench, Plus } from 'phosphor-react-native';
@@ -12,6 +12,7 @@ import { CategoryChip } from '@/components/ui/CategoryChip';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Badge } from '@/components/ui/Badge';
 import { useAppTheme } from '@/providers/ThemeProvider';
+import { useAppDialog } from '@/providers/AppDialogProvider';
 import { formatPrice } from '@/types';
 import { Radius, Spacing } from '@/theme/tokens';
 import { api } from '../../../convex/_generated/api';
@@ -27,6 +28,7 @@ type EditTarget = {
 export default function ProviderServicesScreen() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
+  const { alert } = useAppDialog();
 
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<EditTarget | null>(null);
@@ -95,7 +97,10 @@ export default function ProviderServicesScreen() {
       }
       resetForm();
     } catch (err) {
-      Alert.alert(t('common.error'), err instanceof Error ? err.message : t('common.error'));
+      alert({
+        title: t('common.error'),
+        message: err instanceof Error ? err.message : t('common.error'),
+      });
     } finally {
       setLoading(false);
     }
@@ -105,7 +110,10 @@ export default function ProviderServicesScreen() {
     try {
       await updateService({ serviceId, isActive: !isActive });
     } catch (err) {
-      Alert.alert(t('common.error'), err instanceof Error ? err.message : t('common.error'));
+      alert({
+        title: t('common.error'),
+        message: err instanceof Error ? err.message : t('common.error'),
+      });
     }
   };
 

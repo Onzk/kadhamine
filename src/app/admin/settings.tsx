@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
-import { View, Text, Alert } from 'react-native';
+import { View, Text } from 'react-native';
 import { useQuery, useMutation } from 'convex/react';
 
 import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useAppTheme } from '@/providers/ThemeProvider';
+import { useAppDialog } from '@/providers/AppDialogProvider';
 import { Spacing } from '@/theme/tokens';
 import { api } from '../../../convex/_generated/api';
 
 export default function AdminSettingsScreen() {
   const { colors } = useAppTheme();
+  const { alert } = useAppDialog();
   const platform = useQuery(api.settings.getPlatform);
   const updateRate = useMutation(api.settings.updateCommissionRate);
   const [draftPercent, setDraftPercent] = useState<string | null>(null);
@@ -23,16 +25,25 @@ export default function AdminSettingsScreen() {
   const handleSave = async () => {
     const value = Number(percent.replace(',', '.'));
     if (Number.isNaN(value) || value < 0 || value > 100) {
-      Alert.alert('Valeur invalide', 'Entrez un pourcentage entre 0 et 100.');
+      alert({
+        title: 'Valeur invalide',
+        message: 'Entrez un pourcentage entre 0 et 100.',
+      });
       return;
     }
     setLoading(true);
     try {
       await updateRate({ rate: value / 100 });
       setDraftPercent(null);
-      Alert.alert('Enregistré', `Commission mise à jour : ${value} %`);
+      alert({
+        title: 'Enregistré',
+        message: `Commission mise à jour : ${value} %`,
+      });
     } catch (err) {
-      Alert.alert('Erreur', err instanceof Error ? err.message : 'Échec');
+      alert({
+        title: 'Erreur',
+        message: err instanceof Error ? err.message : 'Échec',
+      });
     } finally {
       setLoading(false);
     }

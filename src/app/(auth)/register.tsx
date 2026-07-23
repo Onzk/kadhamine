@@ -2,11 +2,8 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
   Pressable,
-  Alert,
+  StyleSheet,
 } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -25,13 +22,14 @@ import {
   isValidEmail,
 } from '@/components/auth/AuthField';
 import {
-  AuthHeader,
   AuthStepper,
   AuthToggleRow,
   RolePicker,
   CityChips,
 } from '@/components/auth/AuthExtras';
+import { AuthScaffold } from '@/components/auth/AuthScaffold';
 import { useAppTheme } from '@/providers/ThemeProvider';
+import { useAppDialog } from '@/providers/AppDialogProvider';
 import { MVP_CITIES, MVP_CITY_REGION, type MvpCity } from '@/constants/chad';
 import { withAuthRetry } from '@/lib/authRetry';
 import { textStyle } from '@/theme/typography';
@@ -43,6 +41,7 @@ type Role = 'client' | 'provider';
 export default function RegisterScreen() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
+  const { alert } = useAppDialog();
   const router = useRouter();
   const { signIn } = useAuthActions();
   const registerProfile = useMutation(api.users.registerProfile);
@@ -123,7 +122,12 @@ export default function RegisterScreen() {
         }),
       );
 
-      router.replace('/');
+      alert({
+        title: t('onboarding.welcome'),
+        message: t('auth.welcomeRegisterMessage'),
+        buttonLabel: t('common.done'),
+        onPress: () => router.replace('/'),
+      });
     } catch (err) {
       setError("Erreur lors de l'inscription. Cet email est peut-être déjà utilisé.");
       console.error(err);
@@ -133,223 +137,234 @@ export default function RegisterScreen() {
   };
 
   const handleSocial = (provider: string) => {
-    Alert.alert(
-      'Bientôt disponible',
-      `L'inscription avec ${provider} sera disponible prochainement.`,
-    );
+    alert({
+      title: t('auth.comingSoon'),
+      message: t('auth.socialAuthSoon', { provider }),
+    });
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={{ flex: 1, backgroundColor: colors.canvas }}
+    <AuthScaffold
+      barTitle={t('auth.register')}
+      title={step === 1 ? t('auth.createAccount') : 'Sécurité & localisation'}
+      subtitle={
+        step === 1
+          ? 'Créez votre compte pour commander, discuter et laisser des avis.'
+          : 'Choisissez un mot de passe solide et votre ville.'
+      }
+      onBack={goBack}
     >
-      <ScrollView
-        contentContainerStyle={{
-          flexGrow: 1,
-          alignItems: 'stretch',
-          paddingHorizontal: Spacing.six,
-          paddingTop: Spacing.four,
-          paddingBottom: Spacing.ten,
-        }}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <AuthHeader
-          title={step === 1 ? t('auth.createAccount') : 'Sécurité & localisation'}
-          subtitle={
-            step === 1
-              ? 'Créez votre compte pour commander, discuter et laisser des avis.'
-              : 'Choisissez un mot de passe solide et votre ville.'
-          }
-          onBack={goBack}
-        />
+      <View style={{ height: Spacing.six }} />
 
-        <View style={{ height: Spacing.six }} />
+      <AuthStepper step={step} total={2} />
 
-        <AuthStepper step={step} total={2} />
-
-        {error ? (
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: Spacing.two,
+      {error ? (
+        <View
+          style={[
+            styles.errorBanner,
+            {
               backgroundColor: colors.error + '12',
-              borderRadius: Radius.lg,
-              padding: Spacing.three,
-              marginBottom: Spacing.four,
-              borderWidth: 0.1,
               borderColor: colors.error + '30',
-            }}
+            },
+          ]}
+        >
+          <WarningCircle size={18} color={colors.error} weight="fill" />
+          <Text style={[textStyle('caption'), { color: colors.error, flex: 1 }]}>{error}</Text>
+        </View>
+      ) : null}
+
+      {step === 1 ? (
+        <>
+          <Text
+            style={[
+              textStyle('caption'),
+              { color: colors.ink, marginBottom: Spacing.three, fontFamily: 'SofiaSans_500Medium' },
+            ]}
           >
-            <WarningCircle size={18} color={colors.error} weight="fill" />
-            <Text style={[textStyle('caption'), { color: colors.error, flex: 1 }]}>{error}</Text>
+            {t('auth.chooseRole')}
+          </Text>
+          <RolePicker value={role} onChange={setRole} />
+
+          <AuthField
+            variant="light"
+            label="Nom"
+            value={lastName}
+            onChangeText={setLastName}
+            autoCapitalize="words"
+            placeholder="Deby"
+            leftIcon={<User size={20} />}
+          />
+
+          <AuthField
+            variant="light"
+            label="Prénom"
+            value={firstName}
+            onChangeText={setFirstName}
+            autoCapitalize="words"
+            placeholder="Amina"
+            leftIcon={<User size={20} />}
+          />
+
+          <AuthField
+            variant="light"
+            label={t('auth.email')}
+            value={email}
+            onChangeText={setEmail}
+            onBlur={() => setTouched(true)}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            textContentType="emailAddress"
+            placeholder="vous@exemple.com"
+            leftIcon={<Envelope size={20} />}
+            error={emailError ? 'Adresse email invalide.' : undefined}
+          />
+
+          <View style={{ height: Spacing.two }} />
+
+          <AuthPrimaryButton
+            title="Continuer"
+            onPress={goNext}
+            disabled={!step1Valid}
+            icon={<ArrowRight size={18} color={colors.onOrbit} weight="bold" />}
+          />
+
+          <AuthDivider label={t('common.or')} />
+
+          <View style={styles.socialRow}>
+            <SocialAuthButton label="Google" icon={<GoogleIcon />} onPress={() => handleSocial('Google')} />
+            <SocialAuthButton label="Apple" icon={<AppleIcon />} onPress={() => handleSocial('Apple')} />
           </View>
-        ) : null}
+        </>
+      ) : (
+        <>
+          <CityChips cities={MVP_CITIES} value={city} onChange={(c) => setCity(c as MvpCity)} />
 
-        {step === 1 ? (
-          <>
-            <Text
-              style={[
-                textStyle('caption'),
-                { color: colors.ink, marginBottom: Spacing.three, fontFamily: 'SofiaSans_500Medium' },
-              ]}
-            >
-              {t('auth.chooseRole')}
-            </Text>
-            <RolePicker value={role} onChange={setRole} />
+          <AuthField
+            variant="light"
+            label={t('auth.password')}
+            value={password}
+            onChangeText={setPassword}
+            isPassword
+            showPassword={showPassword}
+            onTogglePassword={() => setShowPassword((v) => !v)}
+            textContentType="newPassword"
+            placeholder="Au moins 6 caractères"
+            leftIcon={<Lock size={20} />}
+          />
+          <PasswordStrengthMeter password={password} />
 
-            <AuthField
-              variant="light"
-              label="Nom"
-              value={lastName}
-              onChangeText={setLastName}
-              autoCapitalize="words"
-              placeholder="Deby"
-              leftIcon={<User size={20} />}
-            />
+          <AuthField
+            variant="light"
+            label={t('auth.confirmPassword')}
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            isPassword
+            showPassword={showConfirm}
+            onTogglePassword={() => setShowConfirm((v) => !v)}
+            textContentType="newPassword"
+            placeholder="••••••••"
+            leftIcon={<Lock size={20} />}
+            error={confirmError ? 'Les mots de passe ne correspondent pas.' : undefined}
+          />
 
-            <AuthField
-              variant="light"
-              label="Prénom"
-              value={firstName}
-              onChangeText={setFirstName}
-              autoCapitalize="words"
-              placeholder="Amina"
-              leftIcon={<User size={20} />}
-            />
-
-            <AuthField
-              variant="light"
-              label={t('auth.email')}
-              value={email}
-              onChangeText={setEmail}
-              onBlur={() => setTouched(true)}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              textContentType="emailAddress"
-              placeholder="vous@exemple.com"
-              leftIcon={<Envelope size={20} />}
-              error={emailError ? 'Adresse email invalide.' : undefined}
-            />
-
-            <View style={{ height: Spacing.two }} />
-
-            <AuthPrimaryButton
-              title="Continuer"
-              onPress={goNext}
-              disabled={!step1Valid}
-              icon={<ArrowRight size={18} color={colors.onOrbit} weight="bold" />}
-            />
-
-            <AuthDivider label={t('common.or')} />
-
-            <View style={{ flexDirection: 'row', alignSelf: 'stretch', gap: Spacing.three }}>
-              <SocialAuthButton label="Google" icon={<GoogleIcon />} onPress={() => handleSocial('Google')} />
-              <SocialAuthButton label="Apple" icon={<AppleIcon />} onPress={() => handleSocial('Apple')} />
-            </View>
-          </>
-        ) : (
-          <>
-            <CityChips cities={MVP_CITIES} value={city} onChange={(c) => setCity(c as MvpCity)} />
-
-            <AuthField
-              variant="light"
-              label={t('auth.password')}
-              value={password}
-              onChangeText={setPassword}
-              isPassword
-              showPassword={showPassword}
-              onTogglePassword={() => setShowPassword((v) => !v)}
-              textContentType="newPassword"
-              placeholder="Au moins 6 caractères"
-              leftIcon={<Lock size={20} />}
-            />
-            <PasswordStrengthMeter password={password} />
-
-            <AuthField
-              variant="light"
-              label={t('auth.confirmPassword')}
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              isPassword
-              showPassword={showConfirm}
-              onTogglePassword={() => setShowConfirm((v) => !v)}
-              textContentType="newPassword"
-              placeholder="••••••••"
-              leftIcon={<Lock size={20} />}
-              error={confirmError ? 'Les mots de passe ne correspondent pas.' : undefined}
-            />
-
-            <AuthToggleRow
-              value={agreed}
-              onChange={setAgreed}
-              label={
-                <Text style={[textStyle('caption'), { color: colors.body, flex: 1 }]}>
-                  J&apos;accepte les{' '}
-                  <Text
-                    style={{
-                      color: colors.orbit,
-                      fontFamily: 'SofiaSans_500Medium',
-                    }}
-                  >
-                    Conditions & Politique de confidentialité
-                  </Text>
-                </Text>
-              }
-            />
-
-            <AuthPrimaryButton
-              title={t('auth.signUp')}
-              onPress={handleRegister}
-              loading={loading}
-              disabled={!step2Valid}
-            />
-
-            <View style={{ marginTop: Spacing.three }}>
-              <Pressable
-                onPress={goBack}
-                style={({ pressed }) => ({
-                  opacity: pressed ? 0.7 : 1,
-                })}
-              >
-                <View
+          <AuthToggleRow
+            value={agreed}
+            onChange={setAgreed}
+            label={
+              <Text style={[textStyle('caption'), { color: colors.body, flex: 1 }]}>
+                J&apos;accepte les{' '}
+                <Text
                   style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: Spacing.two,
-                    paddingVertical: Spacing.three,
+                    color: colors.orbit,
+                    fontFamily: 'SofiaSans_500Medium',
                   }}
                 >
-                  <ArrowLeft size={16} color={colors.muted} weight="bold" />
-                  <Text style={[textStyle('button'), { color: colors.muted }]}>Retour</Text>
-                </View>
-              </Pressable>
-            </View>
-          </>
-        )}
+                  Conditions & Politique de confidentialité
+                </Text>
+              </Text>
+            }
+          />
 
-        <View style={{ flex: 1 }} />
+          <AuthPrimaryButton
+            title={t('auth.signUp')}
+            onPress={handleRegister}
+            loading={loading}
+            disabled={!step2Valid}
+          />
 
-        <View
-          style={{
-            flexDirection: 'row',
-            justifyContent: 'center',
-            marginTop: Spacing.eight,
-            gap: Spacing.one,
-            flexWrap: 'wrap',
-          }}
-        >
-          <Text style={[textStyle('body'), { color: colors.ink }]}>{t('auth.hasAccount')}</Text>
-          <Link href="/(auth)/login" asChild>
-            <Pressable>
-              <Text style={[textStyle('button'), { color: colors.orbit }]}>{t('auth.signIn')}</Text>
+          <View style={{ marginTop: Spacing.three }}>
+            <Pressable
+              onPress={goBack}
+              style={({ pressed }) => ({
+                minHeight: 44,
+                opacity: pressed ? 0.7 : 1,
+              })}
+            >
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: Spacing.two,
+                  paddingVertical: Spacing.three,
+                }}
+              >
+                <ArrowLeft size={16} color={colors.muted} weight="bold" />
+                <Text style={[textStyle('button'), { color: colors.muted }]}>Retour</Text>
+              </View>
             </Pressable>
-          </Link>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          </View>
+        </>
+      )}
+
+      <View style={{ flex: 1 }} />
+
+      <View style={styles.footer}>
+        <Text style={[textStyle('body'), { color: colors.ink }]}>{t('auth.hasAccount')}</Text>
+        <Link href="/(auth)/login" asChild>
+          <Pressable
+            accessibilityRole="link"
+            accessibilityLabel={t('auth.signIn')}
+            hitSlop={8}
+            style={({ pressed }) => [{ minHeight: 44 }, { opacity: pressed ? 0.75 : 1 }]}
+          >
+            <View style={styles.footerLink}>
+              <Text style={[textStyle('button'), { color: colors.orbit }]}>{t('auth.signIn')}</Text>
+            </View>
+          </Pressable>
+        </Link>
+      </View>
+    </AuthScaffold>
   );
 }
+
+const styles = StyleSheet.create({
+  socialRow: {
+    flexDirection: 'row',
+    alignSelf: 'stretch',
+    width: '100%',
+    alignItems: 'stretch',
+    gap: Spacing.three,
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    borderRadius: Radius.lg,
+    padding: Spacing.three,
+    marginBottom: Spacing.four,
+    borderWidth: 0.1,
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: Spacing.eight,
+    gap: Spacing.one,
+    flexWrap: 'wrap',
+  },
+  footerLink: {
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+});

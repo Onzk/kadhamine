@@ -14,6 +14,7 @@ import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import '@/hooks/useSystemChrome';
 import { NAV_THEME } from '@/lib/theme';
 import { AuthProvider } from '@/providers/AuthProvider';
+import { AppDialogProvider } from '@/providers/AppDialogProvider';
 import { FontProvider } from '@/providers/FontProvider';
 import { I18nProvider } from '@/providers/I18nProvider';
 import { ThemeProvider, useAppTheme } from '@/providers/ThemeProvider';
@@ -44,10 +45,12 @@ function RootContent() {
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <AnimatedSplashOverlay />
       <AuthProvider>
-        {/* No bottom edge: canvas must paint under the system nav; tabs pad themselves. */}
-        <AppSafeArea edges={['top', 'left', 'right']}>
-          <Slot />
-        </AppSafeArea>
+        <AppDialogProvider>
+          {/* No bottom edge: canvas must paint under the system nav; tabs pad themselves. */}
+          <AppSafeArea edges={['top', 'left', 'right']}>
+            <Slot />
+          </AppSafeArea>
+        </AppDialogProvider>
       </AuthProvider>
       <PortalHost />
     </NavigationThemeProvider>

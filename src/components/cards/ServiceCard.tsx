@@ -5,7 +5,7 @@ import { Radius, Spacing } from '@/theme/tokens';
 import { fontFamily, textStyle } from '@/theme/typography';
 import { formatPrice, formatRating } from '@/types';
 import { Image } from 'expo-image';
-import { Crown, MapPin, SealCheck, Star } from 'phosphor-react-native';
+import { CaretRight, Crown, MapPin, SealCheck, Star } from 'phosphor-react-native';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, View } from 'react-native';
@@ -33,6 +33,8 @@ interface ServiceCardProps {
    * `list` — image et infos côte à côte (rangée compacte).
    */
   layout?: 'card' | 'list';
+  /** Chevron à droite (tooltip carte / incitation au clic). */
+  showChevron?: boolean;
 }
 
 /**
@@ -55,6 +57,7 @@ export function ServiceCard({
   categoryLabel,
   onPress,
   layout = 'card',
+  showChevron = false,
 }: ServiceCardProps) {
   const { colors } = useAppTheme();
   const { t } = useTranslation();
@@ -206,6 +209,21 @@ export function ServiceCard({
                 </Text>
               </View>
             </View>
+
+            {showChevron ? (
+              <View
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 14,
+                  backgroundColor: colors.iconWash,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <CaretRight size={16} color={colors.ink} weight="bold" />
+              </View>
+            ) : null}
           </View>
         )}
       </Pressable>

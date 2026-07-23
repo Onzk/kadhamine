@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Alert } from 'react-native';
+import { View, Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
 import { Image } from 'expo-image';
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { CategoryChip } from '@/components/ui/CategoryChip';
 import { Badge } from '@/components/ui/Badge';
 import { useAppTheme } from '@/providers/ThemeProvider';
+import { useAppDialog } from '@/providers/AppDialogProvider';
 import { useUpload } from '@/hooks/useUpload';
 import { Spacing } from '@/theme/tokens';
 import { api } from '../../convex/_generated/api';
@@ -19,6 +20,7 @@ type DocType = 'national_id' | 'passport';
 export default function VerificationScreen() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
+  const { alert } = useAppDialog();
   const { uploadFromUri } = useUpload();
 
   const status = useQuery(api.verification.getStatus);
@@ -32,7 +34,7 @@ export default function VerificationScreen() {
   const capture = async (selfie: boolean) => {
     const { status: perm } = await ImagePicker.requestCameraPermissionsAsync();
     if (perm !== 'granted') {
-      Alert.alert('Permission caméra requise');
+      alert({ title: 'Permission caméra requise' });
       return;
     }
 
@@ -50,7 +52,10 @@ export default function VerificationScreen() {
 
   const handleSubmit = async () => {
     if (!docUri || !selfieUri) {
-      Alert.alert('Documents requis', 'Scannez votre pièce d\'identité et prenez un selfie.');
+      alert({
+        title: 'Documents requis',
+        message: "Scannez votre pièce d'identité et prenez un selfie.",
+      });
       return;
     }
 
@@ -59,9 +64,12 @@ export default function VerificationScreen() {
       const docStorageId = await uploadFromUri(docUri);
       const selfieStorageId = await uploadFromUri(selfieUri);
       await submit({ documentType: docType, documentStorageId: docStorageId, selfieStorageId });
-      Alert.alert('Envoyé', 'Votre demande sera examinée par un administrateur.');
+      alert({
+        title: 'Envoyé',
+        message: 'Votre demande sera examinée par un administrateur.',
+      });
     } catch {
-      Alert.alert('Erreur', 'Impossible d\'envoyer la demande');
+      alert({ title: 'Erreur', message: "Impossible d'envoyer la demande" });
     } finally {
       setLoading(false);
     }

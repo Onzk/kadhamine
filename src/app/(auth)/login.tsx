@@ -2,11 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
   Pressable,
-  Alert,
   StyleSheet,
 } from 'react-native';
 import { Link, useRouter } from 'expo-router';
@@ -25,9 +21,11 @@ import {
   AppleIcon,
   isValidEmail,
 } from '@/components/auth/AuthField';
-import { AuthHeader, AuthToggleRow } from '@/components/auth/AuthExtras';
+import { AuthToggleRow } from '@/components/auth/AuthExtras';
+import { AuthScaffold } from '@/components/auth/AuthScaffold';
 import { ForgotPasswordSheet } from '@/components/auth/ForgotPasswordSheet';
 import { useAppTheme } from '@/providers/ThemeProvider';
+import { useAppDialog } from '@/providers/AppDialogProvider';
 import { Radius, Spacing } from '@/theme/tokens';
 import { fontFamily, textStyle } from '@/theme/typography';
 
@@ -38,6 +36,7 @@ export default function LoginScreen() {
   const router = useRouter();
   const { signIn } = useAuthActions();
   const { colors } = useAppTheme();
+  const { alert } = useAppDialog();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -78,7 +77,12 @@ export default function LoginScreen() {
         await AsyncStorage.removeItem(REMEMBER_EMAIL_KEY);
       }
 
-      router.replace('/');
+      alert({
+        title: t('auth.welcomeBack'),
+        message: t('auth.welcomeLoginMessage'),
+        buttonLabel: t('common.done'),
+        onPress: () => router.replace('/'),
+      });
     } catch (err) {
       setError('Email ou mot de passe incorrect.');
       console.error(err);
@@ -92,28 +96,22 @@ export default function LoginScreen() {
   };
 
   const handleSocial = (provider: string) => {
-    Alert.alert(
-      'Bientôt disponible',
-      `La connexion avec ${provider} sera disponible prochainement.`,
-    );
+    alert({
+      title: t('auth.comingSoon'),
+      message: t('auth.socialAuthSoon', { provider }),
+    });
   };
 
-  return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={[styles.root, { backgroundColor: colors.canvas }]}
-    >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <AuthHeader
-          title={t('auth.welcomeBack')}
-          subtitle={t('auth.loginSubtitle')}
-          onBack={() => (router.canGoBack() ? router.back() : handleGuest())}
-        />
+  const onBack = () => (router.canGoBack() ? router.back() : handleGuest());
 
+  return (
+    <>
+      <AuthScaffold
+        barTitle={t('auth.login')}
+        title={t('auth.welcomeBack')}
+        subtitle={t('auth.loginSubtitle')}
+        onBack={onBack}
+      >
         <View style={styles.socialRow}>
           <SocialAuthButton label="Google" icon={<GoogleIcon />} onPress={() => handleSocial('Google')} />
           <SocialAuthButton label="Apple" icon={<AppleIcon />} onPress={() => handleSocial('Apple')} />
@@ -231,35 +229,25 @@ export default function LoginScreen() {
             </Pressable>
           </Link>
         </View>
-      </ScrollView>
+      </AuthScaffold>
 
       <ForgotPasswordSheet
         visible={forgotPasswordVisible}
         onClose={() => setForgotPasswordVisible(false)}
         initialEmail={email}
       />
-    </KeyboardAvoidingView>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    alignItems: 'stretch',
-    paddingHorizontal: Spacing.six,
-    paddingTop: Spacing.four,
-    paddingBottom: Spacing.ten,
-  },
   socialRow: {
     flexDirection: 'row',
     alignSelf: 'stretch',
     width: '100%',
     alignItems: 'stretch',
     gap: Spacing.three,
-    marginTop: Spacing.two,
+    marginTop: Spacing.six,
   },
   errorBanner: {
     flexDirection: 'row',

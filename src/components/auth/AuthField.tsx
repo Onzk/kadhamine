@@ -413,6 +413,7 @@ export function SocialAuthButton({ label, icon, onPress }: SocialAuthButtonProps
       style={({ pressed }) => ({
         flex: 1,
         flexBasis: 0,
+        minWidth: 0,
         minHeight: 52,
         opacity: pressed ? 0.88 : 1,
         transform: [{ scale: pressed ? 0.98 : 1 }],
@@ -422,6 +423,7 @@ export function SocialAuthButton({ label, icon, onPress }: SocialAuthButtonProps
         style={[
           styles.socialButtonInner,
           {
+            flex: 1,
             borderColor: colors.borderStrong,
             backgroundColor: colors.surfaceCard,
             ...Shadows.nav,
@@ -429,7 +431,9 @@ export function SocialAuthButton({ label, icon, onPress }: SocialAuthButtonProps
         ]}
       >
         <View style={styles.socialIcon}>{icon}</View>
-        <Text style={[textStyle('button'), { color: colors.ink }]}>{label}</Text>
+        <Text style={[textStyle('button'), { color: colors.ink }]} numberOfLines={1}>
+          {label}
+        </Text>
       </View>
     </Pressable>
   );

@@ -15,7 +15,7 @@ interface RolePickerProps {
   onChange: (role: Role) => void;
 }
 
-/** Sélecteur Client / Prestataire — card sélectionnée brand blue. */
+/** Sélecteur Client / Prestataire — 50/50, card sélectionnée brand blue. */
 export function RolePicker({ value, onChange }: RolePickerProps) {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
@@ -26,7 +26,15 @@ export function RolePicker({ value, onChange }: RolePickerProps) {
   ];
 
   return (
-    <View style={{ flexDirection: 'row', alignSelf: 'stretch', gap: Spacing.three, marginBottom: Spacing.six }}>
+    <View
+      style={{
+        flexDirection: 'row',
+        alignSelf: 'stretch',
+        width: '100%',
+        gap: Spacing.three,
+        marginBottom: Spacing.six,
+      }}
+    >
       {options.map(({ role, Icon, desc }) => {
         const selected = value === role;
         return (
@@ -36,6 +44,7 @@ export function RolePicker({ value, onChange }: RolePickerProps) {
             style={({ pressed }) => ({
               flex: 1,
               flexBasis: 0,
+              minWidth: 0,
               minHeight: 132,
               opacity: pressed ? 0.92 : 1,
               transform: [{ scale: pressed ? 0.98 : 1 }],
@@ -333,7 +342,7 @@ interface AuthHeaderProps {
   showLogo?: boolean;
 }
 
-/** En-tête auth cohérent — retour, logo de marque, titre, sous-texte. */
+/** En-tête auth — retour à gauche, logo seul à droite (sans wordmark), titre. */
 export function AuthHeader({ title, subtitle, onBack, showLogo = true }: AuthHeaderProps) {
   const { colors } = useAppTheme();
 
@@ -376,25 +385,7 @@ export function AuthHeader({ title, subtitle, onBack, showLogo = true }: AuthHea
           <View style={{ width: 44 }} />
         )}
 
-        {showLogo ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.two }}>
-            <Logo size={26} />
-            <Text
-              style={{
-                fontFamily: fontFamily('body', 'bold'),
-                fontSize: 17,
-                color: colors.ink,
-                letterSpacing: -0.3,
-              }}
-            >
-              TalentTchad
-            </Text>
-          </View>
-        ) : (
-          <View style={{ width: 44 }} />
-        )}
-
-        <View style={{ width: 44 }} />
+        {showLogo ? <Logo size={28} /> : <View style={{ width: 44 }} />}
       </View>
 
       <Text

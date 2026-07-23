@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, Alert } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useAction } from 'convex/react';
@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
+import { useAppDialog } from '@/providers/AppDialogProvider';
 import { formatPrice } from '@/types';
 import { BrandColors, Spacing } from '@/theme/tokens';
 import { api } from '../../../convex/_generated/api';
@@ -29,6 +30,7 @@ export default function CheckoutScreen() {
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const { t } = useTranslation();
   const { colors } = useAppTheme();
+  const { alert } = useAppDialog();
   const { user } = useAuth();
   const router = useRouter();
 
@@ -46,7 +48,10 @@ export default function CheckoutScreen() {
     if (!orderId) return;
 
     if (method !== 'off_platform' && !phoneNumber.trim()) {
-      Alert.alert('Numéro requis', 'Entrez votre numéro Mobile Money');
+      alert({
+        title: 'Numéro requis',
+        message: 'Entrez votre numéro Mobile Money',
+      });
       return;
     }
 
@@ -79,22 +84,27 @@ export default function CheckoutScreen() {
       if (result.paymentUrl) {
         const browserResult = await WebBrowser.openBrowserAsync(result.paymentUrl);
         if (browserResult.type === 'opened' || browserResult.type === 'cancel') {
-          Alert.alert(
-            'Paiement en cours',
-            'Confirmez le paiement sur votre téléphone. Vous serez notifié une fois validé.',
-          );
+          alert({
+            title: 'Paiement en cours',
+            message:
+              'Confirmez le paiement sur votre téléphone. Vous serez notifié une fois validé.',
+          });
         }
       } else if (result.sandbox) {
-        Alert.alert(
-          'Mode sandbox',
-          result.message ?? 'Paiement simulé — configurez la clé de paiement pour la production.',
-        );
+        alert({
+          title: 'Mode sandbox',
+          message:
+            result.message ?? 'Paiement simulé — configurez la clé de paiement pour la production.',
+        });
       }
 
       router.replace('/(tabs)/orders');
     } catch (err) {
       console.error(err);
-      Alert.alert('Erreur', 'Le paiement n\'a pas pu être initié');
+      alert({
+        title: 'Erreur',
+        message: "Le paiement n'a pas pu être initié",
+      });
     } finally {
       setLoading(false);
     }

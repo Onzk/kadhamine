@@ -7,7 +7,6 @@ import {
   Platform,
   ScrollView,
   Pressable,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
@@ -22,6 +21,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
+import { useAppDialog } from '@/providers/AppDialogProvider';
 import { useUpload } from '@/hooks/useUpload';
 import { api } from '../../../convex/_generated/api';
 
@@ -32,6 +32,7 @@ export default function ChatScreen() {
   const { conversationId } = useLocalSearchParams<{ conversationId: string }>();
   const { t } = useTranslation();
   const { colors } = useAppTheme();
+  const { alert } = useAppDialog();
   const { user } = useAuth();
   const { uploadFromUri } = useUpload();
 
@@ -75,7 +76,10 @@ export default function ChatScreen() {
         : await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permission.granted) {
-      Alert.alert('Permission requise', 'Autorisez l\'accès à la caméra ou à la galerie.');
+      alert({
+        title: 'Permission requise',
+        message: "Autorisez l'accès à la caméra ou à la galerie.",
+      });
       return;
     }
 
@@ -95,11 +99,17 @@ export default function ChatScreen() {
     const asset = result.assets[0];
     const mimeType = asset.mimeType ?? 'image/jpeg';
     if (!ALLOWED_TYPES.includes(mimeType)) {
-      Alert.alert('Format non supporté', 'Utilisez JPEG, PNG ou WebP.');
+      alert({
+        title: 'Format non supporté',
+        message: 'Utilisez JPEG, PNG ou WebP.',
+      });
       return;
     }
     if (asset.fileSize && asset.fileSize > MAX_IMAGE_BYTES) {
-      Alert.alert('Fichier trop volumineux', 'Taille maximale : 5 Mo.');
+      alert({
+        title: 'Fichier trop volumineux',
+        message: 'Taille maximale : 5 Mo.',
+      });
       return;
     }
 
@@ -113,7 +123,10 @@ export default function ChatScreen() {
         storageId,
       });
     } catch (err) {
-      Alert.alert('Erreur', err instanceof Error ? err.message : 'Envoi impossible');
+      alert({
+        title: 'Erreur',
+        message: err instanceof Error ? err.message : 'Envoi impossible',
+      });
     } finally {
       setUploading(false);
     }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Pressable, Alert } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
@@ -15,6 +15,7 @@ import {
 import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
+import { useAppDialog } from '@/providers/AppDialogProvider';
 import { useAppLanguage } from '@/providers/I18nProvider';
 import { SUPPORTED_LANGUAGES } from '@/constants/chad';
 import { Spacing } from '@/theme/tokens';
@@ -22,6 +23,7 @@ import { Spacing } from '@/theme/tokens';
 export default function SettingsScreen() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
+  const { confirm } = useAppDialog();
   const { user, signOut } = useAuth();
   const { language, setLanguage } = useAppLanguage();
   const router = useRouter();
@@ -147,14 +149,12 @@ export default function SettingsScreen() {
         {user ? (
           <Pressable
             onPress={() => {
-              Alert.alert(t('auth.logout'), undefined, [
-                { text: t('common.cancel'), style: 'cancel' },
-                {
-                  text: t('auth.logout'),
-                  style: 'destructive',
-                  onPress: () => signOut(),
-                },
-              ]);
+              confirm({
+                title: t('auth.logout'),
+                confirmLabel: t('auth.logout'),
+                destructive: true,
+                onConfirm: () => signOut(),
+              });
             }}
           >
             <View

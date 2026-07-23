@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, Alert, Pressable, Linking } from 'react-native';
+import { View, Text, Pressable, Linking, type LayoutChangeEvent } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAction, useMutation } from 'convex/react';
@@ -39,17 +39,22 @@ import { SettingsSection } from '@/components/ui/SettingsSection';
 import { useAuth } from '@/providers/AuthProvider';
 import { useAppLanguage } from '@/providers/I18nProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
+import { useAppDialog } from '@/providers/AppDialogProvider';
 import { SUPPORTED_LANGUAGES } from '@/constants/chad';
 import { useUpload } from '@/hooks/useUpload';
-import { Spacing } from '@/theme/tokens';
+import { Radius, Shadows, Spacing } from '@/theme/tokens';
 import { textStyle } from '@/theme/typography';
 import { api } from '../../../convex/_generated/api';
+
+/** Fallback until onLayout measures the guest auth panel. */
+const GUEST_PANEL_FALLBACK_HEIGHT = 320;
 
 type ThemeMode = 'light' | 'dark' | 'system';
 
 export default function ProfileScreen() {
   const { t } = useTranslation();
   const { colors, mode, setMode } = useAppTheme();
+  const { alert, confirm } = useAppDialog();
   const { user, signOut } = useAuth();
   const { language, setLanguage } = useAppLanguage();
   const router = useRouter();
@@ -81,8 +86,14 @@ export default function ProfileScreen() {
   const [passwordError, setPasswordError] = useState('');
 
   const [avatarLoading, setAvatarLoading] = useState(false);
+  const [guestPanelHeight, setGuestPanelHeight] = useState(GUEST_PANEL_FALLBACK_HEIGHT);
 
   const isGuest = !user;
+
+  const onGuestPanelLayout = useCallback((e: LayoutChangeEvent) => {
+    const next = Math.ceil(e.nativeEvent.layout.height);
+    if (next > 0) setGuestPanelHeight(next);
+  }, []);
   const profile = user?.profile;
   const isProvider = user?.role === 'provider';
   const isAdmin = user?.role === 'admin';
@@ -162,7 +173,10 @@ export default function ProfileScreen() {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      Alert.alert(t('profile.passwordChangedTitle'), t('profile.passwordChangedBody'));
+      alert({
+        title: t('profile.passwordChangedTitle'),
+        message: t('profile.passwordChangedBody'),
+      });
     } catch (err) {
       console.error(err);
       setPasswordError(t('profile.passwordChangeError'));
@@ -190,16 +204,19 @@ export default function ProfileScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert(t('auth.logout'), t('profile.logoutConfirm'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      { text: t('auth.logout'), style: 'destructive', onPress: () => signOut() },
-    ]);
+    confirm({
+      title: t('auth.logout'),
+      message: t('profile.logoutConfirm'),
+      confirmLabel: t('auth.logout'),
+      destructive: true,
+      onConfirm: () => signOut(),
+    });
   };
 
   const pickAndUploadAvatar = useCallback(
     async (source: 'camera' | 'library') => {
       if (!profile) {
-        Alert.alert(t('profile.avatarUnavailable'));
+        alert({ title: t('profile.avatarUnavailable') });
         return;
       }
       setAvatarSheet(false);
@@ -209,7 +226,7 @@ export default function ProfileScreen() {
         if (source === 'camera') {
           const { status } = await ImagePicker.requestCameraPermissionsAsync();
           if (status !== 'granted') {
-            Alert.alert(t('profile.cameraPermission'));
+            alert({ title: t('profile.cameraPermission') });
             return;
           }
           const result = await ImagePicker.launchCameraAsync({
@@ -222,7 +239,7 @@ export default function ProfileScreen() {
         } else {
           const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
           if (status !== 'granted') {
-            Alert.alert(t('profile.galleryPermission'));
+            alert({ title: t('profile.galleryPermission') });
             return;
           }
           const result = await ImagePicker.launchImageLibraryAsync({
@@ -238,73 +255,129 @@ export default function ProfileScreen() {
         await updateAvatar({ storageId });
       } catch (err) {
         console.error(err);
-        Alert.alert(t('common.error'), t('profile.avatarUploadError'));
+        alert({
+          title: t('common.error'),
+          message: t('profile.avatarUploadError'),
+        });
       } finally {
         setAvatarLoading(false);
       }
     },
-    [profile, t, updateAvatar, uploadFromUri],
+    [profile, t, updateAvatar, uploadFromUri, alert],
   );
 
   if (isGuest) {
     return (
-      <PageScaffold title={t('profile.title')} subtitle={t('auth.guestSubtitle')}>
-        <View style={{ paddingHorizontal: PAGE_H_PAD }}>
-          <GuestProfileHeader
-            ctaLabel={t('auth.signInOrSignUp')}
-            onPressCta={() => router.push('/(auth)/login')}
-            onPressAvatar={() => router.push('/(auth)/login')}
+      <View style={{ flex: 1, backgroundColor: colors.canvas }}>
+        <PageScaffold
+          title={t('profile.title')}
+          subtitle={t('auth.guestSubtitle')}
+          contentContainerStyle={{
+            paddingBottom: guestPanelHeight + Spacing.four,
+          }}
+        >
+          <View style={{ paddingHorizontal: PAGE_H_PAD }}>
+            <SettingsSection title={t('profile.sectionPreferences')} spaced={false}>
+              <SettingsRow
+                icon={Globe}
+                title={t('profile.language')}
+                description={currentLanguageLabel}
+                onPress={() => setLanguageSheet(true)}
+              />
+              <SettingsRow
+                icon={Moon}
+                title={t('profile.appearance')}
+                description={themeLabel}
+                onPress={() => setAppearanceSheet(true)}
+              />
+            </SettingsSection>
+
+            <SettingsSection title={t('profile.sectionSupport')}>
+              <SettingsRow
+                icon={Info}
+                title={t('profile.about')}
+                description={t('profile.aboutRowDesc')}
+                onPress={() => router.push('/about')}
+              />
+              <SettingsRow
+                icon={ShieldCheck}
+                title={t('profile.privacy')}
+                description={t('profile.privacyRowDesc')}
+                onPress={() => router.push('/legal/privacy')}
+              />
+              <SettingsRow
+                icon={FileText}
+                title={t('profile.terms')}
+                description={t('profile.termsRowDesc')}
+                onPress={() => router.push('/legal/terms')}
+              />
+            </SettingsSection>
+          </View>
+
+          <GuestSheets
+            languageSheet={languageSheet}
+            setLanguageSheet={setLanguageSheet}
+            appearanceSheet={appearanceSheet}
+            setAppearanceSheet={setAppearanceSheet}
+            language={language}
+            mode={mode}
+            themeLabel={themeLabel}
+            onLanguageSelect={handleLanguageSelect}
+            onThemeSelect={setMode}
           />
+        </PageScaffold>
 
-          <SettingsSection title={t('profile.sectionPreferences')}>
-            <SettingsRow
-              icon={Globe}
-              title={t('profile.language')}
-              description={currentLanguageLabel}
-              onPress={() => setLanguageSheet(true)}
-            />
-            <SettingsRow
-              icon={Moon}
-              title={t('profile.appearance')}
-              description={themeLabel}
-              onPress={() => setAppearanceSheet(true)}
-            />
-          </SettingsSection>
+        <View
+          onLayout={onGuestPanelLayout}
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 30,
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: colors.surfaceCard,
+              borderTopLeftRadius: Radius.xl,
+              borderTopRightRadius: Radius.xl,
+              paddingHorizontal: PAGE_H_PAD,
+              paddingBottom: Spacing.four,
+              overflow: 'hidden',
+              ...Shadows.elevated,
+            }}
+          >
+            <View
+              style={{
+                alignItems: 'center',
+                paddingTop: Spacing.three,
+                paddingBottom: Spacing.two,
+              }}
+            >
+              <View
+                style={{
+                  width: 40,
+                  height: 4,
+                  borderRadius: 2,
+                  backgroundColor: colors.border,
+                }}
+              />
+            </View>
 
-          <SettingsSection title={t('profile.sectionSupport')}>
-            <SettingsRow
-              icon={Info}
-              title={t('profile.about')}
-              description={t('profile.aboutRowDesc')}
-              onPress={() => router.push('/about')}
+            <GuestProfileHeader
+              compact
+              title={t('auth.guestTitle')}
+              subtitle={t('profile.guestPanelHint')}
+              signInLabel={t('auth.signIn')}
+              signUpLabel={t('auth.signUp')}
+              onPressSignIn={() => router.push('/(auth)/login')}
+              onPressSignUp={() => router.push('/(auth)/register')}
+              onPressAvatar={() => router.push('/(auth)/login')}
             />
-            <SettingsRow
-              icon={ShieldCheck}
-              title={t('profile.privacy')}
-              description={t('profile.privacyRowDesc')}
-              onPress={() => router.push('/legal/privacy')}
-            />
-            <SettingsRow
-              icon={FileText}
-              title={t('profile.terms')}
-              description={t('profile.termsRowDesc')}
-              onPress={() => router.push('/legal/terms')}
-            />
-          </SettingsSection>
+          </View>
         </View>
-
-        <GuestSheets
-          languageSheet={languageSheet}
-          setLanguageSheet={setLanguageSheet}
-          appearanceSheet={appearanceSheet}
-          setAppearanceSheet={setAppearanceSheet}
-          language={language}
-          mode={mode}
-          themeLabel={themeLabel}
-          onLanguageSelect={handleLanguageSelect}
-          onThemeSelect={setMode}
-        />
-      </PageScaffold>
+      </View>
     );
   }
 
