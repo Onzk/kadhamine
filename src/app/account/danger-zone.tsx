@@ -3,7 +3,7 @@ import { View, Text, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAction } from 'convex/react';
-import { Trash, WarningCircle } from 'phosphor-react-native';
+import { Lock, Trash, WarningCircle } from 'phosphor-react-native';
 
 import {
   AuthField,
@@ -99,6 +99,8 @@ export default function DangerZoneScreen() {
           onTogglePassword={() => setShowPassword((v) => !v)}
           autoComplete="password"
           textContentType="password"
+          placeholder="••••••••"
+          leftIcon={<Lock size={20} />}
         />
 
         <AuthPrimaryButton

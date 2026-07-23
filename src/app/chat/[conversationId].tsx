@@ -14,7 +14,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
 import * as ImagePicker from 'expo-image-picker';
-import { Camera, Image as ImageIcon } from 'phosphor-react-native';
+import { Camera, ChatCircle, Image as ImageIcon } from 'phosphor-react-native';
 import type { Id } from '../../../convex/_generated/dataModel';
 
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -23,6 +23,8 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { useAppDialog } from '@/providers/AppDialogProvider';
 import { useUpload } from '@/hooks/useUpload';
+import { Spacing } from '@/theme/tokens';
+import { fontFamily } from '@/theme/typography';
 import { api } from '../../../convex/_generated/api';
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -205,22 +207,40 @@ export default function ChatScreen() {
               <Camera size={22} color={colors.ink} />
             </View>
           </Pressable>
-          <TextInput
-            value={message}
-            onChangeText={setMessage}
-            placeholder={t('messages.typeMessage')}
-            placeholderTextColor={colors.muted}
+          <View
             style={{
               flex: 1,
+              flexDirection: 'row',
+              alignItems: 'center',
               backgroundColor: colors.surfaceCard,
-              borderRadius: 24,
-              paddingHorizontal: 16,
-              paddingVertical: 10,
-              color: colors.ink,
+              borderRadius: 12,
               borderWidth: 0.1,
-              borderColor: colors.border,
+              borderColor: colors.borderStrong,
+              paddingHorizontal: Spacing.four,
+              minHeight: 48,
+              gap: Spacing.twoHalf,
             }}
-          />
+          >
+            <ChatCircle size={20} color={colors.muted} />
+            <TextInput
+              value={message}
+              onChangeText={setMessage}
+              placeholder={t('messages.typeMessage')}
+              placeholderTextColor={colors.muted}
+              selectionColor={colors.orbit}
+              style={{
+                flex: 1,
+                fontFamily: fontFamily('body'),
+                fontSize: 16,
+                lineHeight: 22.4,
+                color: colors.ink,
+                paddingVertical: Spacing.two,
+                ...(Platform.OS === 'android'
+                  ? { includeFontPadding: false, textAlignVertical: 'center' }
+                  : null),
+              }}
+            />
+          </View>
           <Button title={t('messages.send')} onPress={handleSend} loading={sending} />
         </View>
       </KeyboardAvoidingView>

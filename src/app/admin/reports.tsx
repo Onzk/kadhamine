@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text } from 'react-native';
 import { useQuery, useMutation } from 'convex/react';
-import { Scales } from 'phosphor-react-native';
+import { NotePencil, Scales } from 'phosphor-react-native';
 
 import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/Button';
@@ -65,6 +65,8 @@ export default function AdminReportsScreen() {
               label="Résolution"
               value={resolution[report._id] ?? ''}
               onChangeText={(t) => setResolution((prev) => ({ ...prev, [report._id]: t }))}
+              placeholder="Décrivez la résolution…"
+              leftIcon={<NotePencil size={20} />}
             />
             <View style={{ flexDirection: 'row', gap: 8 }}>
               <Button title="Résoudre" onPress={() => handleResolve(report._id)} style={{ flex: 1 }} />

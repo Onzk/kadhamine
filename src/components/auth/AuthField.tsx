@@ -47,8 +47,11 @@ interface AuthFieldProps extends TextInputProps {
   isPassword?: boolean;
   showPassword?: boolean;
   onTogglePassword?: () => void;
-  leftIcon?: React.ReactNode;
-  /** `light` = white/surface + thin border (login). `inverted` = black pill (legacy / SearchBar-adjacent). */
+  /** Icône préfixe obligatoire (alignée login). */
+  leftIcon: React.ReactNode;
+  /** Placeholder obligatoire pour guider la saisie. */
+  placeholder: string;
+  /** `light` = surfaceCard + thin border (login / app). `inverted` = contraste inversé (legacy). */
   variant?: AuthFieldVariant;
 }
 
@@ -61,7 +64,7 @@ export function AuthField({
   showPassword,
   onTogglePassword,
   leftIcon,
-  variant = 'inverted',
+  variant = 'light',
   style,
   onFocus,
   onBlur,

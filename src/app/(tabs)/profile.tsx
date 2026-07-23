@@ -25,6 +25,8 @@ import {
   Camera,
   Image as ImageIcon,
   UserFocus,
+  Envelope,
+  IdentificationCard,
 } from 'phosphor-react-native';
 
 import {
@@ -568,19 +570,37 @@ export default function ProfileScreen() {
             {profileError}
           </Text>
         ) : null}
-        <AuthField label={t('profile.firstName')} value={firstName} onChangeText={setFirstName} />
-        <AuthField label={t('profile.lastName')} value={lastName} onChangeText={setLastName} />
+        <AuthField
+          label={t('profile.firstName')}
+          value={firstName}
+          onChangeText={setFirstName}
+          placeholder="Amina"
+          leftIcon={<User size={20} />}
+          autoCapitalize="words"
+        />
+        <AuthField
+          label={t('profile.lastName')}
+          value={lastName}
+          onChangeText={setLastName}
+          placeholder="Deby"
+          leftIcon={<User size={20} />}
+          autoCapitalize="words"
+        />
         <AuthField
           label={t('auth.email')}
           value={user?.email ?? ''}
           editable={false}
           hint={t('profile.emailReadOnly')}
+          placeholder="vous@exemple.com"
+          leftIcon={<Envelope size={20} />}
         />
         <AuthField
           label={t('profile.accountType')}
           value={roleLabel ?? ''}
           editable={false}
           hint={t('profile.accountTypeReadOnly')}
+          placeholder={t('profile.accountType')}
+          leftIcon={<IdentificationCard size={20} />}
         />
         <AuthPrimaryButton
           title={t('common.save')}
@@ -607,6 +627,8 @@ export default function ProfileScreen() {
           isPassword
           showPassword={showCurrentPassword}
           onTogglePassword={() => setShowCurrentPassword((v) => !v)}
+          placeholder="••••••••"
+          leftIcon={<Lock size={20} />}
         />
         <AuthField
           label={t('profile.newPassword')}
@@ -615,6 +637,8 @@ export default function ProfileScreen() {
           isPassword
           showPassword={showNewPassword}
           onTogglePassword={() => setShowNewPassword((v) => !v)}
+          placeholder="Au moins 8 caractères"
+          leftIcon={<Lock size={20} />}
         />
         <PasswordStrengthMeter password={newPassword} />
         <AuthField
@@ -624,6 +648,8 @@ export default function ProfileScreen() {
           isPassword
           showPassword={showConfirmPassword}
           onTogglePassword={() => setShowConfirmPassword((v) => !v)}
+          placeholder="••••••••"
+          leftIcon={<Lock size={20} />}
         />
         <AuthPrimaryButton
           title={t('profile.changePassword')}

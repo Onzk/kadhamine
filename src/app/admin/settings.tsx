@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text } from 'react-native';
 import { useQuery, useMutation } from 'convex/react';
+import { Percent } from 'phosphor-react-native';
 
 import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { Input } from '@/components/ui/Input';
@@ -68,6 +69,7 @@ export default function AdminSettingsScreen() {
           onChangeText={setDraftPercent}
           keyboardType="decimal-pad"
           placeholder="10"
+          leftIcon={<Percent size={20} />}
         />
         {platform && (
           <Text style={{ fontSize: 13, color: colors.muted, marginBottom: 16 }}>

@@ -9,9 +9,11 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AppSafeArea } from '@/components/AppSafeArea';
+import { ConvexErrorBoundary } from '@/components/ConvexErrorBoundary';
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 // Side-effect: paints native root with default canvas before theme hydrates.
 import '@/hooks/useSystemChrome';
+import { installErrorGuards } from '@/lib/installErrorGuards';
 import { NAV_THEME } from '@/lib/theme';
 import { AuthProvider } from '@/providers/AuthProvider';
 import { AppDialogProvider } from '@/providers/AppDialogProvider';
@@ -20,6 +22,8 @@ import { I18nProvider } from '@/providers/I18nProvider';
 import { ThemeProvider, useAppTheme } from '@/providers/ThemeProvider';
 import { convexAuthStorage } from '@/services/authStorage';
 import { BrandColors } from '@/theme/tokens';
+
+installErrorGuards();
 
 const convexUrl = process.env.EXPO_PUBLIC_CONVEX_URL || '';
 const convex = new ConvexReactClient(convexUrl, {
@@ -85,7 +89,9 @@ export default function RootLayout() {
           <ThemedGestureRoot>
             <FontProvider>
               <I18nProvider>
-                <RootContent />
+                <ConvexErrorBoundary>
+                  <RootContent />
+                </ConvexErrorBoundary>
               </I18nProvider>
             </FontProvider>
           </ThemedGestureRoot>

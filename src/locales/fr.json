@@ -6,6 +6,7 @@
   "common": {
     "loading": "Chargement...",
     "error": "Une erreur est survenue",
+    "errorDesc": "Impossible de charger ou d'enregistrer les données. Vérifiez votre connexion puis réessayez.",
     "retry": "Réessayer",
     "cancel": "Annuler",
     "confirm": "Confirmer",

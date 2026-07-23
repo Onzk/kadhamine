@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useState } from 'react';
 import {
   Platform,
   Pressable,
@@ -12,22 +12,23 @@ import {
 import { MagnifyingGlass } from 'phosphor-react-native';
 
 import { useAppTheme } from '@/providers/ThemeProvider';
-import { getInvertedInputColors, Radius, Spacing } from '@/theme/tokens';
+import { Spacing } from '@/theme/tokens';
 import { fontFamily } from '@/theme/typography';
 
-const ICON_SIZE = 18;
-const FONT_SIZE = 15;
-const LINE_HEIGHT = 20;
+/** Aligné sur AuthField `variant="light"` (login). */
+const FIELD_RADIUS = 12;
+const ICON_SIZE = 20;
 
 export interface SearchBarProps {
   value: string;
   onChangeText: (text: string) => void;
-  placeholder?: string;
+  /** Placeholder obligatoire. */
+  placeholder: string;
   /** Called on keyboard submit (return/search key). */
   onSubmit?: () => void;
   returnKeyType?: TextInputProps['returnKeyType'];
   autoFocus?: boolean;
-  /** Comfortable pill height. */
+  /** Comfortable field height (default matches AuthField). */
   height?: number;
   /** Pass-through container style override. */
   style?: StyleProp<ViewStyle>;
@@ -43,14 +44,8 @@ export interface SearchBarProps {
 }
 
 /**
- * Reusable search field with an inverted color scheme relative to the theme:
- * - Light (day) mode: black background, white text/icon/placeholder.
- * - Dark (night) mode: white background, black text/icon/placeholder.
- *
- * No border, no shadow, no elevation. Pill shape.
- *
- * Button mode (`onPress`) and editable mode share identical layout tokens so the
- * bar looks the same everywhere — only interaction differs.
+ * Champ recherche — même chrome que les inputs login (`AuthField` light) :
+ * surfaceCard, bordure fine, radius 12, focus orbit.
  */
 export const SearchBar = forwardRef<TextInput, SearchBarProps>(function SearchBar(
   {
@@ -60,7 +55,7 @@ export const SearchBar = forwardRef<TextInput, SearchBarProps>(function SearchBa
     onSubmit,
     returnKeyType = 'search',
     autoFocus,
-    height = 48,
+    height = 52,
     style,
     accessibilityLabel,
     onPress,
@@ -68,13 +63,13 @@ export const SearchBar = forwardRef<TextInput, SearchBarProps>(function SearchBa
   },
   ref,
 ) {
-  const { isDark } = useAppTheme();
-  const { background: bg, foreground: fg, placeholder: placeholderColor } = getInvertedInputColors(isDark);
+  const { colors } = useAppTheme();
+  const [focused, setFocused] = useState(false);
 
-  // Button mode: when an onPress is supplied (and not explicitly editable),
-  // the bar becomes a tappable, non-editable entry point.
   const isButton = onPress != null && editable !== true;
   const inputEditable = editable ?? !isButton;
+
+  const borderColor = focused ? colors.orbit : colors.borderStrong;
 
   const containerStyle: StyleProp<ViewStyle> = [
     {
@@ -82,9 +77,12 @@ export const SearchBar = forwardRef<TextInput, SearchBarProps>(function SearchBa
       alignItems: 'center',
       alignSelf: 'stretch',
       width: '100%',
-      backgroundColor: bg,
-      borderRadius: Radius.pill,
-      paddingHorizontal: Spacing.five,
+      backgroundColor: colors.surfaceCard,
+      borderRadius: FIELD_RADIUS,
+      borderWidth: 0.1,
+      borderColor,
+      paddingHorizontal: Spacing.four,
+      minHeight: height,
       height,
       gap: Spacing.twoHalf,
       overflow: 'hidden',
@@ -94,13 +92,15 @@ export const SearchBar = forwardRef<TextInput, SearchBarProps>(function SearchBa
 
   const fieldTextStyle: TextStyle = {
     flex: 1,
-    fontSize: FONT_SIZE,
-    lineHeight: LINE_HEIGHT,
-    fontFamily: fontFamily('body', 'regular'),
-    ...(Platform.OS === 'android' ? { includeFontPadding: false } : null),
+    fontFamily: fontFamily('body'),
+    fontSize: 16,
+    lineHeight: 22.4,
+    letterSpacing: -0.08,
+    paddingVertical: Spacing.three,
+    ...(Platform.OS === 'android' ? { includeFontPadding: false, textAlignVertical: 'center' } : null),
   };
 
-  const icon = <MagnifyingGlass size={ICON_SIZE} color={fg} />;
+  const icon = <MagnifyingGlass size={ICON_SIZE} color={colors.muted} weight="regular" />;
 
   const field = (
     <View style={containerStyle}>
@@ -110,24 +110,19 @@ export const SearchBar = forwardRef<TextInput, SearchBarProps>(function SearchBa
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={placeholderColor}
+        placeholderTextColor={colors.muted}
         onSubmitEditing={onSubmit}
         returnKeyType={returnKeyType}
         autoFocus={autoFocus}
         editable={inputEditable}
         clearButtonMode="while-editing"
-        selectionColor={fg}
+        selectionColor={colors.orbit}
         accessibilityLabel={accessibilityLabel ?? placeholder}
         accessibilityRole="search"
         pointerEvents={isButton ? 'none' : 'auto'}
-        style={[
-          fieldTextStyle,
-          {
-            color: fg,
-            paddingVertical: 0,
-            ...(Platform.OS === 'android' ? { textAlignVertical: 'center' } : null),
-          },
-        ]}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        style={[fieldTextStyle, { color: colors.ink }]}
       />
     </View>
   );

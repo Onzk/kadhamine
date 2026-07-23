@@ -3,7 +3,7 @@ import { View, Text, Pressable } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery } from 'convex/react';
-import { Star } from 'phosphor-react-native';
+import { ChatText, Star } from 'phosphor-react-native';
 import type { Id } from '../../../convex/_generated/dataModel';
 
 import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
@@ -146,6 +146,7 @@ export default function ReviewScreen() {
           value={comment}
           onChangeText={setComment}
           placeholder={t('reviews.commentPlaceholder')}
+          leftIcon={<ChatText size={20} />}
           multiline
           numberOfLines={4}
           style={{ minHeight: 100, textAlignVertical: 'top' }}

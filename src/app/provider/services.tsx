@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
-import { Wrench, Plus } from 'phosphor-react-native';
+import { Wrench, Plus, TextAlignLeft, CurrencyCircleDollar, Article } from 'phosphor-react-native';
 import type { Id } from '../../../convex/_generated/dataModel';
 
 import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
@@ -146,19 +146,29 @@ export default function ProviderServicesScreen() {
             <Text style={{ fontSize: 16, fontWeight: '600', color: colors.ink, marginBottom: 12 }}>
               {editing ? t('services.edit') : t('services.new')}
             </Text>
-            <Input label="Titre" value={title} onChangeText={setTitle} />
+            <Input
+              label="Titre"
+              value={title}
+              onChangeText={setTitle}
+              placeholder="Ex. Plomberie à domicile"
+              leftIcon={<Article size={20} />}
+            />
             <Input
               label="Description"
               value={description}
               onChangeText={setDescription}
               multiline
               numberOfLines={3}
+              placeholder="Décrivez votre service…"
+              leftIcon={<TextAlignLeft size={20} />}
             />
             <Input
               label="Prix (XAF, optionnel)"
               value={price}
               onChangeText={setPrice}
               keyboardType="numeric"
+              placeholder="25000"
+              leftIcon={<CurrencyCircleDollar size={20} />}
             />
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
               {categories?.map((cat) => (

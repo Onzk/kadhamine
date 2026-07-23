@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 import { AlertBottomSheet } from '@/components/ui/AlertBottomSheet';
 import { ConfirmationBottomSheet } from '@/components/ui/ConfirmationBottomSheet';
+import { getConvexErrorMessage, reportConvexError } from '@/lib/convexErrors';
 
 export type AppAlertOptions = {
   title: string;
@@ -61,10 +62,18 @@ export function AppDialogProvider({ children }: { children: React.ReactNode }) {
       if (shouldClose !== false) {
         setConfirmOptions(null);
       }
+    } catch (error) {
+      reportConvexError(error, 'confirm');
+      setConfirmOptions(null);
+      setAlertOptions({
+        title: t('common.error'),
+        message: getConvexErrorMessage(error, t('common.errorDesc')),
+        buttonLabel: t('common.done'),
+      });
     } finally {
       setConfirmLoading(false);
     }
-  }, [confirmOptions]);
+  }, [confirmOptions, t]);
 
   const value = useMemo(() => ({ alert, confirm }), [alert, confirm]);
 

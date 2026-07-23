@@ -6,6 +6,7 @@
   "common": {
     "loading": "Ngəla...",
     "error": "Gəle aɗe",
+    "errorDesc": "Impossible de charger ou d'enregistrer les données. Vérifiez la connexion puis réessayez.",
     "retry": "Kəla digi",
     "cancel": "Annuler",
     "confirm": "Səgə / Confirmer",

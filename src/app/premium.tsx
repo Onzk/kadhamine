@@ -3,7 +3,7 @@ import { View, Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useAction } from 'convex/react';
 import * as WebBrowser from 'expo-web-browser';
-import { Crown, Check } from 'phosphor-react-native';
+import { Crown, Check, DeviceMobile } from 'phosphor-react-native';
 
 import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/Button';
@@ -167,6 +167,7 @@ export default function PremiumScreen() {
               onChangeText={setPhoneNumber}
               keyboardType="phone-pad"
               placeholder="66 XX XX XX"
+              leftIcon={<DeviceMobile size={20} />}
             />
             <Button
               title="S'abonner Premium"

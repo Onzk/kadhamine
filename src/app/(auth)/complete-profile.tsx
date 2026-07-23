@@ -89,6 +89,7 @@ export default function CompleteProfileScreen() {
           value={firstName}
           onChangeText={setFirstName}
           autoCapitalize="words"
+          placeholder="Amina"
           leftIcon={<User size={20} />}
         />
         <AuthField
@@ -97,6 +98,7 @@ export default function CompleteProfileScreen() {
           value={lastName}
           onChangeText={setLastName}
           autoCapitalize="words"
+          placeholder="Deby"
           leftIcon={<User size={20} />}
         />
 

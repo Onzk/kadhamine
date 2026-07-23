@@ -3,6 +3,7 @@ import { useQuery } from 'convex/react';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { api } from '../../convex/_generated/api';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { reportConvexError } from '@/lib/convexErrors';
 
 interface AuthContextValue {
   user: ReturnType<typeof useQuery<typeof api.users.current>> | undefined;
@@ -23,7 +24,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   usePushNotifications(isAuthenticated);
 
   const signOut = async () => {
-    await authSignOut();
+    try {
+      await authSignOut();
+    } catch (error) {
+      reportConvexError(error, 'signOut');
+    }
   };
 
   return (

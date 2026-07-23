@@ -149,6 +149,7 @@ export default function CheckoutScreen() {
               onChangeText={setPhoneNumber}
               keyboardType="phone-pad"
               placeholder="66 XX XX XX"
+              leftIcon={<DeviceMobile size={20} />}
             />
           )}
 

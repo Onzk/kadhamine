@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import { Plus, Trash, Image as ImageIcon } from 'phosphor-react-native';
+import { Plus, Trash, Image as ImageIcon, Article, TextAlignLeft } from 'phosphor-react-native';
 
 import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/Button';
@@ -127,13 +127,21 @@ export default function PortfolioScreen() {
             borderColor: colors.border,
           }}
         >
-          <Input label="Titre" value={title} onChangeText={setTitle} />
+          <Input
+            label="Titre"
+            value={title}
+            onChangeText={setTitle}
+            placeholder="Ex. Réalisation cuisine"
+            leftIcon={<Article size={20} />}
+          />
           <Input
             label="Description"
             value={description}
             onChangeText={setDescription}
             multiline
             numberOfLines={2}
+            placeholder="Décrivez cette réalisation…"
+            leftIcon={<TextAlignLeft size={20} />}
           />
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <Button
