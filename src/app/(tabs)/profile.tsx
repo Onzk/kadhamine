@@ -290,6 +290,7 @@ export default function ProfileScreen() {
         <PageScaffold
           title={t('profile.title')}
           subtitle={t('auth.guestSubtitle')}
+          bottomInset={false}
           contentContainerStyle={{
             paddingBottom: guestPanelHeight + Spacing.four,
           }}
@@ -400,7 +401,11 @@ export default function ProfileScreen() {
   }
 
   return (
-    <PageScaffold title={t('profile.title')} subtitle={t('profile.subtitle')}>
+    <PageScaffold
+      title={t('profile.title')}
+      subtitle={t('profile.subtitle')}
+      bottomInset={false}
+    >
       <View style={{ paddingHorizontal: PAGE_H_PAD }}>
         <ProfileHeader
           displayName={displayName}

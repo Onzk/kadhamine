@@ -1,49 +1,87 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
-import { Percent } from 'phosphor-react-native';
+import {
+  Buildings,
+  Envelope,
+  Phone,
+  CurrencyCircleDollar,
+  Percent,
+} from 'phosphor-react-native';
 
+import { AuthField, AuthPrimaryButton } from '@/components/auth/AuthField';
 import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
+import { AppBottomSheet } from '@/components/ui/AppBottomSheet';
+import { SheetActionsFooter } from '@/components/ui/SheetActions';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { useAppDialog } from '@/providers/AppDialogProvider';
 import { Spacing } from '@/theme/tokens';
 import { api } from '../../../convex/_generated/api';
 
 export default function AdminSettingsScreen() {
+  const { t } = useTranslation();
   const { colors } = useAppTheme();
   const { alert } = useAppDialog();
   const platform = useQuery(api.settings.getPlatform);
-  const updateRate = useMutation(api.settings.updateCommissionRate);
-  const [draftPercent, setDraftPercent] = useState<string | null>(null);
+  const updatePlatform = useMutation(api.settings.updatePlatform);
+
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [supportEmail, setSupportEmail] = useState('');
+  const [supportPhone, setSupportPhone] = useState('');
+  const [currency, setCurrency] = useState('');
+  const [commissionPercent, setCommissionPercent] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const serverPercent =
-    platform != null ? String(Math.round(platform.commissionRate * 100)) : '10';
-  const percent = draftPercent ?? serverPercent;
+  useEffect(() => {
+    if (!platform || sheetOpen) return;
+    setName(platform.name);
+    setSupportEmail(platform.supportEmail);
+    setSupportPhone(platform.supportPhone);
+    setCurrency(platform.currency);
+    setCommissionPercent(String(Math.round(platform.commissionRate * 100)));
+  }, [platform, sheetOpen]);
+
+  const openSheet = () => {
+    if (platform) {
+      setName(platform.name);
+      setSupportEmail(platform.supportEmail);
+      setSupportPhone(platform.supportPhone);
+      setCurrency(platform.currency);
+      setCommissionPercent(String(Math.round(platform.commissionRate * 100)));
+    }
+    setSheetOpen(true);
+  };
 
   const handleSave = async () => {
-    const value = Number(percent.replace(',', '.'));
+    const value = Number(commissionPercent.replace(',', '.'));
     if (Number.isNaN(value) || value < 0 || value > 100) {
       alert({
-        title: 'Valeur invalide',
-        message: 'Entrez un pourcentage entre 0 et 100.',
+        title: t('common.error'),
+        message: t('admin.invalidCommission'),
       });
       return;
     }
+
     setLoading(true);
     try {
-      await updateRate({ rate: value / 100 });
-      setDraftPercent(null);
+      await updatePlatform({
+        name: name.trim() || undefined,
+        supportEmail: supportEmail.trim() || undefined,
+        supportPhone: supportPhone.trim(),
+        currency: currency.trim() || undefined,
+        commissionRate: value / 100,
+      });
+      setSheetOpen(false);
       alert({
-        title: 'Enregistré',
-        message: `Commission mise à jour : ${value} %`,
+        title: t('admin.success'),
+        message: t('admin.settingsSaved'),
       });
     } catch (err) {
       alert({
-        title: 'Erreur',
-        message: err instanceof Error ? err.message : 'Échec',
+        title: t('common.error'),
+        message: err instanceof Error ? err.message : t('common.errorDesc'),
       });
     } finally {
       setLoading(false);
@@ -52,32 +90,104 @@ export default function AdminSettingsScreen() {
 
   return (
     <PageScaffold
-      title="Paramètres plateforme"
-      subtitle="Configurez les règles et commissions."
+      title={t('admin.settingsTitle')}
+      subtitle={t('admin.settingsSubtitle')}
       showBack
     >
-      <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
-        <Text style={{ fontSize: 15, fontWeight: '600', color: colors.ink, marginBottom: 8 }}>
-          Commission sur les paiements in-app
-        </Text>
-        <Text style={{ fontSize: 13, color: colors.muted, marginBottom: 16 }}>
-          Taux prélevé sur chaque paiement en ligne / Mobile Money (hors plateforme = 0 %).
-        </Text>
-        <Input
-          label="Taux (%)"
-          value={percent}
-          onChangeText={setDraftPercent}
+      <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four, gap: Spacing.four }}>
+        <View
+          style={{
+            backgroundColor: colors.surfaceCard,
+            borderRadius: 20,
+            padding: 16,
+            borderWidth: 0.1,
+            borderColor: colors.border,
+            gap: Spacing.three,
+          }}
+        >
+          <Text style={{ fontSize: 15, fontWeight: '600', color: colors.ink }}>
+            {platform?.name ?? '—'}
+          </Text>
+          <Text style={{ fontSize: 13, color: colors.muted }}>
+            {platform?.supportEmail ?? '—'}
+          </Text>
+          {platform?.supportPhone ? (
+            <Text style={{ fontSize: 13, color: colors.muted }}>{platform.supportPhone}</Text>
+          ) : null}
+          <Text style={{ fontSize: 13, color: colors.muted }}>
+            {platform
+              ? t('admin.currentCommission', {
+                  rate: Math.round(platform.commissionRate * 100),
+                  currency: platform.currency,
+                })
+              : t('common.loading')}
+          </Text>
+          <Text style={{ fontSize: 13, color: colors.body }}>{t('admin.commissionHint')}</Text>
+        </View>
+
+        <AuthPrimaryButton
+          title={t('admin.editSettings')}
+          flat
+          onPress={openSheet}
+          disabled={platform == null}
+        />
+      </View>
+
+      <AppBottomSheet
+        visible={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        title={t('admin.editSettingsTitle')}
+        subtitle={t('admin.editSettingsSubtitle')}
+      >
+        <AuthField
+          label={t('admin.platformName')}
+          value={name}
+          onChangeText={setName}
+          placeholder="TalentTchad"
+          leftIcon={<Buildings size={20} />}
+        />
+        <AuthField
+          label={t('admin.supportEmail')}
+          value={supportEmail}
+          onChangeText={setSupportEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          placeholder="support@talenttchad.com"
+          leftIcon={<Envelope size={20} />}
+        />
+        <AuthField
+          label={t('admin.supportPhone')}
+          value={supportPhone}
+          onChangeText={setSupportPhone}
+          keyboardType="phone-pad"
+          placeholder="+235…"
+          leftIcon={<Phone size={20} />}
+        />
+        <AuthField
+          label={t('admin.currency')}
+          value={currency}
+          onChangeText={setCurrency}
+          autoCapitalize="characters"
+          placeholder="XAF"
+          leftIcon={<CurrencyCircleDollar size={20} />}
+        />
+        <AuthField
+          label={t('admin.commissionRate')}
+          value={commissionPercent}
+          onChangeText={setCommissionPercent}
           keyboardType="decimal-pad"
           placeholder="10"
           leftIcon={<Percent size={20} />}
         />
-        {platform && (
-          <Text style={{ fontSize: 13, color: colors.muted, marginBottom: 16 }}>
-            Actuel : {Math.round(platform.commissionRate * 100)} % · Devise {platform.currency}
-          </Text>
-        )}
-        <Button title="Enregistrer" onPress={handleSave} loading={loading} fullWidth />
-      </View>
+        <SheetActionsFooter>
+          <AuthPrimaryButton
+            title={t('common.save')}
+            flat
+            loading={loading}
+            onPress={handleSave}
+          />
+        </SheetActionsFooter>
+      </AppBottomSheet>
     </PageScaffold>
   );
 }

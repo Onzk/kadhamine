@@ -49,6 +49,7 @@ export default function CategoriesScreen() {
       <PageScaffold
         title="Catégories"
         subtitle="Explorez les métiers et talents disponibles sur TalentTchad."
+        bottomInset={false}
         contentContainerStyle={{ paddingBottom: 100 }}
         headerActions={
           <SearchBar

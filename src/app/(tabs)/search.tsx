@@ -189,6 +189,7 @@ export default function SearchScreen() {
       <PageScaffold
         title={t('search.title')}
         subtitle="Trouvez le talent qu'il vous faut près de chez vous."
+        bottomInset={false}
         headerActions={
           <View
             style={{

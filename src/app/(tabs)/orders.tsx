@@ -49,6 +49,7 @@ export default function OrdersScreen() {
     <PageScaffold
       title={t('orders.title')}
       subtitle="Suivez et gérez vos commandes en cours."
+      bottomInset={false}
       headerActions={
         user ? (
           <ScrollView

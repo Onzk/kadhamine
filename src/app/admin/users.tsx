@@ -1,19 +1,32 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, ScrollView } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
+import { UsersThree } from 'phosphor-react-native';
 
+import { AuthPrimaryButton } from '@/components/auth/AuthField';
 import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
-import { CategoryChip } from '@/components/ui/CategoryChip';
-import { Button } from '@/components/ui/Button';
+import { SearchBar } from '@/components/ui/SearchBar';
+import { FilterChip } from '@/components/ui/FilterChip';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { Badge } from '@/components/ui/Badge';
+import { SheetActionRow, SheetActionSlot, SheetActionsFooter } from '@/components/ui/SheetActions';
 import { useAppTheme } from '@/providers/ThemeProvider';
+import { useAppDialog } from '@/providers/AppDialogProvider';
 import { Spacing } from '@/theme/tokens';
 import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
 
+type StatusFilter = 'pending' | 'active' | 'suspended' | 'rejected' | 'all';
+
+const FILTERS: StatusFilter[] = ['pending', 'active', 'suspended', 'rejected', 'all'];
+
 export default function AdminUsersScreen() {
+  const { t } = useTranslation();
   const { colors } = useAppTheme();
-  const [filter, setFilter] = useState<'pending' | 'active' | 'suspended' | 'all'>('pending');
+  const { alert, confirm } = useAppDialog();
+  const [filter, setFilter] = useState<StatusFilter>('pending');
+  const [search, setSearch] = useState('');
 
   const users = useQuery(api.admin.listUsers, {
     status: filter === 'all' ? undefined : filter,
@@ -21,94 +34,212 @@ export default function AdminUsersScreen() {
   const updateStatus = useMutation(api.admin.updateUserStatus);
   const setPremium = useMutation(api.admin.setPremium);
 
-  const handleStatus = async (userId: Id<'users'>, status: 'active' | 'rejected' | 'suspended') => {
-    await updateStatus({ userId, status });
+  const filtered = useMemo(() => {
+    if (!users) return undefined;
+    const q = search.trim().toLowerCase();
+    if (!q) return users;
+    return users.filter(({ user, profile }) => {
+      const name = profile
+        ? `${profile.firstName} ${profile.lastName}`
+        : user.name ?? '';
+      return (
+        name.toLowerCase().includes(q) ||
+        (user.email ?? '').toLowerCase().includes(q)
+      );
+    });
+  }, [users, search]);
+
+  const runStatus = (
+    userId: Id<'users'>,
+    status: 'active' | 'rejected' | 'suspended',
+    confirmKey: string,
+    successKey: string,
+    destructive = false,
+  ) => {
+    confirm({
+      title: t(confirmKey),
+      confirmLabel: t('common.confirm'),
+      destructive,
+      onConfirm: async () => {
+        await updateStatus({ userId, status });
+        alert({ title: t('admin.success'), message: t(successKey) });
+      },
+    });
   };
 
-  const handlePremium = async (userId: Id<'users'>, isPremium: boolean) => {
-    await setPremium({ userId, isPremium });
+  const runPremium = (userId: Id<'users'>, isPremium: boolean) => {
+    confirm({
+      title: t(isPremium ? 'admin.confirmPremiumOn' : 'admin.confirmPremiumOff'),
+      confirmLabel: t('common.confirm'),
+      destructive: !isPremium,
+      onConfirm: async () => {
+        await setPremium({ userId, isPremium });
+        alert({ title: t('admin.success'), message: t('admin.premiumUpdated') });
+      },
+    });
+  };
+
+  const filterLabel = (f: StatusFilter) => {
+    if (f === 'all') return t('common.all');
+    if (f === 'pending') return t('admin.statusPending');
+    if (f === 'active') return t('admin.statusActive');
+    if (f === 'suspended') return t('admin.statusSuspended');
+    return t('admin.statusRejected');
   };
 
   return (
     <PageScaffold
-      title="Utilisateurs"
-      subtitle="Gérez les comptes utilisateurs et leurs accès."
+      title={t('admin.usersTitle')}
+      subtitle={t('admin.usersSubtitle')}
       showBack
-    >
-      <View style={{ paddingTop: Spacing.four }}>
+      headerActions={
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: PAGE_H_PAD, gap: 8, marginBottom: 16 }}
+          contentContainerStyle={{ gap: Spacing.two }}
         >
-          {(['pending', 'active', 'suspended', 'all'] as const).map((f) => (
-            <CategoryChip
+          {FILTERS.map((f) => (
+            <FilterChip
               key={f}
-              label={f === 'all' ? 'Tous' : f}
+              label={filterLabel(f)}
               selected={filter === f}
               onPress={() => setFilter(f)}
             />
           ))}
         </ScrollView>
+      }
+    >
+      <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four, gap: Spacing.four }}>
+        <SearchBar
+          value={search}
+          onChangeText={setSearch}
+          placeholder={t('admin.usersSearch')}
+        />
 
-        <View style={{ paddingHorizontal: PAGE_H_PAD }}>
-          {users?.map(({ user, profile }) => (
+        {filtered === undefined ? (
+          <Text style={{ color: colors.muted, textAlign: 'center', marginTop: 32 }}>
+            {t('common.loading')}
+          </Text>
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            icon={UsersThree}
+            title={t('admin.usersEmpty')}
+            description={t('admin.usersEmptyDesc')}
+          />
+        ) : (
+          filtered.map(({ user, profile }) => (
             <View
               key={user._id}
               style={{
                 backgroundColor: colors.surfaceCard,
                 borderRadius: 20,
                 padding: 16,
-                marginBottom: 10,
                 borderWidth: 0.1,
                 borderColor: colors.border,
+                gap: Spacing.three,
               }}
             >
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                <Text style={{ fontSize: 16, fontWeight: '600', color: colors.ink }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
+                <Text style={{ flex: 1, fontSize: 16, fontWeight: '600', color: colors.ink }}>
                   {profile ? `${profile.firstName} ${profile.lastName}` : user.name ?? user.email}
                 </Text>
                 <Badge label={user.role ?? '?'} />
               </View>
-              <Text style={{ fontSize: 13, color: colors.muted, marginBottom: 8 }}>{user.email}</Text>
-              {profile && (
-                <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
-                  {profile.isVerified ? <Badge label="Vérifié" variant="verified" /> : null}
-                  {profile.isPremium ? <Badge label="Premium" variant="premium" /> : null}
+              <Text style={{ fontSize: 13, color: colors.muted }}>{user.email}</Text>
+              {profile ? (
+                <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+                  {profile.isVerified ? <Badge label={t('common.verified')} variant="verified" /> : null}
+                  {profile.isPremium ? <Badge label={t('common.premium')} variant="premium" /> : null}
+                  <Badge label={user.status ?? '?'} />
                 </View>
+              ) : (
+                <Badge label={user.status ?? '?'} />
               )}
 
-              {user.status === 'pending' && user.role === 'provider' && (
-                <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
-                  <Button title="Valider" onPress={() => handleStatus(user._id, 'active')} style={{ flex: 1 }} />
-                  <Button
-                    title="Refuser"
-                    variant="danger"
-                    onPress={() => handleStatus(user._id, 'rejected')}
-                    style={{ flex: 1 }}
+              <SheetActionsFooter>
+                {user.status === 'pending' && user.role === 'provider' ? (
+                  <SheetActionRow>
+                    <SheetActionSlot>
+                      <AuthPrimaryButton
+                        title={t('admin.approve')}
+                        fill
+                        flat
+                        onPress={() =>
+                          runStatus(
+                            user._id,
+                            'active',
+                            'admin.confirmApproveUser',
+                            'admin.userApproved',
+                          )
+                        }
+                      />
+                    </SheetActionSlot>
+                    <SheetActionSlot>
+                      <AuthPrimaryButton
+                        title={t('admin.reject')}
+                        tone="danger"
+                        fill
+                        flat
+                        onPress={() =>
+                          runStatus(
+                            user._id,
+                            'rejected',
+                            'admin.confirmRejectUser',
+                            'admin.userRejected',
+                            true,
+                          )
+                        }
+                      />
+                    </SheetActionSlot>
+                  </SheetActionRow>
+                ) : null}
+
+                {user.status === 'active' ? (
+                  <AuthPrimaryButton
+                    title={t('admin.suspend')}
+                    tone="outline"
+                    flat
+                    onPress={() =>
+                      runStatus(
+                        user._id,
+                        'suspended',
+                        'admin.confirmSuspendUser',
+                        'admin.userSuspended',
+                        true,
+                      )
+                    }
                   />
-                </View>
-              )}
+                ) : null}
 
-              {user.status === 'active' && (
-                <Button
-                  title="Suspendre"
-                  variant="outline"
-                  onPress={() => handleStatus(user._id, 'suspended')}
-                  style={{ marginBottom: 8 }}
-                />
-              )}
+                {user.status === 'suspended' || user.status === 'rejected' ? (
+                  <AuthPrimaryButton
+                    title={t('admin.reactivate')}
+                    flat
+                    onPress={() =>
+                      runStatus(
+                        user._id,
+                        'active',
+                        'admin.confirmReactivateUser',
+                        'admin.userReactivated',
+                      )
+                    }
+                  />
+                ) : null}
 
-              {user.role === 'provider' && profile && (
-                <Button
-                  title={profile.isPremium ? 'Retirer Premium' : 'Activer Premium'}
-                  variant={profile.isPremium ? 'outline' : 'accent'}
-                  onPress={() => handlePremium(user._id, !profile.isPremium)}
-                />
-              )}
+                {user.role === 'provider' && profile ? (
+                  <AuthPrimaryButton
+                    title={
+                      profile.isPremium ? t('admin.removePremium') : t('admin.activatePremium')
+                    }
+                    tone={profile.isPremium ? 'outline' : 'orbit'}
+                    flat
+                    onPress={() => runPremium(user._id, !profile.isPremium)}
+                  />
+                ) : null}
+              </SheetActionsFooter>
             </View>
-          ))}
-        </View>
+          ))
+        )}
       </View>
     </PageScaffold>
   );

@@ -27,6 +27,7 @@ export default function AdminLayout() {
       <Stack.Screen name="payments" />
       <Stack.Screen name="verifications" />
       <Stack.Screen name="reviews" />
+      <Stack.Screen name="settings" />
     </Stack>
   );
 }

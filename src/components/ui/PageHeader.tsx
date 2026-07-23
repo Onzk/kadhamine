@@ -1,7 +1,14 @@
 import { useRouter } from 'expo-router';
 import { CaretLeft } from 'phosphor-react-native';
 import React, { useRef, useState } from 'react';
-import { Pressable, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import Animated, {
   Extrapolation,
   interpolate,
@@ -11,6 +18,7 @@ import Animated, {
   useSharedValue,
   type SharedValue,
 } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { Spacing } from '@/theme/tokens';
@@ -262,6 +270,12 @@ export interface PageScaffoldProps {
   stickyEnabled?: boolean;
   /** Callback JS du offset Y (ex. FAB étendu / replié). */
   onScrollYChange?: (y: number) => void;
+  /**
+   * Ajoute l’inset safe-area bas au paddingBottom du ScrollView.
+   * Passer `false` sur les écrans à onglets déjà paddés pour la tab bar.
+   * @default true
+   */
+  bottomInset?: boolean;
 }
 
 /**
@@ -279,8 +293,10 @@ export function PageScaffold({
   contentContainerStyle,
   stickyEnabled = true,
   onScrollYChange,
+  bottomInset = true,
 }: PageScaffoldProps) {
   const { colors } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const scrollY = useSharedValue(0);
   const [stickyActive, setStickyActive] = useState(false);
   const onScrollYChangeRef = useRef(onScrollYChange);
@@ -297,6 +313,14 @@ export function PageScaffold({
       runOnJS(notifyScrollY)(e.contentOffset.y);
     },
   });
+
+  // Preserve caller paddingBottom (ex. FAB clearance) and still add safe-area when enabled.
+  const flatContent = StyleSheet.flatten(contentContainerStyle) as ViewStyle | undefined;
+  const basePad =
+    typeof flatContent?.paddingBottom === 'number'
+      ? flatContent.paddingBottom
+      : Spacing.eight;
+  const paddingBottom = basePad + (bottomInset ? insets.bottom : 0);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.canvas }}>
@@ -316,8 +340,9 @@ export function PageScaffold({
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={[
-          { paddingBottom: Spacing.eight, flexGrow: 1 },
+          { flexGrow: 1 },
           contentContainerStyle,
+          { paddingBottom },
         ]}
       >
         <PageHeader

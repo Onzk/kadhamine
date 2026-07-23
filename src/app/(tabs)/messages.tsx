@@ -23,6 +23,7 @@ export default function MessagesScreen() {
     <PageScaffold
       title={t('messages.title')}
       subtitle="Vos conversations avec les talents et clients."
+      bottomInset={false}
     >
       <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
         {!user ? (

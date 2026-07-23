@@ -1,6 +1,21 @@
 import { v } from 'convex/values';
-import { mutation, query } from './_generated/server';
+import { mutation, query, type QueryCtx } from './_generated/server';
+import type { Id } from './_generated/dataModel';
 import { requireAuth, requireRole, haversineDistanceKm, now } from './lib';
+
+async function resolveServicePhotos(
+  ctx: QueryCtx,
+  service: { photos: string[]; photoStorageIds?: Id<'_storage'>[] },
+) {
+  if (service.photoStorageIds?.length) {
+    const urls = await Promise.all(
+      service.photoStorageIds.map((id) => ctx.storage.getUrl(id)),
+    );
+    const resolved = urls.filter((u): u is string => !!u);
+    if (resolved.length) return resolved;
+  }
+  return service.photos ?? [];
+}
 
 export const getMine = query({
   args: {},
@@ -14,7 +29,11 @@ export const getMine = query({
     return await Promise.all(
       services.map(async (service) => {
         const category = await ctx.db.get(service.categoryId);
-        return { service, category };
+        const photos = await resolveServicePhotos(ctx, service);
+        return {
+          service: { ...service, photos },
+          category,
+        };
       }),
     );
   },
@@ -269,6 +288,7 @@ export const create = mutation({
     price: v.optional(v.number()),
     deliveryDays: v.optional(v.number()),
     photos: v.optional(v.array(v.string())),
+    photoStorageIds: v.optional(v.array(v.id('_storage'))),
     availability: v.optional(
       v.union(
         v.literal('available'),
@@ -321,6 +341,15 @@ export const create = mutation({
       longitude = args.longitude;
     }
 
+    let photos = args.photos ?? [];
+    const photoStorageIds = args.photoStorageIds;
+    if (photoStorageIds?.length) {
+      const urls = await Promise.all(
+        photoStorageIds.map((id) => ctx.storage.getUrl(id)),
+      );
+      photos = urls.filter((u): u is string => !!u);
+    }
+
     const timestamp = now();
     return await ctx.db.insert('services', {
       providerId: userId,
@@ -332,7 +361,8 @@ export const create = mutation({
       price: args.price,
       currency: 'XAF',
       deliveryDays: args.deliveryDays,
-      photos: args.photos ?? [],
+      photos,
+      photoStorageIds,
       availability: args.availability ?? 'available',
       isActive: true,
       viewCount: 0,
@@ -361,6 +391,7 @@ export const update = mutation({
     price: v.optional(v.number()),
     deliveryDays: v.optional(v.number()),
     photos: v.optional(v.array(v.string())),
+    photoStorageIds: v.optional(v.array(v.id('_storage'))),
     availability: v.optional(
       v.union(
         v.literal('available'),
@@ -369,6 +400,10 @@ export const update = mutation({
       ),
     ),
     isActive: v.optional(v.boolean()),
+    city: v.optional(v.string()),
+    region: v.optional(v.string()),
+    latitude: v.optional(v.number()),
+    longitude: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const { userId } = await requireRole(ctx, ['provider']);
@@ -377,13 +412,52 @@ export const update = mutation({
       throw new Error('Service introuvable');
     }
 
-    const { serviceId, ...updates } = args;
+    const { serviceId, photoStorageIds, ...updates } = args;
     const patch: Record<string, unknown> = { updatedAt: now() };
     for (const [key, value] of Object.entries(updates)) {
       if (value !== undefined) patch[key] = value;
     }
 
+    if (photoStorageIds !== undefined) {
+      if (service.photoStorageIds?.length) {
+        for (const oldId of service.photoStorageIds) {
+          if (!photoStorageIds.includes(oldId)) {
+            await ctx.storage.delete(oldId);
+          }
+        }
+      }
+      patch.photoStorageIds = photoStorageIds;
+      if (photoStorageIds.length) {
+        const urls = await Promise.all(
+          photoStorageIds.map((id) => ctx.storage.getUrl(id)),
+        );
+        patch.photos = urls.filter((u): u is string => !!u);
+      } else if (updates.photos === undefined) {
+        patch.photos = [];
+      }
+    }
+
     await ctx.db.patch(serviceId, patch);
+  },
+});
+
+export const remove = mutation({
+  args: { serviceId: v.id('services') },
+  handler: async (ctx, args) => {
+    const { userId } = await requireRole(ctx, ['provider']);
+    const service = await ctx.db.get(args.serviceId);
+    if (!service || service.providerId !== userId) {
+      throw new Error('Service introuvable');
+    }
+
+    if (service.photoStorageIds?.length) {
+      for (const storageId of service.photoStorageIds) {
+        await ctx.storage.delete(storageId);
+      }
+    }
+
+    await ctx.db.delete(args.serviceId);
+    return { ok: true as const };
   },
 });
 

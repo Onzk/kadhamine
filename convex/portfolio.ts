@@ -135,16 +135,29 @@ export const update = mutation({
     description: v.optional(v.string()),
     sortOrder: v.optional(v.number()),
     serviceId: v.optional(v.union(v.id('services'), v.null())),
+    storageId: v.optional(v.id('_storage')),
+    mediaUrl: v.optional(v.string()),
+    mediaType: v.optional(
+      v.union(v.literal('image'), v.literal('video'), v.literal('document')),
+    ),
+    thumbnailUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { userId } = await requireRole(ctx, ['provider']);
     const item = await ctx.db.get(args.itemId);
     if (!item || item.providerId !== userId) throw new Error('Élément introuvable');
 
-    const { itemId, serviceId, ...rest } = args;
+    const { itemId, serviceId, storageId, ...rest } = args;
     const patch: Record<string, unknown> = { updatedAt: now() };
     for (const [key, value] of Object.entries(rest)) {
       if (value !== undefined) patch[key] = value;
+    }
+
+    if (storageId !== undefined) {
+      if (item.storageId && item.storageId !== storageId) {
+        await ctx.storage.delete(item.storageId);
+      }
+      patch.storageId = storageId;
     }
 
     if (serviceId !== undefined) {

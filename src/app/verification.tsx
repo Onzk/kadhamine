@@ -2,18 +2,22 @@ import React, { useState } from 'react';
 import { View, Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
-import { Image } from 'expo-image';
-import * as ImagePicker from 'expo-image-picker';
+import { CheckCircle, WarningCircle } from 'phosphor-react-native';
 
 import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
-import { Button } from '@/components/ui/Button';
+import { AuthPrimaryButton } from '@/components/auth/AuthField';
 import { CategoryChip } from '@/components/ui/CategoryChip';
 import { Badge } from '@/components/ui/Badge';
+import {
+  ImagePickerField,
+  type ImagePickerValueItem,
+} from '@/components/ui/ImagePickerField';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { useAppDialog } from '@/providers/AppDialogProvider';
-import { useUpload } from '@/hooks/useUpload';
-import { Spacing } from '@/theme/tokens';
+import { Radius, Spacing } from '@/theme/tokens';
+import { textStyle } from '@/theme/typography';
 import { api } from '../../convex/_generated/api';
+import type { Id } from '../../convex/_generated/dataModel';
 
 type DocType = 'national_id' | 'passport';
 
@@ -21,55 +25,51 @@ export default function VerificationScreen() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
   const { alert } = useAppDialog();
-  const { uploadFromUri } = useUpload();
 
   const status = useQuery(api.verification.getStatus);
   const submit = useMutation(api.verification.submit);
 
   const [docType, setDocType] = useState<DocType>('national_id');
-  const [docUri, setDocUri] = useState<string | null>(null);
-  const [selfieUri, setSelfieUri] = useState<string | null>(null);
+  const [document, setDocument] = useState<ImagePickerValueItem[]>([]);
+  const [selfie, setSelfie] = useState<ImagePickerValueItem[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const capture = async (selfie: boolean) => {
-    const { status: perm } = await ImagePicker.requestCameraPermissionsAsync();
-    if (perm !== 'granted') {
-      alert({ title: 'Permission caméra requise' });
-      return;
-    }
-
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ['images'],
-      quality: 0.8,
-      cameraType: selfie ? ImagePicker.CameraType.front : ImagePicker.CameraType.back,
-    });
-
-    if (!result.canceled) {
-      if (selfie) setSelfieUri(result.assets[0].uri);
-      else setDocUri(result.assets[0].uri);
-    }
-  };
+  const canResubmit = !status || status.status === 'rejected';
+  const isPending = status?.status === 'pending';
+  const isApproved = status?.status === 'approved';
+  const rejectionReason = status?.status === 'rejected' ? status.reviewNotes : undefined;
 
   const handleSubmit = async () => {
-    if (!docUri || !selfieUri) {
+    const docId = document[0]?.storageId;
+    const selfieId = selfie[0]?.storageId;
+    if (!docId || !selfieId) {
       alert({
-        title: 'Documents requis',
-        message: "Scannez votre pièce d'identité et prenez un selfie.",
+        title: t('verification.docsRequiredTitle'),
+        message: t('verification.docsRequiredBody'),
       });
       return;
     }
 
     setLoading(true);
     try {
-      const docStorageId = await uploadFromUri(docUri);
-      const selfieStorageId = await uploadFromUri(selfieUri);
-      await submit({ documentType: docType, documentStorageId: docStorageId, selfieStorageId });
-      alert({
-        title: 'Envoyé',
-        message: 'Votre demande sera examinée par un administrateur.',
+      await submit({
+        documentType: docType,
+        documentStorageId: docId as Id<'_storage'>,
+        selfieStorageId: selfieId as Id<'_storage'>,
       });
-    } catch {
-      alert({ title: 'Erreur', message: "Impossible d'envoyer la demande" });
+      setDocument([]);
+      setSelfie([]);
+      alert({
+        title: t('verification.submittedTitle'),
+        message: t('verification.submittedBody'),
+        icon: <CheckCircle size={40} color={colors.orbit} weight="fill" />,
+      });
+    } catch (err) {
+      alert({
+        title: t('common.error'),
+        message:
+          err instanceof Error ? err.message : t('verification.submitError'),
+      });
     } finally {
       setLoading(false);
     }
@@ -78,88 +78,130 @@ export default function VerificationScreen() {
   return (
     <PageScaffold
       title={t('profile.verification')}
-      subtitle="Renforcez la confiance avec une identité vérifiée."
+      subtitle={t('verification.subtitle')}
       showBack
     >
       <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
-        {status?.status === 'pending' && (
-          <Badge label="En attente de validation" variant="accent" />
-        )}
-        {status?.status === 'approved' && (
-          <Badge label="Identité vérifiée" variant="verified" />
-        )}
-        {status?.status === 'rejected' && (
-          <Badge label="Demande refusée — réessayez" variant="danger" />
-        )}
+        {isPending ? (
+          <Badge label={t('verification.statusPending')} variant="accent" />
+        ) : null}
+        {isApproved ? (
+          <Badge label={t('verification.statusApproved')} variant="verified" />
+        ) : null}
+        {status?.status === 'rejected' ? (
+          <Badge label={t('verification.statusRejected')} variant="danger" />
+        ) : null}
 
-        <Text style={{ fontSize: 15, color: colors.body, marginVertical: 16, lineHeight: 22 }}>
-          Scannez votre carte nationale ou passeport, puis prenez un selfie pour obtenir le badge Vérifié.
+        <Text
+          style={{
+            fontSize: 15,
+            color: colors.body,
+            marginVertical: 16,
+            lineHeight: 22,
+          }}
+        >
+          {t('verification.intro')}
         </Text>
 
-        <Text style={{ fontSize: 13, fontWeight: '600', color: colors.body, marginBottom: 8 }}>
-          Type de document
-        </Text>
-        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 20 }}>
-          <CategoryChip
-            label="Carte nationale"
-            selected={docType === 'national_id'}
-            onPress={() => setDocType('national_id')}
-          />
-          <CategoryChip
-            label="Passeport"
-            selected={docType === 'passport'}
-            onPress={() => setDocType('passport')}
-          />
-        </View>
-
-        <View style={{ flexDirection: 'row', gap: 12, marginBottom: 20 }}>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 13, color: colors.muted, marginBottom: 8 }}>Document</Text>
-            <View
-              style={{
-                height: 120,
-                borderRadius: 20,
-                backgroundColor: colors.canvasSoft,
-                borderWidth: 0.1,
-                borderColor: colors.border,
-                overflow: 'hidden',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              {docUri ? (
-                <Image source={{ uri: docUri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
-              ) : (
-                <Button title="Scanner" variant="outline" onPress={() => capture(false)} />
-              )}
+        {rejectionReason ? (
+          <View
+            style={{
+              flexDirection: 'row',
+              gap: Spacing.two,
+              backgroundColor: colors.error + '12',
+              borderRadius: Radius.lg,
+              padding: Spacing.three,
+              marginBottom: Spacing.four,
+              borderWidth: 0.1,
+              borderColor: colors.error + '30',
+            }}
+          >
+            <WarningCircle size={20} color={colors.error} weight="fill" />
+            <View style={{ flex: 1 }}>
+              <Text
+                style={[
+                  textStyle('caption'),
+                  { color: colors.error, fontWeight: '600', marginBottom: 4 },
+                ]}
+              >
+                {t('verification.rejectionTitle')}
+              </Text>
+              <Text style={[textStyle('caption'), { color: colors.error }]}>
+                {rejectionReason}
+              </Text>
             </View>
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 13, color: colors.muted, marginBottom: 8 }}>Selfie</Text>
-            <View
-              style={{
-                height: 120,
-                borderRadius: 20,
-                backgroundColor: colors.canvasSoft,
-                borderWidth: 0.1,
-                borderColor: colors.border,
-                overflow: 'hidden',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              {selfieUri ? (
-                <Image source={{ uri: selfieUri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
-              ) : (
-                <Button title="Selfie" variant="outline" onPress={() => capture(true)} />
-              )}
-            </View>
-          </View>
-        </View>
+        ) : null}
 
-        {(!status || status.status === 'rejected') && (
-          <Button title="Soumettre pour vérification" onPress={handleSubmit} loading={loading} fullWidth />
-        )}
+        {isApproved ? (
+          <Text style={{ fontSize: 14, color: colors.muted, lineHeight: 20 }}>
+            {t('verification.approvedHint')}
+          </Text>
+        ) : null}
+
+        {isPending ? (
+          <Text style={{ fontSize: 14, color: colors.muted, lineHeight: 20 }}>
+            {t('verification.pendingHint')}
+          </Text>
+        ) : null}
+
+        {canResubmit ? (
+          <>
+            <Text
+              style={[
+                textStyle('body'),
+                {
+                  color: colors.ink,
+                  fontWeight: '600',
+                  marginBottom: Spacing.two,
+                },
+              ]}
+            >
+              {t('verification.docType')}
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 20 }}>
+              <CategoryChip
+                label={t('verification.nationalId')}
+                selected={docType === 'national_id'}
+                onPress={() => setDocType('national_id')}
+              />
+              <CategoryChip
+                label={t('verification.passport')}
+                selected={docType === 'passport'}
+                onPress={() => setDocType('passport')}
+              />
+            </View>
+
+            <ImagePickerField
+              label={t('verification.document')}
+              value={document}
+              onChange={setDocument}
+              maxCount={1}
+              mode="camera"
+              mediaTypes="images"
+              style={{ marginBottom: Spacing.five }}
+            />
+
+            <ImagePickerField
+              label={t('verification.selfie')}
+              value={selfie}
+              onChange={setSelfie}
+              maxCount={1}
+              mode="camera"
+              mediaTypes="images"
+              cameraFacing="front"
+              style={{ marginBottom: Spacing.six }}
+            />
+
+            <AuthPrimaryButton
+              title={t('verification.submit')}
+              onPress={handleSubmit}
+              loading={loading}
+              disabled={!document[0]?.storageId || !selfie[0]?.storageId}
+              tone="ink"
+            />
+          </>
+        ) : null}
       </View>
     </PageScaffold>
   );

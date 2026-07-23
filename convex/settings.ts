@@ -93,3 +93,58 @@ export const updateCommissionRate = mutation({
     return { commissionRate: args.rate };
   },
 });
+
+export const updatePlatform = mutation({
+  args: {
+    name: v.optional(v.string()),
+    supportEmail: v.optional(v.string()),
+    supportPhone: v.optional(v.string()),
+    currency: v.optional(v.string()),
+    commissionRate: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+
+    if (args.commissionRate !== undefined) {
+      if (args.commissionRate < 0 || args.commissionRate > 1) {
+        throw new Error('Le taux de commission doit être entre 0 et 1');
+      }
+    }
+
+    const existing = await ctx.db
+      .query('settings')
+      .withIndex('by_key', (q) => q.eq('key', PLATFORM_KEY))
+      .first();
+
+    const timestamp = now();
+    const patchValue: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(args)) {
+      if (value !== undefined) patchValue[key] = value;
+    }
+
+    if (existing) {
+      const prev = (existing.value as Record<string, unknown>) ?? {};
+      const next = { ...prev, ...patchValue };
+      await ctx.db.patch(existing._id, {
+        value: next,
+        updatedAt: timestamp,
+      });
+      return next;
+    }
+
+    const next = {
+      name: 'TalentTchad',
+      commissionRate: DEFAULT_COMMISSION_RATE,
+      currency: 'XAF',
+      supportEmail: 'support@talenttchad.com',
+      supportPhone: '',
+      ...patchValue,
+    };
+    await ctx.db.insert('settings', {
+      key: PLATFORM_KEY,
+      value: next,
+      updatedAt: timestamp,
+    });
+    return next;
+  },
+});
