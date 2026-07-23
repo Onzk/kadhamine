@@ -412,7 +412,52 @@ export default function ProfileScreen() {
           avatarLoading={avatarLoading}
         />
 
-        <SettingsSection title={t('profile.sectionAccount')} spaced={false}>
+        {isProvider ? (
+          <SettingsSection title={t('profile.sectionProvider')} spaced={false}>
+            <SettingsRow
+              icon={ChartBar}
+              title={t('profile.dashboard')}
+              description={t('profile.dashboardDesc')}
+              onPress={() => router.push('/provider/dashboard')}
+            />
+            <SettingsRow
+              icon={Wrench}
+              title={t('profile.myServices')}
+              description={t('profile.myServicesDesc')}
+              onPress={() => router.push('/provider/services')}
+            />
+            <SettingsRow
+              icon={Images}
+              title={t('service.portfolio')}
+              description={t('profile.portfolioDesc')}
+              onPress={() => router.push('/portfolio')}
+            />
+            {profile?._id ? (
+              <SettingsRow
+                icon={UserFocus}
+                title={t('profile.publicProfile')}
+                description={t('profile.publicProfileDesc')}
+                onPress={() =>
+                  router.push({ pathname: '/provider/[id]', params: { id: profile._id } })
+                }
+              />
+            ) : null}
+            <SettingsRow
+              icon={ShieldCheck}
+              title={t('profile.verification')}
+              description={t('profile.verificationDesc')}
+              onPress={() => router.push('/verification')}
+            />
+            <SettingsRow
+              icon={Crown}
+              title={t('profile.premium')}
+              description={t('profile.premiumDesc')}
+              onPress={() => router.push('/premium')}
+            />
+          </SettingsSection>
+        ) : null}
+
+        <SettingsSection title={t('profile.sectionAccount')} spaced={!isProvider}>
           <SettingsRow
             icon={User}
             title={t('profile.personalInfo')}
@@ -439,50 +484,6 @@ export default function ProfileScreen() {
               onPress={() => router.push('/(tabs)/orders')}
             />
           ) : null}
-          {isProvider ? (
-            <>
-              <SettingsRow
-                icon={ChartBar}
-                title={t('profile.dashboard')}
-                description={t('profile.dashboardDesc')}
-                onPress={() => router.push('/provider/dashboard')}
-              />
-              <SettingsRow
-                icon={Wrench}
-                title={t('profile.myServices')}
-                description={t('profile.myServicesDesc')}
-                onPress={() => router.push('/provider/services')}
-              />
-              <SettingsRow
-                icon={Images}
-                title={t('service.portfolio')}
-                description={t('profile.portfolioDesc')}
-                onPress={() => router.push('/portfolio')}
-              />
-              {profile?._id ? (
-                <SettingsRow
-                  icon={UserFocus}
-                  title={t('profile.publicProfile')}
-                  description={t('profile.publicProfileDesc')}
-                  onPress={() =>
-                    router.push({ pathname: '/provider/[id]', params: { id: profile._id } })
-                  }
-                />
-              ) : null}
-            </>
-          ) : null}
-          <SettingsRow
-            icon={ShieldCheck}
-            title={t('profile.verification')}
-            description={t('profile.verificationDesc')}
-            onPress={() => router.push('/verification')}
-          />
-          <SettingsRow
-            icon={Crown}
-            title={t('profile.premium')}
-            description={t('profile.premiumDesc')}
-            onPress={() => router.push('/premium')}
-          />
           {isAdmin ? (
             <SettingsRow
               icon={SquaresFour}

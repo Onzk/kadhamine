@@ -331,6 +331,7 @@
     "signUpDesc": "Créez un compte TalentTchad",
     "logoutDesc": "Quitter votre session en cours",
     "logoutConfirm": "Voulez-vous vraiment vous déconnecter ?",
+    "sectionProvider": "Espace prestataire",
     "sectionAccount": "Compte",
     "sectionPreferences": "Préférences",
     "sectionSupport": "Informations",
