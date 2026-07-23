@@ -12,19 +12,27 @@ export interface AlertBottomSheetProps {
   visible: boolean;
   onClose: () => void;
   title: string;
+  /** Petite description sous le titre (en-tête du sheet). */
+  subtitle?: string;
   message?: string;
+  detail?: string;
   buttonLabel?: string;
   onDismiss?: () => void;
+  /** Icône principale centrée au-dessus du message. */
+  icon?: React.ReactNode;
 }
 
-/** Message simple — un bouton de fermeture. */
+/** Message simple — icône optionnelle + un bouton d’action. */
 export function AlertBottomSheet({
   visible,
   onClose,
   title,
+  subtitle,
   message,
+  detail,
   buttonLabel = 'OK',
   onDismiss,
+  icon,
 }: AlertBottomSheetProps) {
   const { colors } = useAppTheme();
 
@@ -38,27 +46,61 @@ export function AlertBottomSheet({
       visible={visible}
       onClose={onClose}
       title={title}
+      subtitle={subtitle}
       scrollable={false}
       showHandle={false}
-      showClose={false}
-      maxHeightRatio={0.5}
+      showClose
+      maxHeightRatio={0.62}
     >
-      <View style={{ alignSelf: 'stretch', width: '100%', paddingBottom: Spacing.four }}>
+      <View style={{ alignSelf: 'stretch', width: '100%' }}>
+        {icon ? (
+          <View style={{ alignItems: 'center', marginBottom: Spacing.five }}>
+            <View
+              style={{
+                width: 72,
+                height: 72,
+                borderRadius: 36,
+                backgroundColor: colors.orbitWash,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {icon}
+            </View>
+          </View>
+        ) : null}
+
         {message ? (
-          <Text variant="body" style={{ color: colors.muted, marginBottom: Spacing.five }}>
+          <Text
+            variant="body"
+            style={{
+              color: colors.ink,
+              marginBottom: detail || icon ? Spacing.three : Spacing.five,
+              textAlign: icon ? 'center' : 'left',
+            }}
+          >
             {message}
           </Text>
         ) : (
           <View style={{ height: Spacing.two }} />
         )}
+
+        {detail ? (
+          <Text
+            variant="body"
+            style={{
+              color: colors.muted,
+              marginBottom: Spacing.five,
+              textAlign: icon ? 'center' : 'left',
+            }}
+          >
+            {detail}
+          </Text>
+        ) : null}
+
         <SheetActionsFooter>
           <SheetSingleAction>
-            <AuthPrimaryButton
-              title={buttonLabel}
-              onPress={handlePress}
-              tone="ink"
-              flat
-            />
+            <AuthPrimaryButton title={buttonLabel} onPress={handlePress} tone="ink" flat />
           </SheetSingleAction>
         </SheetActionsFooter>
       </View>

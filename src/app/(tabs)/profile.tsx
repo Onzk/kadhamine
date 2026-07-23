@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, Pressable, Linking, type LayoutChangeEvent } from 'react-native';
+import { View, Text, Pressable, Linking, ActivityIndicator, type LayoutChangeEvent } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAction, useMutation } from 'convex/react';
@@ -56,7 +56,7 @@ export default function ProfileScreen() {
   const { t } = useTranslation();
   const { colors, mode, setMode } = useAppTheme();
   const { alert, confirm } = useAppDialog();
-  const { user, signOut } = useAuth();
+  const { user, isLoading, signOut } = useAuth();
   const { language, setLanguage } = useAppLanguage();
   const router = useRouter();
   const { uploadFromUri } = useUpload();
@@ -88,8 +88,6 @@ export default function ProfileScreen() {
 
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [guestPanelHeight, setGuestPanelHeight] = useState(GUEST_PANEL_FALLBACK_HEIGHT);
-
-  const isGuest = !user;
 
   const onGuestPanelLayout = useCallback((e: LayoutChangeEvent) => {
     const next = Math.ceil(e.nativeEvent.layout.height);
@@ -266,6 +264,23 @@ export default function ProfileScreen() {
     },
     [profile, t, updateAvatar, uploadFromUri, alert],
   );
+
+  if (isLoading) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: colors.canvas,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <ActivityIndicator size="large" color={colors.orbit} />
+      </View>
+    );
+  }
+
+  const isGuest = user === null;
 
   if (isGuest) {
     return (

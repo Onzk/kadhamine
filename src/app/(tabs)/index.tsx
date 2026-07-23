@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { View, Pressable, ScrollView } from 'react-native';
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
 import {
@@ -23,8 +23,11 @@ import { TrustStrip } from '@/components/ui/TrustStrip';
 import { PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { SearchBar } from '@/components/ui/SearchBar';
 import { Text } from '@/components/ui/ThemedText';
+import { getWelcomeAlertOptions } from '@/lib/welcomeAlert';
 import { useAuth } from '@/providers/AuthProvider';
+import { useAppDialog } from '@/providers/AppDialogProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
+import { consumePendingWelcome } from '@/services/pendingWelcome';
 import { Spacing } from '@/theme/tokens';
 import { textStyle } from '@/theme/typography';
 import { api } from '../../../convex/_generated/api';
@@ -36,6 +39,7 @@ export default function HomeScreen() {
   const { t } = useTranslation();
   const { colors, toggle, isDark } = useAppTheme();
   const { user } = useAuth();
+  const { alert } = useAppDialog();
   const router = useRouter();
 
   const categories = useQuery(api.categories.listWithCounts, { activeOnly: true });
@@ -49,6 +53,24 @@ export default function HomeScreen() {
     seedCategories({}).catch(() => {});
     seedSettings({}).catch(() => {});
   }, [seedCategories, seedSettings]);
+
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      const timer = setTimeout(() => {
+        void (async () => {
+          const kind = await consumePendingWelcome();
+          if (cancelled || !kind) return;
+          alert(getWelcomeAlertOptions(kind, t, colors.orbit));
+        })();
+      }, 350);
+
+      return () => {
+        cancelled = true;
+        clearTimeout(timer);
+      };
+    }, [alert, colors.orbit, t]),
+  );
 
   const isGuest = !user;
   const firstName = user?.profile?.firstName ?? '';

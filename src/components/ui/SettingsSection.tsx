@@ -49,9 +49,9 @@ export function SettingsSection({ title, children, spaced = true }: SettingsSect
             {index < arr.length - 1 ? (
               <View
                 style={{
-                  height: 0.5,
-                  backgroundColor: colors.borderHairline,
-                  marginLeft: 40 + Spacing.three + Spacing.four,
+                  alignSelf: 'stretch',
+                  borderTopWidth: 0.1,
+                  borderTopColor: colors.border,
                 }}
               />
             ) : null}

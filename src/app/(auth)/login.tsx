@@ -27,6 +27,7 @@ import { AuthScaffold } from '@/components/auth/AuthScaffold';
 import { ForgotPasswordSheet } from '@/components/auth/ForgotPasswordSheet';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { useAppDialog } from '@/providers/AppDialogProvider';
+import { setPendingWelcome } from '@/services/pendingWelcome';
 import { Radius, Spacing } from '@/theme/tokens';
 import { fontFamily, textStyle } from '@/theme/typography';
 
@@ -78,12 +79,8 @@ export default function LoginScreen() {
         await AsyncStorage.removeItem(REMEMBER_EMAIL_KEY);
       }
 
-      alert({
-        title: t('auth.welcomeBack'),
-        message: t('auth.welcomeLoginMessage'),
-        buttonLabel: t('common.done'),
-        onPress: () => router.replace('/'),
-      });
+      await setPendingWelcome('login');
+      router.replace('/');
     } catch (err) {
       setError('Email ou mot de passe incorrect.');
       console.error(err);

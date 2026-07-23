@@ -33,6 +33,7 @@ import { useAppTheme } from '@/providers/ThemeProvider';
 import { useAppDialog } from '@/providers/AppDialogProvider';
 import { MVP_CITIES, MVP_CITY_REGION, type MvpCity } from '@/constants/chad';
 import { withAuthRetry } from '@/lib/authRetry';
+import { setPendingWelcome } from '@/services/pendingWelcome';
 import { textStyle } from '@/theme/typography';
 import { Radius, Spacing } from '@/theme/tokens';
 import { api } from '../../../convex/_generated/api';
@@ -123,12 +124,8 @@ export default function RegisterScreen() {
         }),
       );
 
-      alert({
-        title: t('onboarding.welcome'),
-        message: t('auth.welcomeRegisterMessage'),
-        buttonLabel: t('common.done'),
-        onPress: () => router.replace('/'),
-      });
+      await setPendingWelcome('register');
+      router.replace('/');
     } catch (err) {
       setError("Erreur lors de l'inscription. Cet email est peut-être déjà utilisé.");
       console.error(err);

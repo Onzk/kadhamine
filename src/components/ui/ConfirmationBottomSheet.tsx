@@ -48,7 +48,7 @@ export function ConfirmationBottomSheet({
       showClose={false}
       maxHeightRatio={0.5}
     >
-      <View style={{ alignSelf: 'stretch', width: '100%', paddingBottom: Spacing.four }}>
+      <View style={{ alignSelf: 'stretch', width: '100%' }}>
         {message ? (
           <Text variant="body" style={{ color: colors.muted, marginBottom: Spacing.five }}>
             {message}

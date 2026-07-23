@@ -17,7 +17,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { fontFamily, textStyle } from '@/theme/typography';
-import { BrandColors, getInvertedInputColors, Radius, Shadows, Spacing } from '@/theme/tokens';
+import { getInvertedInputColors, Radius, Shadows, Spacing } from '@/theme/tokens';
 
 /** Light auth fields use 8–12 radius (not pill / not design-system md=20). */
 const LIGHT_FIELD_RADIUS = 12;
@@ -277,7 +277,7 @@ export function AuthPrimaryButton({
         : isDanger
           ? colors.error
           : isInk
-            ? BrandColors.ink
+            ? colors.ink
             : colors.orbit));
   const fg = isDisabled
     ? colors.muted

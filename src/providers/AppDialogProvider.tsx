@@ -6,9 +6,12 @@ import { ConfirmationBottomSheet } from '@/components/ui/ConfirmationBottomSheet
 
 export type AppAlertOptions = {
   title: string;
+  subtitle?: string;
   message?: string;
+  detail?: string;
   buttonLabel?: string;
   onPress?: () => void;
+  icon?: React.ReactNode;
 };
 
 export type AppConfirmOptions = {
@@ -72,9 +75,12 @@ export function AppDialogProvider({ children }: { children: React.ReactNode }) {
         visible={alertOptions != null}
         onClose={closeAlert}
         title={alertOptions?.title ?? ''}
+        subtitle={alertOptions?.subtitle}
         message={alertOptions?.message}
+        detail={alertOptions?.detail}
         buttonLabel={alertOptions?.buttonLabel ?? 'OK'}
         onDismiss={alertOptions?.onPress}
+        icon={alertOptions?.icon}
       />
       <ConfirmationBottomSheet
         visible={confirmOptions != null}

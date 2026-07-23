@@ -181,6 +181,8 @@ export function AppBottomSheet({
   const { height: windowHeight } = useWindowDimensions();
   /** Zone status bar / notch — la sheet ne doit jamais y entrer. */
   const topClearance = Math.max(insets.top, Spacing.three);
+  /** Safe area bas — padding interne du contenu (pas de lift du sheet). */
+  const systemBottom = Math.max(insets.bottom, 0);
   const maxSheetHeight = Math.round(
     Math.min(windowHeight * maxHeightRatio, windowHeight - topClearance),
   );
@@ -378,8 +380,9 @@ export function AppBottomSheet({
   const handleBlockHeight = showHandle ? HANDLE_BLOCK_H : 0;
   const scrollMaxHeight = Math.max(effectiveMaxHeight - handleBlockHeight, 120);
 
-  const bottomSafe = Math.max(insets.bottom, Spacing.four);
-  const sheetBottomPad = keyboardOpen ? Spacing.four : bottomSafe;
+  const sheetLift = keyboardOpen ? keyboardHeight : 0;
+  /** Padding bas interne : safe area + marge pour l’action. */
+  const sheetBottomPad = systemBottom + Spacing.twelve;
   const useSticky = scrollable && stickyHeader;
   const sheetBg = colors.canvas;
 
@@ -458,7 +461,7 @@ export function AppBottomSheet({
                 width: '100%',
                 backgroundColor: sheetBg,
                 overflow: 'hidden',
-                marginBottom: keyboardHeight,
+                marginBottom: sheetLift,
                 borderTopLeftRadius: Radius.xl,
                 borderTopRightRadius: Radius.xl,
                 ...(keyboardOpen && scrollable ? { flex: 1, maxHeight: effectiveMaxHeight } : null),
