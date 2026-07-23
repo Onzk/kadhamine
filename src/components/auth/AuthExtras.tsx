@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { Briefcase, UsersThree } from 'phosphor-react-native';
+import { Briefcase, UsersThree, CaretLeft } from 'phosphor-react-native';
 import { useTranslation } from 'react-i18next';
 
 import { Logo } from '@/components/brand/Logo';
@@ -234,6 +234,121 @@ export function AuthLogoMark({ size = 72 }: AuthLogoMarkProps) {
           <Logo size={size} />
         </View>
       </View>
+    </View>
+  );
+}
+
+interface AuthStepperProps {
+  step: number;
+  total: number;
+}
+
+/** Indicateur d’étapes segmenté (register multi-étapes). */
+export function AuthStepper({ step, total }: AuthStepperProps) {
+  const { colors } = useAppTheme();
+
+  return (
+    <View style={{ marginBottom: Spacing.six }}>
+      <View style={{ flexDirection: 'row', gap: 6, marginBottom: Spacing.two }}>
+        {Array.from({ length: total }).map((_, i) => (
+          <View
+            key={i}
+            style={{
+              flex: 1,
+              height: 5,
+              borderRadius: 3,
+              backgroundColor: i < step ? colors.orbit : colors.border,
+            }}
+          />
+        ))}
+      </View>
+      <Text
+        style={[
+          textStyle('micro'),
+          { color: colors.muted, fontFamily: fontFamily('body', 'medium') },
+        ]}
+      >
+        Étape {step} sur {total}
+      </Text>
+    </View>
+  );
+}
+
+interface AuthHeaderProps {
+  title: string;
+  subtitle?: string;
+  onBack?: () => void;
+  showLogo?: boolean;
+}
+
+/** En-tête auth cohérent — retour, logo de marque, titre, sous-texte. */
+export function AuthHeader({ title, subtitle, onBack, showLogo = true }: AuthHeaderProps) {
+  const { colors } = useAppTheme();
+
+  return (
+    <View>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: Spacing.six,
+        }}
+      >
+        {onBack ? (
+          <Pressable
+            onPress={onBack}
+            hitSlop={8}
+            style={({ pressed }) => ({
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              backgroundColor: colors.surfaceCard,
+              borderWidth: 1,
+              borderColor: colors.border,
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: pressed ? 0.85 : 1,
+            })}
+          >
+            <CaretLeft size={20} color={colors.ink} weight="bold" />
+          </Pressable>
+        ) : (
+          <View style={{ width: 44 }} />
+        )}
+
+        {showLogo ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.two }}>
+            <Logo size={26} />
+            <Text
+              style={{
+                fontFamily: fontFamily('body', 'bold'),
+                fontSize: 17,
+                color: colors.ink,
+                letterSpacing: -0.3,
+              }}
+            >
+              TalentTchad
+            </Text>
+          </View>
+        ) : (
+          <View style={{ width: 44 }} />
+        )}
+
+        <View style={{ width: 44 }} />
+      </View>
+
+      <Text
+        style={[
+          textStyle('productDisplay'),
+          { color: colors.ink, marginBottom: subtitle ? Spacing.two : 0 },
+        ]}
+      >
+        {title}
+      </Text>
+      {subtitle ? (
+        <Text style={[textStyle('body'), { color: colors.muted, lineHeight: 24 }]}>{subtitle}</Text>
+      ) : null}
     </View>
   );
 }

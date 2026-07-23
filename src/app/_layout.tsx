@@ -41,7 +41,7 @@ function RootContent() {
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <AnimatedSplashOverlay />
       <AuthProvider>
-        <AppSafeArea>
+        <AppSafeArea edges={['top', 'left', 'right']}>
           <Slot />
         </AppSafeArea>
       </AuthProvider>

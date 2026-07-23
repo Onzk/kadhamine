@@ -1,23 +1,20 @@
 import React, { useMemo, useState } from 'react';
-import { View, TextInput, Text, Pressable } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { View, TextInput, Text } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useQuery } from 'convex/react';
-import { MagnifyingGlass, X } from 'phosphor-react-native';
+import { MagnifyingGlass } from 'phosphor-react-native';
 
 import { CategoryMasonryGrid } from '@/components/ui/CategoryMasonryGrid';
+import { FlutterFab } from '@/components/ui/FlutterFab';
 import { PageScaffold } from '@/components/ui/PageHeader';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { Radius, Shadows, Spacing } from '@/theme/tokens';
 import { textStyle } from '@/theme/typography';
 import { api } from '../../../convex/_generated/api';
 
-const FAB_SIZE = 56;
-
 export default function CategoriesScreen() {
   const { colors } = useAppTheme();
   const router = useRouter();
-  const params = useLocalSearchParams<{ from?: string }>();
-  const fromSearch = params.from === 'search';
   const [search, setSearch] = useState('');
 
   const categories = useQuery(api.categories.listWithCounts, { activeOnly: true });
@@ -51,7 +48,6 @@ export default function CategoriesScreen() {
       <PageScaffold
         title="Catégories"
         subtitle="Explorez les métiers et talents disponibles sur TalentTchad."
-        showBack={!fromSearch}
         contentContainerStyle={{ paddingBottom: 100 }}
         headerActions={
           <View
@@ -97,27 +93,14 @@ export default function CategoriesScreen() {
         </View>
       </PageScaffold>
 
-      {/* FAB X — retour Recherche */}
-      <Pressable
-        onPress={() => goToSearch()}
-        accessibilityLabel="Fermer et revenir à la recherche"
-        style={({ pressed }) => ({
-          position: 'absolute',
-          right: Spacing.four,
-          bottom: Spacing.four,
-          width: FAB_SIZE,
-          height: FAB_SIZE,
-          borderRadius: FAB_SIZE / 2,
-          backgroundColor: colors.ink,
-          alignItems: 'center',
-          justifyContent: 'center',
-          opacity: pressed ? 0.9 : 1,
-          transform: [{ scale: pressed ? 0.96 : 1 }],
-          ...Shadows.elevated,
-        })}
-      >
-        <X size={24} color={colors.onPrimary} weight="bold" />
-      </Pressable>
+      <FlutterFab
+        absolute
+        onPressed={() => goToSearch()}
+        icon={<MagnifyingGlass size={24} color={colors.onPrimary} weight="bold" />}
+        backgroundColor={colors.ink}
+        foregroundColor={colors.onPrimary}
+        accessibilityLabel="Revenir à la recherche"
+      />
     </View>
   );
 }

@@ -3,22 +3,20 @@ import { View, TextInput, ScrollView, Pressable, Text } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from 'convex/react';
-import { MagnifyingGlass as SearchIcon, MapPin, SquaresFour, X } from 'phosphor-react-native';
+import { MagnifyingGlass as SearchIcon, SquaresFour, X } from 'phosphor-react-native';
 import type { Id } from '../../../convex/_generated/dataModel';
 
 import { ServiceCard } from '@/components/cards/ServiceCard';
 import { FilterChip } from '@/components/ui/FilterChip';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ServiceCardSkeleton } from '@/components/ui/Skeleton';
+import { FlutterFab } from '@/components/ui/FlutterFab';
 import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { useLocation } from '@/hooks/useLocation';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { Radius, Shadows, Spacing } from '@/theme/tokens';
 import { fontFamily, textStyle } from '@/theme/typography';
 import { api } from '../../../convex/_generated/api';
-
-const FAB_SIZE = 56;
-const FAB_GAP = 12;
 
 export default function SearchScreen() {
   const { t } = useTranslation();
@@ -36,11 +34,6 @@ export default function SearchScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(params.categoryId);
 
   const categories = useQuery(api.categories.list, { activeOnly: true });
-  const mapTalents = useQuery(api.services.listForMap, {
-    latitude,
-    longitude,
-    radiusKm: 50,
-  });
 
   useEffect(() => {
     if (params.categoryId) setSelectedCategory(params.categoryId);
@@ -63,7 +56,6 @@ export default function SearchScreen() {
   });
 
   const resultCount = services?.length;
-  const mapCount = mapTalents?.length ?? 0;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.canvas }}>
@@ -96,9 +88,8 @@ export default function SearchScreen() {
             />
           </View>
         }
-        contentContainerStyle={{ paddingBottom: 160 }}
+        contentContainerStyle={{ paddingBottom: 120 }}
       >
-        {/* Filtres — pills py-2.5 / px-3 */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -141,7 +132,6 @@ export default function SearchScreen() {
           />
         </ScrollView>
 
-        {/* Catégorie active (si filtrée via la page Catégories) */}
         {selectedCategory && selectedCategoryLabel ? (
           <View
             style={{
@@ -230,73 +220,14 @@ export default function SearchScreen() {
         </View>
       </PageScaffold>
 
-      {/* FAB Catégories — au-dessus de la carte */}
-      <Pressable
-        onPress={() =>
-          router.push({ pathname: '/(tabs)/categories', params: { from: 'search' } })
-        }
-        accessibilityLabel="Ouvrir les catégories"
-        style={({ pressed }) => ({
-          position: 'absolute',
-          right: Spacing.four,
-          bottom: Spacing.four + FAB_SIZE + FAB_GAP,
-          width: FAB_SIZE,
-          height: FAB_SIZE,
-          borderRadius: FAB_SIZE / 2,
-          backgroundColor: colors.ink,
-          alignItems: 'center',
-          justifyContent: 'center',
-          opacity: pressed ? 0.9 : 1,
-          transform: [{ scale: pressed ? 0.96 : 1 }],
-          ...Shadows.elevated,
-        })}
-      >
-        <SquaresFour size={24} color={colors.onPrimary} weight="fill" />
-      </Pressable>
-
-      {/* FAB Carte */}
-      <Pressable
-        onPress={() => router.push('/map' as never)}
-        accessibilityLabel="Ouvrir la carte"
-        style={({ pressed }) => ({
-          position: 'absolute',
-          right: Spacing.four,
-          bottom: Spacing.four,
-          width: FAB_SIZE,
-          height: FAB_SIZE,
-          borderRadius: FAB_SIZE / 2,
-          backgroundColor: colors.orbit,
-          alignItems: 'center',
-          justifyContent: 'center',
-          opacity: pressed ? 0.9 : 1,
-          transform: [{ scale: pressed ? 0.96 : 1 }],
-          ...Shadows.elevated,
-        })}
-      >
-        <MapPin size={24} color={colors.onPrimary} weight="fill" />
-        {mapCount > 0 ? (
-          <View
-            style={{
-              position: 'absolute',
-              top: -2,
-              right: -2,
-              minWidth: 22,
-              height: 22,
-              borderRadius: 11,
-              backgroundColor: colors.ink,
-              alignItems: 'center',
-              justifyContent: 'center',
-              paddingHorizontal: 5,
-              borderWidth: 2,
-              borderColor: colors.canvas,
-            }}
-          >
-            <Text style={[textStyle('micro'), { color: colors.onPrimary, fontSize: 10 }]}>
-              {mapCount > 99 ? '99+' : mapCount}
-            </Text>
-          </View>
-        ) : null}
-      </Pressable>
+      <FlutterFab
+        absolute
+        onPressed={() => router.push('/(tabs)/categories')}
+        icon={<SquaresFour size={24} color={colors.onPrimary} weight="fill" />}
+        backgroundColor={colors.orbit}
+        foregroundColor={colors.onPrimary}
+        accessibilityLabel="Voir les catégories"
+      />
     </View>
   );
 }

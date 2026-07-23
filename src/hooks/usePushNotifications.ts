@@ -1,23 +1,39 @@
 import { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import { useMutation } from 'convex/react';
-import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
-import Constants from 'expo-constants';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { api } from '../../convex/_generated/api';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+/**
+ * Expo Go (storeClient) ne supporte plus les push tokens distants depuis SDK 53.
+ * On évite tout import statique d'`expo-notifications` (dont l'auto-enregistrement
+ * se déclenche à l'import) pour ne pas polluer Expo Go avec l'erreur.
+ * Les push restent opérationnels dans un development/production build.
+ */
+const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
+let handlerConfigured = false;
 
 async function registerForPushAsync(): Promise<string | null> {
+  if (isExpoGo) return null;
+
+  const Device = await import('expo-device');
+  const Notifications = await import('expo-notifications');
+
   if (!Device.isDevice) return null;
+
+  if (!handlerConfigured) {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+    handlerConfigured = true;
+  }
 
   const { status: existing } = await Notifications.getPermissionsAsync();
   let finalStatus = existing;
@@ -28,8 +44,7 @@ async function registerForPushAsync(): Promise<string | null> {
   if (finalStatus !== 'granted') return null;
 
   const projectId =
-    Constants.expoConfig?.extra?.eas?.projectId ??
-    Constants.easConfig?.projectId;
+    Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
 
   const token = await Notifications.getExpoPushTokenAsync(
     projectId ? { projectId } : undefined,
@@ -51,7 +66,7 @@ export function usePushNotifications(isAuthenticated: boolean) {
   const registered = useRef(false);
 
   useEffect(() => {
-    if (!isAuthenticated || registered.current) return;
+    if (!isAuthenticated || registered.current || isExpoGo) return;
 
     let cancelled = false;
     (async () => {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { View, Text, Pressable, type ViewStyle, type StyleProp } from 'react-native';
 import { CaretLeft } from 'phosphor-react-native';
 import { useRouter } from 'expo-router';
@@ -205,6 +205,8 @@ export interface PageScaffoldProps {
   children: React.ReactNode;
   contentContainerStyle?: StyleProp<ViewStyle>;
   stickyEnabled?: boolean;
+  /** Callback JS du offset Y (ex. FAB étendu / replié). */
+  onScrollYChange?: (y: number) => void;
 }
 
 /**
@@ -221,15 +223,23 @@ export function PageScaffold({
   children,
   contentContainerStyle,
   stickyEnabled = true,
+  onScrollYChange,
 }: PageScaffoldProps) {
   const { colors } = useAppTheme();
   const scrollY = useSharedValue(0);
   const [stickyActive, setStickyActive] = useState(false);
+  const onScrollYChangeRef = useRef(onScrollYChange);
+  onScrollYChangeRef.current = onScrollYChange;
+
+  const notifyScrollY = (y: number) => {
+    onScrollYChangeRef.current?.(y);
+  };
 
   const onScroll = useAnimatedScrollHandler({
     onScroll: (e) => {
       scrollY.value = e.contentOffset.y;
       runOnJS(setStickyActive)(e.contentOffset.y > STICKY_THRESHOLD - 8);
+      runOnJS(notifyScrollY)(e.contentOffset.y);
     },
   });
 

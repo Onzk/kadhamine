@@ -24,6 +24,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { FilterChip } from '@/components/ui/FilterChip';
+import { FlutterFab, FLUTTER_FAB } from '@/components/ui/FlutterFab';
 import { TalentMapPin } from '@/components/map/TalentMapPin';
 import { MapTalentRow } from '@/components/map/MapTalentRow';
 import { useAppTheme } from '@/providers/ThemeProvider';
@@ -121,6 +122,11 @@ export default function MapScreen() {
 
   const sheetStyle = useAnimatedStyle(() => ({
     height: sheetHeight.value,
+  }));
+
+  // Le mini FAB de recentrage suit le sheet (reste 16px au-dessus).
+  const recenterStyle = useAnimatedStyle(() => ({
+    bottom: sheetHeight.value + FLUTTER_FAB.edgeMargin,
   }));
 
   const focusTalent = useCallback(
@@ -286,19 +292,22 @@ export default function MapScreen() {
         ))}
       </ScrollView>
 
-      {/* Indicateur rayon — bas gauche */}
-      <View
-        style={{
-          position: 'absolute',
-          left: Spacing.four,
-          bottom: SHEET_COLLAPSED + Spacing.four,
-          flexDirection: 'row',
-          backgroundColor: colors.surfaceCard,
-          borderRadius: Radius.pill,
-          padding: 4,
-          gap: 2,
-          ...Shadows.nav,
-        }}
+      {/* Indicateur rayon — bas gauche, suit le sheet */}
+      <Animated.View
+        style={[
+          {
+            position: 'absolute',
+            left: Spacing.four,
+            flexDirection: 'row',
+            backgroundColor: colors.surfaceCard,
+            borderRadius: Radius.pill,
+            padding: 4,
+            gap: 2,
+            zIndex: 20,
+            ...Shadows.nav,
+          },
+          recenterStyle,
+        ]}
       >
         {[5, 15, 25, 50].map((r) => (
           <Pressable
@@ -324,27 +333,23 @@ export default function MapScreen() {
             </Text>
           </Pressable>
         ))}
-      </View>
+      </Animated.View>
 
-      {/* Bouton recentrage — au-dessus du sheet */}
-      <Pressable
-        onPress={recenter}
-        style={({ pressed }) => ({
-          position: 'absolute',
-          right: Spacing.four,
-          bottom: SHEET_COLLAPSED + Spacing.four,
-          width: 48,
-          height: 48,
-          borderRadius: 24,
-          backgroundColor: colors.surfaceCard,
-          alignItems: 'center',
-          justifyContent: 'center',
-          opacity: pressed ? 0.9 : 1,
-          ...Shadows.elevated,
-        })}
+      {/* Mini FAB recentrage — suit le sheet, reste visible au-dessus */}
+      <Animated.View
+        pointerEvents="box-none"
+        style={[{ position: 'absolute', right: FLUTTER_FAB.edgeMargin, zIndex: 20 }, recenterStyle]}
       >
-        <Crosshair size={22} color={colors.ink} weight="bold" />
-      </Pressable>
+        <FlutterFab
+          size="small"
+          onPressed={recenter}
+          accessibilityLabel="Recentrer sur ma position"
+          backgroundColor={colors.surfaceCard}
+          foregroundColor={colors.ink}
+          borderColor={colors.border}
+          icon={<Crosshair size={FLUTTER_FAB.smallIconSize} color={colors.ink} weight="bold" />}
+        />
+      </Animated.View>
 
       {/* Bottom sheet draggable */}
       <GestureDetector gesture={pan}>

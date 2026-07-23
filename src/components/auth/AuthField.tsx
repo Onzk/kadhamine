@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -7,38 +7,65 @@ import {
   ActivityIndicator,
   type TextInputProps,
 } from 'react-native';
-import { Eye, EyeSlash, AppleLogo, GoogleLogo } from 'phosphor-react-native';
+import { Eye, EyeSlash, AppleLogo, GoogleLogo, Check } from 'phosphor-react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { fontFamily, textStyle } from '@/theme/typography';
 import { Radius, Shadows, Spacing } from '@/theme/tokens';
 
+/** Validation email simple mais robuste. */
+export function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+/** Score de robustesse mot de passe (0–4). */
+export function passwordScore(pw: string): number {
+  if (!pw) return 0;
+  let score = 0;
+  if (pw.length >= 6) score += 1;
+  if (pw.length >= 10) score += 1;
+  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score += 1;
+  if (/\d/.test(pw) || /[^A-Za-z0-9]/.test(pw)) score += 1;
+  return Math.min(4, score);
+}
+
 interface AuthFieldProps extends TextInputProps {
   label: string;
   error?: string;
+  hint?: string;
   isPassword?: boolean;
   showPassword?: boolean;
   onTogglePassword?: () => void;
+  leftIcon?: React.ReactNode;
 }
 
-/** Champ auth — label gras, focus bordure orange, œil password. */
+/** Champ auth — label, icône, focus orange, validation, œil password. */
 export function AuthField({
   label,
   error,
+  hint,
   isPassword,
   showPassword,
   onTogglePassword,
+  leftIcon,
   style,
   onFocus,
   onBlur,
+  value,
   ...props
 }: AuthFieldProps) {
   const { colors } = useAppTheme();
   const [focused, setFocused] = useState(false);
 
+  const borderColor = error
+    ? colors.error
+    : focused
+      ? colors.orbit
+      : colors.border;
+
   return (
-    <View style={{ marginBottom: Spacing.five }}>
+    <View style={{ marginBottom: Spacing.four }}>
       <Text
         style={[
           textStyle('caption'),
@@ -57,13 +84,16 @@ export function AuthField({
           alignItems: 'center',
           backgroundColor: colors.surfaceCard,
           borderWidth: focused || error ? 1.5 : 1,
-          borderColor: error ? colors.error : focused ? colors.orbit : colors.border,
-          borderRadius: 16,
+          borderColor,
+          borderRadius: Radius.lg,
           paddingHorizontal: Spacing.four,
-          minHeight: 52,
+          minHeight: 54,
+          gap: Spacing.two,
         }}
       >
+        {leftIcon ? <View style={{ marginRight: 2 }}>{leftIcon}</View> : null}
         <TextInput
+          value={value}
           placeholderTextColor={colors.muted}
           secureTextEntry={isPassword && !showPassword}
           onFocus={(e) => {
@@ -87,11 +117,7 @@ export function AuthField({
           {...props}
         />
         {isPassword ? (
-          <Pressable
-            onPress={onTogglePassword}
-            hitSlop={10}
-            style={{ padding: 4 }}
-          >
+          <Pressable onPress={onTogglePassword} hitSlop={10} style={{ padding: 4 }}>
             {showPassword ? (
               <EyeSlash size={20} color={colors.muted} />
             ) : (
@@ -104,7 +130,53 @@ export function AuthField({
         <Text style={[textStyle('micro'), { color: colors.error, marginTop: Spacing.oneHalf }]}>
           {error}
         </Text>
+      ) : hint ? (
+        <Text style={[textStyle('micro'), { color: colors.muted, marginTop: Spacing.oneHalf }]}>
+          {hint}
+        </Text>
       ) : null}
+    </View>
+  );
+}
+
+interface PasswordStrengthMeterProps {
+  password: string;
+}
+
+/** Barre de force du mot de passe — 4 segments + label. */
+export function PasswordStrengthMeter({ password }: PasswordStrengthMeterProps) {
+  const { colors } = useAppTheme();
+  const score = useMemo(() => passwordScore(password), [password]);
+
+  if (!password) return null;
+
+  const scale = [colors.error, colors.error, colors.warning, colors.orbit, colors.success];
+  const labels = ['Trop court', 'Faible', 'Moyen', 'Fort', 'Excellent'];
+  const activeColor = scale[score];
+
+  return (
+    <View style={{ marginTop: -Spacing.two, marginBottom: Spacing.four }}>
+      <View style={{ flexDirection: 'row', gap: 6 }}>
+        {[0, 1, 2, 3].map((i) => (
+          <View
+            key={i}
+            style={{
+              flex: 1,
+              height: 4,
+              borderRadius: 2,
+              backgroundColor: i < score ? activeColor : colors.border,
+            }}
+          />
+        ))}
+      </View>
+      <Text
+        style={[
+          textStyle('micro'),
+          { color: activeColor, marginTop: Spacing.oneHalf, fontFamily: fontFamily('body', 'medium') },
+        ]}
+      >
+        Sécurité : {labels[score]}
+      </Text>
     </View>
   );
 }
@@ -114,10 +186,11 @@ interface AuthPrimaryButtonProps {
   onPress: () => void;
   loading?: boolean;
   disabled?: boolean;
+  icon?: React.ReactNode;
 }
 
 /** CTA principal — orange corail pleine largeur. */
-export function AuthPrimaryButton({ title, onPress, loading, disabled }: AuthPrimaryButtonProps) {
+export function AuthPrimaryButton({ title, onPress, loading, disabled, icon }: AuthPrimaryButtonProps) {
   const { colors } = useAppTheme();
 
   return (
@@ -125,20 +198,26 @@ export function AuthPrimaryButton({ title, onPress, loading, disabled }: AuthPri
       onPress={onPress}
       disabled={disabled || loading}
       style={({ pressed }) => ({
+        flexDirection: 'row',
+        gap: Spacing.two,
         backgroundColor: colors.orbit,
         borderRadius: Radius.pill,
-        minHeight: 52,
+        minHeight: 54,
         paddingHorizontal: Spacing.six,
         alignItems: 'center',
         justifyContent: 'center',
-        opacity: disabled || loading ? 0.5 : pressed ? 0.9 : 1,
+        opacity: disabled ? 0.45 : loading ? 0.8 : pressed ? 0.9 : 1,
+        transform: [{ scale: pressed && !disabled ? 0.99 : 1 }],
         ...Shadows.nav,
       })}
     >
       {loading ? (
         <ActivityIndicator color={colors.onPrimary} />
       ) : (
-        <Text style={[textStyle('button'), { color: colors.onPrimary }]}>{title}</Text>
+        <>
+          <Text style={[textStyle('button'), { color: colors.onPrimary }]}>{title}</Text>
+          {icon}
+        </>
       )}
     </Pressable>
   );
@@ -150,9 +229,13 @@ export function AuthGhostButton({ title, onPress }: { title: string; onPress: ()
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1, alignItems: 'center', paddingVertical: Spacing.two })}
+      style={({ pressed }) => ({
+        opacity: pressed ? 0.7 : 1,
+        alignItems: 'center',
+        paddingVertical: Spacing.three,
+      })}
     >
-      <Text style={[textStyle('caption'), { color: colors.muted }]}>{title}</Text>
+      <Text style={[textStyle('button'), { color: colors.ink }]}>{title}</Text>
     </Pressable>
   );
 }
@@ -162,12 +245,7 @@ export function AuthLink({ title, onPress }: { title: string; onPress?: () => vo
 
   return (
     <Pressable onPress={onPress} style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}>
-      <Text
-        style={[
-          textStyle('button'),
-          { color: colors.orbit, textDecorationLine: 'underline' },
-        ]}
-      >
+      <Text style={[textStyle('caption'), { color: colors.orbit, fontFamily: fontFamily('body', 'medium') }]}>
         {title}
       </Text>
     </Pressable>
@@ -211,7 +289,7 @@ export function SocialAuthButton({ label, icon, onPress }: SocialAuthButtonProps
         alignItems: 'center',
         justifyContent: 'center',
         gap: Spacing.two,
-        minHeight: 48,
+        minHeight: 52,
         paddingHorizontal: Spacing.three,
         borderRadius: Radius.pill,
         borderWidth: 1,
@@ -260,4 +338,26 @@ export function AppleIcon({ size = 20 }: { size?: number }) {
 /** Fallback si GoogleLogo phosphor est préféré ailleurs. */
 export function GoogleGlyph({ size = 18 }: { size?: number }) {
   return <GoogleLogo size={size} color="#4285F4" weight="bold" />;
+}
+
+/** Petite ligne de bénéfice (checklist marketing auth). */
+export function AuthBenefit({ label }: { label: string }) {
+  const { colors } = useAppTheme();
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.two }}>
+      <View
+        style={{
+          width: 18,
+          height: 18,
+          borderRadius: 9,
+          backgroundColor: colors.orbit + '22',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Check size={11} color={colors.orbit} weight="bold" />
+      </View>
+      <Text style={[textStyle('micro'), { color: colors.muted }]}>{label}</Text>
+    </View>
+  );
 }

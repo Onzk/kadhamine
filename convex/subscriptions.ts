@@ -2,6 +2,7 @@ import { v } from 'convex/values';
 import { internalMutation, mutation, query } from './_generated/server';
 import { MutationCtx } from './_generated/server';
 import { Id } from './_generated/dataModel';
+import { getAuthUserId } from '@convex-dev/auth/server';
 import {
   requireAuth,
   requireRole,
@@ -60,7 +61,9 @@ export async function activatePremiumSubscription(
 export const getActive = query({
   args: {},
   handler: async (ctx) => {
-    const { userId } = await requireAuth(ctx);
+    // Lecture tolérante : en mode invité, pas d'abonnement actif (pas d'erreur).
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
     const subscription = await ctx.db
       .query('subscriptions')
       .withIndex('by_user', (q) => q.eq('userId', userId))

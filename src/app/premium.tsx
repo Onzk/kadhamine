@@ -21,7 +21,7 @@ export default function PremiumScreen() {
   const [phoneNumber, setPhoneNumber] = useState('');
 
   const plans = useQuery(api.subscriptions.getPlans);
-  const active = useQuery(api.subscriptions.getActive);
+  const active = useQuery(api.subscriptions.getActive, user?._id ? {} : 'skip');
   const createPending = useMutation(api.subscriptions.createPending);
   const createPremiumTx = useAction(api.fedapay.createPremiumTransaction);
   const expireCheck = useMutation(api.subscriptions.expireCheck);

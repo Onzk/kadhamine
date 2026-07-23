@@ -3,7 +3,15 @@ import { Platform } from 'react-native';
 import * as NavigationBar from 'expo-navigation-bar';
 import * as SystemUI from 'expo-system-ui';
 
-/** Synchronise la couleur du root view + barre de navigation système (Android). */
+/**
+ * Synchronise la couleur du root view + le contraste des boutons de la barre
+ * de navigation système (Android).
+ *
+ * En edge-to-edge (défaut SDK 54), la barre de navigation est transparente :
+ * le fond racine (`SystemUI`) transparaît derrière, donc `setPositionAsync` et
+ * `setBackgroundColorAsync` (non supportés en edge-to-edge) sont inutiles.
+ * On garde uniquement le style des boutons pour le contraste.
+ */
 export function useSystemChrome(canvas: string, isDark: boolean) {
   useEffect(() => {
     void SystemUI.setBackgroundColorAsync(canvas);
@@ -12,12 +20,9 @@ export function useSystemChrome(canvas: string, isDark: boolean) {
 
     void (async () => {
       try {
-        NavigationBar.setStyle(isDark ? 'dark' : 'light');
-        await NavigationBar.setPositionAsync('absolute');
-        await NavigationBar.setBackgroundColorAsync(canvas);
         await NavigationBar.setButtonStyleAsync(isDark ? 'light' : 'dark');
       } catch {
-        // Expo Go / edge-to-edge : ignorer si non supporté
+        // Ignorer si non supporté (Expo Go, navigation gestuelle, etc.)
       }
     })();
   }, [canvas, isDark]);

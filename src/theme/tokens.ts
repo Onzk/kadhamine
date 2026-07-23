@@ -175,6 +175,22 @@ export const Shadows = {
     shadowOffset: { width: 0, height: 24 },
     elevation: 4,
   },
+  /** FAB Flutter Material — élévation 6 au repos. */
+  fab: {
+    shadowColor: '#000000',
+    shadowOpacity: 0.22,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 6,
+  },
+  /** FAB Flutter Material — élévation 12 au pressé. */
+  fabPressed: {
+    shadowColor: '#000000',
+    shadowOpacity: 0.28,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 12,
+  },
 } as const;
 
 export const Animation = {

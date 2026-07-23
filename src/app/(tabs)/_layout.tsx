@@ -1,14 +1,25 @@
 import { Tabs } from 'expo-router';
 import { Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import { House, MagnifyingGlass, ClipboardText, ChatCircleDots, User, type Icon as PhosphorIcon } from 'phosphor-react-native';
+import {
+  House,
+  MagnifyingGlass,
+  ClipboardText,
+  ChatCircleDots,
+  User,
+  type Icon as PhosphorIcon,
+} from 'phosphor-react-native';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { fontFamily, textStyle } from '@/theme/typography';
-import { Spacing } from '@/theme/tokens';
+
+const TAB_CONTENT_HEIGHT = 52;
 
 export default function TabsLayout() {
   const { t } = useTranslation();
   const { colors, isDark } = useAppTheme();
+  const insets = useSafeAreaInsets();
+  const bottomInset = Math.max(insets.bottom, 8);
 
   const activeColor = colors.orbit;
   const inactiveColor = colors.muted;
@@ -45,9 +56,9 @@ export default function TabsLayout() {
           backgroundColor: colors.canvas,
           borderTopWidth: 0,
           elevation: 0,
-          height: 60,
-          paddingTop: 8,
-          paddingBottom: Spacing.four,
+          height: TAB_CONTENT_HEIGHT + bottomInset,
+          paddingTop: 6,
+          paddingBottom: bottomInset,
         },
         tabBarLabelStyle: {
           ...textStyle('micro'),

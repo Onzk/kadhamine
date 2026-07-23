@@ -12,7 +12,7 @@ import { Link, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAuthActions } from '@convex-dev/auth/react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { CaretLeft } from 'phosphor-react-native';
+import { Envelope, Lock, ArrowRight, WarningCircle } from 'phosphor-react-native';
 
 import {
   AuthField,
@@ -23,14 +23,14 @@ import {
   SocialAuthButton,
   GoogleIcon,
   AppleIcon,
+  isValidEmail,
 } from '@/components/auth/AuthField';
-import { AuthLogoMark, AuthToggleRow } from '@/components/auth/AuthExtras';
+import { AuthHeader, AuthToggleRow } from '@/components/auth/AuthExtras';
 import { useAppTheme } from '@/providers/ThemeProvider';
-import { Spacing } from '@/theme/tokens';
+import { Radius, Spacing } from '@/theme/tokens';
 import { textStyle } from '@/theme/typography';
 
 const REMEMBER_EMAIL_KEY = 'talenttchad_remember_email';
-const SECTION = Spacing.six;
 
 export default function LoginScreen() {
   const { t } = useTranslation();
@@ -44,6 +44,7 @@ export default function LoginScreen() {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [emailTouched, setEmailTouched] = useState(false);
 
   useEffect(() => {
     AsyncStorage.getItem(REMEMBER_EMAIL_KEY).then((stored) => {
@@ -54,9 +55,13 @@ export default function LoginScreen() {
     });
   }, []);
 
+  const emailError = emailTouched && email.length > 0 && !isValidEmail(email);
+  const canSubmit = isValidEmail(email) && password.length > 0;
+
   const handleLogin = async () => {
-    if (!email.trim() || !password) {
-      setError('Veuillez remplir tous les champs');
+    setEmailTouched(true);
+    if (!canSubmit) {
+      setError('Vérifiez votre email et votre mot de passe.');
       return;
     }
 
@@ -73,7 +78,7 @@ export default function LoginScreen() {
 
       router.replace('/');
     } catch (err) {
-      setError('Email ou mot de passe incorrect');
+      setError('Email ou mot de passe incorrect.');
       console.error(err);
     } finally {
       setLoading(false);
@@ -93,65 +98,31 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={{ flex: 1, backgroundColor: colors.canvas }}
     >
       <ScrollView
         contentContainerStyle={{
           flexGrow: 1,
           paddingHorizontal: Spacing.six,
-          paddingTop: Spacing.five,
+          paddingTop: Spacing.four,
           paddingBottom: Spacing.ten,
         }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Header — retour uniquement */}
-        <Pressable
-          onPress={() => (router.canGoBack() ? router.back() : handleGuest())}
-          style={({ pressed }) => ({
-            alignSelf: 'flex-start',
-            width: 44,
-            height: 44,
-            borderRadius: 22,
-            backgroundColor: colors.surfaceCard,
-            borderWidth: 1,
-            borderColor: colors.border,
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: Spacing.five,
-            opacity: pressed ? 0.85 : 1,
-          })}
-        >
-          <CaretLeft size={20} color={colors.ink} weight="bold" />
-        </Pressable>
+        <AuthHeader
+          title={t('auth.welcomeBack')}
+          subtitle={t('auth.loginSubtitle')}
+          onBack={() => (router.canGoBack() ? router.back() : handleGuest())}
+        />
 
-        <AuthLogoMark size={64} />
-
-        <Text style={[textStyle('productDisplay'), { color: colors.ink, marginBottom: Spacing.two }]}>
-          {t('auth.welcomeBack')}
-        </Text>
-        <Text
-          style={[
-            textStyle('body'),
-            { color: colors.muted, marginBottom: SECTION, lineHeight: 24 },
-          ]}
-        >
-          {t('auth.loginSubtitle')}
-        </Text>
+        <View style={{ height: Spacing.eight }} />
 
         {/* Social */}
         <View style={{ flexDirection: 'row', gap: Spacing.three }}>
-          <SocialAuthButton
-            label="Google"
-            icon={<GoogleIcon />}
-            onPress={() => handleSocial('Google')}
-          />
-          <SocialAuthButton
-            label="Apple"
-            icon={<AppleIcon />}
-            onPress={() => handleSocial('Apple')}
-          />
+          <SocialAuthButton label="Google" icon={<GoogleIcon />} onPress={() => handleSocial('Google')} />
+          <SocialAuthButton label="Apple" icon={<AppleIcon />} onPress={() => handleSocial('Apple')} />
         </View>
 
         <AuthDivider label={t('common.or')} />
@@ -159,15 +130,19 @@ export default function LoginScreen() {
         {error ? (
           <View
             style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: Spacing.two,
               backgroundColor: colors.error + '12',
-              borderRadius: 16,
+              borderRadius: Radius.lg,
               padding: Spacing.three,
               marginBottom: Spacing.four,
               borderWidth: 1,
               borderColor: colors.error + '30',
             }}
           >
-            <Text style={[textStyle('caption'), { color: colors.error }]}>{error}</Text>
+            <WarningCircle size={18} color={colors.error} weight="fill" />
+            <Text style={[textStyle('caption'), { color: colors.error, flex: 1 }]}>{error}</Text>
           </View>
         ) : null}
 
@@ -175,10 +150,14 @@ export default function LoginScreen() {
           label={t('auth.email')}
           value={email}
           onChangeText={setEmail}
+          onBlur={() => setEmailTouched(true)}
           keyboardType="email-address"
           autoCapitalize="none"
           autoComplete="email"
+          textContentType="emailAddress"
           placeholder="vous@exemple.com"
+          leftIcon={<Envelope size={20} color={colors.muted} />}
+          error={emailError ? 'Adresse email invalide.' : undefined}
         />
 
         <AuthField
@@ -189,7 +168,11 @@ export default function LoginScreen() {
           showPassword={showPassword}
           onTogglePassword={() => setShowPassword((v) => !v)}
           autoComplete="password"
+          textContentType="password"
           placeholder="••••••••"
+          leftIcon={<Lock size={20} color={colors.muted} />}
+          onSubmitEditing={handleLogin}
+          returnKeyType="go"
         />
 
         <AuthToggleRow
@@ -204,11 +187,19 @@ export default function LoginScreen() {
           }
         />
 
-        <AuthPrimaryButton title={t('auth.signIn')} onPress={handleLogin} loading={loading} />
+        <AuthPrimaryButton
+          title={t('auth.signIn')}
+          onPress={handleLogin}
+          loading={loading}
+          disabled={!canSubmit}
+          icon={<ArrowRight size={18} color={colors.onPrimary} weight="bold" />}
+        />
 
-        <View style={{ marginTop: Spacing.three }}>
+        <View style={{ marginTop: Spacing.two }}>
           <AuthGhostButton title={t('auth.continueWithoutAccount')} onPress={handleGuest} />
         </View>
+
+        <View style={{ flex: 1 }} />
 
         <View
           style={{
@@ -222,9 +213,7 @@ export default function LoginScreen() {
           <Text style={[textStyle('body'), { color: colors.muted }]}>{t('auth.noAccount')}</Text>
           <Link href="/(auth)/register" asChild>
             <Pressable>
-              <Text style={[textStyle('button'), { color: colors.orbit, textDecorationLine: 'underline' }]}>
-                {t('auth.signUp')}
-              </Text>
+              <Text style={[textStyle('button'), { color: colors.orbit }]}>{t('auth.signUp')}</Text>
             </Pressable>
           </Link>
         </View>
