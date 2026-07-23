@@ -58,7 +58,7 @@ function useToneColors(tone: FabTone) {
   if (tone === 'ink') {
     return { bg: colors.ink, fg: colors.onPrimary, border: 'transparent' };
   }
-  return { bg: colors.orbit, fg: colors.onPrimary, border: 'transparent' };
+  return { bg: colors.orbit, fg: colors.onOrbit, border: 'transparent' };
 }
 
 /** Élévation Flutter : 6 / 12 / 0. */
@@ -98,7 +98,7 @@ function FabBadge({ count }: FabBadgeProps) {
         backgroundColor: colors.signal,
         alignItems: 'center',
         justifyContent: 'center',
-        borderWidth: 2,
+        borderWidth: 0.1,
         borderColor: colors.canvas,
       }}
     >
@@ -142,33 +142,36 @@ export function Fab({
   const dim = FAB_SIZE[size];
   const iconSize = FAB_ICON[size];
   const slop = Math.max(0, Math.ceil((FAB_MIN_TAP - dim) / 2));
+  const [pressed, setPressed] = useState(false);
 
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
       hitSlop={slop}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
       android_ripple={{ color: rippleColor(tone), borderless: false, radius: dim / 2 }}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      style={({ pressed }) => [
-        {
+      style={[{ width: dim, height: dim, opacity: disabled ? 0.6 : 1 }, style]}
+    >
+      <View
+        style={{
           width: dim,
           height: dim,
           borderRadius: FAB_RADIUS[size],
           backgroundColor: disabled ? '#BDBDBD' : bg,
-          borderWidth: border === 'transparent' ? 0 : 1,
+          borderWidth: border === 'transparent' ? 0 : 0.1,
           borderColor: border,
           alignItems: 'center',
           justifyContent: 'center',
-          opacity: disabled ? 0.6 : 1,
           ...fabShadow(pressed, disabled),
-        },
-        style,
-      ]}
-    >
-      {renderIcon({ size: iconSize, color: fg })}
-      <FabBadge count={badgeCount} />
+        }}
+      >
+        {renderIcon({ size: iconSize, color: fg })}
+        <FabBadge count={badgeCount} />
+      </View>
     </Pressable>
   );
 }
@@ -194,35 +197,39 @@ export function ExtendedFab({
   style,
 }: ExtendedFabProps) {
   const { bg, fg, border } = useToneColors(tone);
+  const [pressed, setPressed] = useState(false);
 
   return (
     <Pressable
       onPress={onPress}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       android_ripple={{ color: rippleColor(tone), borderless: false }}
-      style={({ pressed }) => [
-        {
+      style={[{ height: FAB_SIZE.standard, minWidth: FAB_SIZE.standard }, style]}
+    >
+      <View
+        style={{
           height: FAB_SIZE.standard,
           minWidth: FAB_SIZE.standard,
           borderRadius: FAB_RADIUS.standard,
           paddingHorizontal: 20,
           backgroundColor: bg,
-          borderWidth: border === 'transparent' ? 0 : 1,
+          borderWidth: border === 'transparent' ? 0 : 0.1,
           borderColor: border,
           flexDirection: 'row',
           alignItems: 'center',
           gap: 8,
           ...fabShadow(pressed),
-        },
-        style,
-      ]}
-    >
-      {renderIcon({ size: FAB_ICON.standard, color: fg })}
-      <Text style={{ color: fg, fontSize: 14, letterSpacing: 0.1, fontFamily: fontFamily('body', 'medium') }}>
-        {label}
-      </Text>
-      <FabBadge count={badgeCount} />
+        }}
+      >
+        {renderIcon({ size: FAB_ICON.standard, color: fg })}
+        <Text style={{ color: fg, fontSize: 14, letterSpacing: 0.1, fontFamily: fontFamily('body', 'medium') }}>
+          {label}
+        </Text>
+        <FabBadge count={badgeCount} />
+      </View>
     </Pressable>
   );
 }
@@ -258,8 +265,10 @@ export function FabSpeedDial({
 }: FabSpeedDialProps) {
   const { colors } = useAppTheme();
   const [open, setOpen] = useState(false);
+  const [pressed, setPressed] = useState(false);
   const progress = useSharedValue(0);
   const mainBg = tone === 'ink' ? colors.ink : colors.orbit;
+  const mainFg = tone === 'ink' ? colors.onPrimary : colors.onOrbit;
 
   const toggle = () => {
     const next = !open;
@@ -313,6 +322,8 @@ export function FabSpeedDial({
 
         <Pressable
           onPress={toggle}
+          onPressIn={() => setPressed(true)}
+          onPressOut={() => setPressed(false)}
           accessibilityRole="button"
           accessibilityLabel={accessibilityLabel}
           accessibilityState={{ expanded: open }}
@@ -321,20 +332,27 @@ export function FabSpeedDial({
             borderless: true,
             radius: FAB_SIZE.standard / 2,
           }}
-          style={({ pressed }) => ({
+          style={{
             width: FAB_SIZE.standard,
             height: FAB_SIZE.standard,
-            borderRadius: FAB_RADIUS.standard,
-            backgroundColor: mainBg,
-            alignItems: 'center',
-            justifyContent: 'center',
-            ...fabShadow(pressed),
-          })}
+          }}
         >
-          <Animated.View style={mainIconStyle}>
-            {renderMainIcon({ size: FAB_ICON.standard, color: colors.onPrimary })}
-          </Animated.View>
-          <FabBadge count={open ? 0 : mainBadgeCount} />
+          <View
+            style={{
+              width: FAB_SIZE.standard,
+              height: FAB_SIZE.standard,
+              borderRadius: FAB_RADIUS.standard,
+              backgroundColor: mainBg,
+              alignItems: 'center',
+              justifyContent: 'center',
+              ...fabShadow(pressed),
+            }}
+          >
+            <Animated.View style={mainIconStyle}>
+              {renderMainIcon({ size: FAB_ICON.standard, color: mainFg })}
+            </Animated.View>
+            <FabBadge count={open ? 0 : mainBadgeCount} />
+          </View>
         </Pressable>
       </View>
     </>
@@ -350,10 +368,12 @@ interface SpeedDialActionProps {
 
 function SpeedDialAction({ action, progress, open, onFire }: SpeedDialActionProps) {
   const { colors } = useAppTheme();
+  const [pressed, setPressed] = useState(false);
   const tone: FabTone = action.tone ?? 'surface';
   const bg =
     tone === 'orbit' ? colors.orbit : tone === 'ink' ? colors.ink : colors.surfaceCard;
-  const fg = tone === 'surface' ? colors.ink : colors.onPrimary;
+  const fg =
+    tone === 'surface' ? colors.ink : tone === 'orbit' ? colors.onOrbit : colors.onPrimary;
   const actionBorder = tone === 'surface' ? colors.border : 'transparent';
 
   const style = useAnimatedStyle(() => ({
@@ -389,6 +409,8 @@ function SpeedDialAction({ action, progress, open, onFire }: SpeedDialActionProp
 
       <Pressable
         onPress={onFire}
+        onPressIn={() => setPressed(true)}
+        onPressOut={() => setPressed(false)}
         accessibilityRole="button"
         accessibilityLabel={action.label}
         hitSlop={4}
@@ -397,20 +419,27 @@ function SpeedDialAction({ action, progress, open, onFire }: SpeedDialActionProp
           borderless: true,
           radius: FAB_SIZE.mini / 2,
         }}
-        style={({ pressed }) => ({
+        style={{
           width: FAB_SIZE.mini,
           height: FAB_SIZE.mini,
-          borderRadius: FAB_RADIUS.mini,
-          backgroundColor: bg,
-          borderWidth: actionBorder === 'transparent' ? 0 : 1,
-          borderColor: actionBorder,
-          alignItems: 'center',
-          justifyContent: 'center',
-          ...fabShadow(pressed),
-        })}
+        }}
       >
-        {action.renderIcon({ size: FAB_ICON.mini - 2, color: fg })}
-        <FabBadge count={action.badgeCount ?? 0} />
+        <View
+          style={{
+            width: FAB_SIZE.mini,
+            height: FAB_SIZE.mini,
+            borderRadius: FAB_RADIUS.mini,
+            backgroundColor: bg,
+            borderWidth: actionBorder === 'transparent' ? 0 : 0.1,
+            borderColor: actionBorder,
+            alignItems: 'center',
+            justifyContent: 'center',
+            ...fabShadow(pressed),
+          }}
+        >
+          {action.renderIcon({ size: FAB_ICON.mini - 2, color: fg })}
+          <FabBadge count={action.badgeCount ?? 0} />
+        </View>
       </Pressable>
     </Animated.View>
   );

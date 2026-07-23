@@ -20,6 +20,47 @@ import { Spacing } from '@/theme/tokens';
 export const PAGE_H_PAD = Spacing.six;
 const STICKY_THRESHOLD = 56;
 
+export interface SheetHeaderProps {
+  title: string;
+  subtitle?: string;
+  style?: StyleProp<ViewStyle>;
+}
+
+/** En-tête compact pour bottom sheets — même typo que PageHeader. */
+export function SheetHeader({ title, subtitle, style }: SheetHeaderProps) {
+  const { colors } = useAppTheme();
+
+  return (
+    <View
+      style={[
+        {
+          paddingHorizontal: PAGE_H_PAD,
+          paddingTop: Spacing.five,
+          paddingBottom: Spacing.two,
+        },
+        style,
+      ]}
+    >
+      <Text
+        style={[
+          textStyle('productDisplay'),
+          { color: colors.ink, marginBottom: subtitle ? Spacing.two : 0 },
+        ]}
+      >
+        {title}
+      </Text>
+      {subtitle ? (
+        <Text
+          style={[textStyle('body'), { color: colors.muted, lineHeight: 24, maxWidth: 360 }]}
+          numberOfLines={3}
+        >
+          {subtitle}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
 export interface PageHeaderProps {
   title: string;
   /** Description sous le titre — obligatoire sur toutes les pages. */
@@ -73,16 +114,23 @@ export function PageHeader({
               style={({ pressed }) => ({
                 width: 44,
                 height: 44,
-                borderRadius: 22,
-                backgroundColor: colors.surfaceCard,
-                borderWidth: 1,
-                borderColor: colors.border,
-                alignItems: 'center',
-                justifyContent: 'center',
                 opacity: pressed ? 0.8 : 1,
               })}
             >
-              <CaretLeft size={20} color={colors.ink} weight="bold" />
+              <View
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
+                  backgroundColor: colors.iconWash,
+                  borderWidth: 0.1,
+                  borderColor: colors.border,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <CaretLeft size={20} color={colors.ink} weight="bold" />
+              </View>
             </Pressable>
           ) : (
             <View style={{ width: 44 }} />
@@ -169,16 +217,23 @@ function StickyBar({ title, showBack, rightAction, progress, active }: StickyBar
           style={({ pressed }) => ({
             width: 40,
             height: 40,
-            borderRadius: 20,
-            backgroundColor: colors.surfaceCard,
-            borderWidth: 1,
-            borderColor: colors.border,
-            alignItems: 'center',
-            justifyContent: 'center',
             opacity: pressed ? 0.8 : 1,
           })}
         >
-          <CaretLeft size={18} color={colors.ink} weight="bold" />
+          <View
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: colors.surfaceCard,
+              borderWidth: 0.1,
+              borderColor: colors.border,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <CaretLeft size={18} color={colors.ink} weight="bold" />
+          </View>
         </Pressable>
       ) : null}
       <Text

@@ -33,6 +33,7 @@ import {
 } from '@/components/auth/AuthExtras';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { MVP_CITIES, MVP_CITY_REGION, type MvpCity } from '@/constants/chad';
+import { withAuthRetry } from '@/lib/authRetry';
 import { textStyle } from '@/theme/typography';
 import { Radius, Spacing } from '@/theme/tokens';
 import { api } from '../../../convex/_generated/api';
@@ -111,13 +112,16 @@ export default function RegisterScreen() {
         name: `${firstName} ${lastName}`,
       });
 
-      await registerProfile({
-        role,
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        city,
-        region: MVP_CITY_REGION[city],
-      });
+      // Le token auth peut arriver un tick après signUp — retry court.
+      await withAuthRetry(() =>
+        registerProfile({
+          role,
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          city,
+          region: MVP_CITY_REGION[city],
+        }),
+      );
 
       router.replace('/');
     } catch (err) {
@@ -143,6 +147,7 @@ export default function RegisterScreen() {
       <ScrollView
         contentContainerStyle={{
           flexGrow: 1,
+          alignItems: 'stretch',
           paddingHorizontal: Spacing.six,
           paddingTop: Spacing.four,
           paddingBottom: Spacing.ten,
@@ -174,7 +179,7 @@ export default function RegisterScreen() {
               borderRadius: Radius.lg,
               padding: Spacing.three,
               marginBottom: Spacing.four,
-              borderWidth: 1,
+              borderWidth: 0.1,
               borderColor: colors.error + '30',
             }}
           >
@@ -195,29 +200,28 @@ export default function RegisterScreen() {
             </Text>
             <RolePicker value={role} onChange={setRole} />
 
-            <View style={{ flexDirection: 'row', gap: Spacing.three }}>
-              <View style={{ flex: 1 }}>
-                <AuthField
-                  label="Prénom"
-                  value={firstName}
-                  onChangeText={setFirstName}
-                  autoCapitalize="words"
-                  placeholder="Amina"
-                  leftIcon={<User size={20} color={colors.muted} />}
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <AuthField
-                  label="Nom"
-                  value={lastName}
-                  onChangeText={setLastName}
-                  autoCapitalize="words"
-                  placeholder="Deby"
-                />
-              </View>
-            </View>
+            <AuthField
+              variant="light"
+              label="Nom"
+              value={lastName}
+              onChangeText={setLastName}
+              autoCapitalize="words"
+              placeholder="Deby"
+              leftIcon={<User size={20} />}
+            />
 
             <AuthField
+              variant="light"
+              label="Prénom"
+              value={firstName}
+              onChangeText={setFirstName}
+              autoCapitalize="words"
+              placeholder="Amina"
+              leftIcon={<User size={20} />}
+            />
+
+            <AuthField
+              variant="light"
               label={t('auth.email')}
               value={email}
               onChangeText={setEmail}
@@ -226,7 +230,7 @@ export default function RegisterScreen() {
               autoCapitalize="none"
               textContentType="emailAddress"
               placeholder="vous@exemple.com"
-              leftIcon={<Envelope size={20} color={colors.muted} />}
+              leftIcon={<Envelope size={20} />}
               error={emailError ? 'Adresse email invalide.' : undefined}
             />
 
@@ -236,12 +240,12 @@ export default function RegisterScreen() {
               title="Continuer"
               onPress={goNext}
               disabled={!step1Valid}
-              icon={<ArrowRight size={18} color={colors.onPrimary} weight="bold" />}
+              icon={<ArrowRight size={18} color={colors.onOrbit} weight="bold" />}
             />
 
             <AuthDivider label={t('common.or')} />
 
-            <View style={{ flexDirection: 'row', gap: Spacing.three }}>
+            <View style={{ flexDirection: 'row', alignSelf: 'stretch', gap: Spacing.three }}>
               <SocialAuthButton label="Google" icon={<GoogleIcon />} onPress={() => handleSocial('Google')} />
               <SocialAuthButton label="Apple" icon={<AppleIcon />} onPress={() => handleSocial('Apple')} />
             </View>
@@ -251,6 +255,7 @@ export default function RegisterScreen() {
             <CityChips cities={MVP_CITIES} value={city} onChange={(c) => setCity(c as MvpCity)} />
 
             <AuthField
+              variant="light"
               label={t('auth.password')}
               value={password}
               onChangeText={setPassword}
@@ -259,11 +264,12 @@ export default function RegisterScreen() {
               onTogglePassword={() => setShowPassword((v) => !v)}
               textContentType="newPassword"
               placeholder="Au moins 6 caractères"
-              leftIcon={<Lock size={20} color={colors.muted} />}
+              leftIcon={<Lock size={20} />}
             />
             <PasswordStrengthMeter password={password} />
 
             <AuthField
+              variant="light"
               label={t('auth.confirmPassword')}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
@@ -272,7 +278,7 @@ export default function RegisterScreen() {
               onTogglePassword={() => setShowConfirm((v) => !v)}
               textContentType="newPassword"
               placeholder="••••••••"
-              leftIcon={<Lock size={20} color={colors.muted} />}
+              leftIcon={<Lock size={20} />}
               error={confirmError ? 'Les mots de passe ne correspondent pas.' : undefined}
             />
 
@@ -305,16 +311,21 @@ export default function RegisterScreen() {
               <Pressable
                 onPress={goBack}
                 style={({ pressed }) => ({
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: Spacing.two,
-                  paddingVertical: Spacing.three,
                   opacity: pressed ? 0.7 : 1,
                 })}
               >
-                <ArrowLeft size={16} color={colors.muted} weight="bold" />
-                <Text style={[textStyle('button'), { color: colors.muted }]}>Retour</Text>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: Spacing.two,
+                    paddingVertical: Spacing.three,
+                  }}
+                >
+                  <ArrowLeft size={16} color={colors.muted} weight="bold" />
+                  <Text style={[textStyle('button'), { color: colors.muted }]}>Retour</Text>
+                </View>
               </Pressable>
             </View>
           </>
@@ -331,7 +342,7 @@ export default function RegisterScreen() {
             flexWrap: 'wrap',
           }}
         >
-          <Text style={[textStyle('body'), { color: colors.muted }]}>{t('auth.hasAccount')}</Text>
+          <Text style={[textStyle('body'), { color: colors.ink }]}>{t('auth.hasAccount')}</Text>
           <Link href="/(auth)/login" asChild>
             <Pressable>
               <Text style={[textStyle('button'), { color: colors.orbit }]}>{t('auth.signIn')}</Text>

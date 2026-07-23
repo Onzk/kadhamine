@@ -1,9 +1,11 @@
 import React from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { Wrench } from 'phosphor-react-native';
+import type { Icon as PhosphorIcon } from 'phosphor-react-native';
 
 import { PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { ServiceCard } from '@/components/cards/ServiceCard';
+import { EmptyState, type EmptyStateAction } from '@/components/ui/EmptyState';
 import { Text } from '@/components/ui/ThemedText';
 import { ServiceCardSkeleton } from '@/components/ui/Skeleton';
 import { useAppTheme } from '@/providers/ThemeProvider';
@@ -43,20 +45,64 @@ interface ServiceCarouselProps {
   actionLabel?: string;
   onAction?: () => void;
   items: ServiceCarouselItem[] | undefined;
+  /** @deprecated Préférer emptyTitle */
   emptyMessage?: string;
+  emptyTitle?: string;
+  emptyDescription?: string;
+  emptyIcon?: PhosphorIcon;
+  emptyActions?: EmptyStateAction[];
   onPressItem: (serviceId: string) => void;
+  /** `horizontal` (défaut) = carrousel ; `vertical` = liste pleine largeur. */
+  layout?: 'horizontal' | 'vertical';
 }
 
-/** Section titre + carrousel horizontal de ServiceCard — snap par carte. */
+function ServiceCardFromItem({
+  item,
+  onPress,
+}: {
+  item: ServiceCarouselItem;
+  onPress: () => void;
+}) {
+  return (
+    <ServiceCard
+      title={item.service.title}
+      description={item.service.description}
+      price={item.service.price}
+      pricingType={item.service.pricingType}
+      photo={item.service.photos[0]}
+      rating={item.service.averageRating}
+      reviewCount={item.service.reviewCount}
+      providerName={
+        item.profile ? `${item.profile.firstName} ${item.profile.lastName}` : 'Prestataire'
+      }
+      providerAvatar={item.profile?.avatarUrl}
+      city={item.service.city}
+      isVerified={item.profile?.isVerified}
+      isPremium={item.profile?.isPremium}
+      categoryIcon={item.category?.icon}
+      categoryLabel={item.category?.nameFr}
+      onPress={onPress}
+    />
+  );
+}
+
+/** Section titre + carrousel horizontal ou liste verticale de ServiceCard. */
 export function ServiceCarousel({
   title,
   actionLabel,
   onAction,
   items,
   emptyMessage = 'Aucun service pour le moment.',
+  emptyTitle,
+  emptyDescription,
+  emptyIcon = Wrench,
+  emptyActions,
   onPressItem,
+  layout = 'horizontal',
 }: ServiceCarouselProps) {
   const { colors } = useAppTheme();
+  const isVertical = layout === 'vertical';
+  const resolvedEmptyTitle = emptyTitle ?? emptyMessage;
 
   return (
     <View style={{ marginBottom: Spacing.eight }}>
@@ -78,22 +124,42 @@ export function ServiceCarousel({
       </View>
 
       {items === undefined ? (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: PAGE_H_PAD, gap: GAP }}
-        >
-          <View style={{ width: CAROUSEL_CARD_WIDTH }}>
+        isVertical ? (
+          <View style={{ paddingHorizontal: PAGE_H_PAD, gap: GAP }}>
+            <ServiceCardSkeleton />
             <ServiceCardSkeleton />
           </View>
-          <View style={{ width: CAROUSEL_CARD_WIDTH }}>
-            <ServiceCardSkeleton />
-          </View>
-        </ScrollView>
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: PAGE_H_PAD, gap: GAP }}
+          >
+            <View style={{ width: CAROUSEL_CARD_WIDTH }}>
+              <ServiceCardSkeleton />
+            </View>
+            <View style={{ width: CAROUSEL_CARD_WIDTH }}>
+              <ServiceCardSkeleton />
+            </View>
+          </ScrollView>
+        )
       ) : items.length === 0 ? (
-        <View style={{ alignItems: 'center', paddingVertical: Spacing.nine, paddingHorizontal: Spacing.six }}>
-          <Wrench size={36} color={colors.muted} />
-          <Text style={{ color: colors.muted, textAlign: 'center', marginTop: 12 }}>{emptyMessage}</Text>
+        <EmptyState
+          compact={!isVertical}
+          icon={emptyIcon}
+          title={resolvedEmptyTitle}
+          description={emptyDescription}
+          actions={emptyActions}
+        />
+      ) : isVertical ? (
+        <View style={{ paddingHorizontal: PAGE_H_PAD, gap: GAP }}>
+          {items.map((item) => (
+            <ServiceCardFromItem
+              key={item.service._id}
+              item={item}
+              onPress={() => onPressItem(item.service._id)}
+            />
+          ))}
         </View>
       ) : (
         <ScrollView
@@ -106,25 +172,7 @@ export function ServiceCarousel({
         >
           {items.map((item) => (
             <View key={item.service._id} style={{ width: CAROUSEL_CARD_WIDTH }}>
-              <ServiceCard
-                title={item.service.title}
-                description={item.service.description}
-                price={item.service.price}
-                pricingType={item.service.pricingType}
-                photo={item.service.photos[0]}
-                rating={item.service.averageRating}
-                reviewCount={item.service.reviewCount}
-                providerName={
-                  item.profile ? `${item.profile.firstName} ${item.profile.lastName}` : 'Prestataire'
-                }
-                providerAvatar={item.profile?.avatarUrl}
-                city={item.service.city}
-                isVerified={item.profile?.isVerified}
-                isPremium={item.profile?.isPremium}
-                categoryIcon={item.category?.icon}
-                categoryLabel={item.category?.nameFr}
-                onPress={() => onPressItem(item.service._id)}
-              />
+              <ServiceCardFromItem item={item} onPress={() => onPressItem(item.service._id)} />
             </View>
           ))}
         </ScrollView>

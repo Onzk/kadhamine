@@ -38,7 +38,7 @@ export function Card({
         {
           backgroundColor: backgrounds[variant],
           borderRadius: radius,
-          borderWidth: variant === 'bordered' ? 1 : 0,
+          borderWidth: variant === 'bordered' ? 0.1 : 0,
           borderColor: colors.border,
           padding: padded ? Spacing.eight : 0,
           overflow: 'hidden',

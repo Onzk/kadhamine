@@ -11,6 +11,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
+import { BrandColors } from '@/theme/tokens';
 
 const FAB_HEIGHT = 56;
 const FAB_ICON_SIZE = 56;
@@ -44,8 +45,8 @@ export function AnimatedExtendedFab({
   onPress,
   icon,
   accessibilityLabel,
-  backgroundColor = '#F37338',
-  foregroundColor = '#F3F0EE',
+  backgroundColor = BrandColors.orbit,
+  foregroundColor = '#FFFFFF',
   bottom = EDGE_MARGIN,
   right = EDGE_MARGIN,
   style,

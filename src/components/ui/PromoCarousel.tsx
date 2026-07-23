@@ -8,11 +8,13 @@ import {
   View,
 } from 'react-native';
 import { ArrowRight, type Icon as PhosphorIcon } from 'phosphor-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+
 import { PAGE_H_PAD } from '@/components/ui/PageHeader';
-import { useAppTheme } from '@/providers/ThemeProvider';
 import { Eyebrow } from '@/components/ui/Eyebrow';
 import { Text } from '@/components/ui/ThemedText';
-import { Radius, Shadows, Spacing } from '@/theme/tokens';
+import { useAppTheme } from '@/providers/ThemeProvider';
+import { BrandColors, Radius, Spacing, type ThemeColors } from '@/theme/tokens';
 import { textStyle } from '@/theme/typography';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -21,6 +23,12 @@ const SLIDE_GAP = Spacing.four;
 /** Largeur slide — laisse entrevoir la slide suivante (~20px). */
 const SLIDE_WIDTH = SCREEN_WIDTH - H_PADDING * 2 - Spacing.five;
 const SNAP_INTERVAL = SLIDE_WIDTH + SLIDE_GAP;
+/** Hauteur fixe uniforme (eyebrow + titre 2L + desc 2L + footer actions). */
+const SLIDE_HEIGHT = 192;
+
+/** Ink vrai (jamais inversé) — surfaces « premium » et texte sur pastilles blanches. */
+const TRUE_INK = BrandColors.ink;
+const TRUE_CREAM = BrandColors.canvas;
 
 export type PromoSlideVariant = 'dark' | 'light' | 'warm';
 
@@ -32,13 +40,91 @@ export interface PromoSlideData {
   icon: PhosphorIcon;
   variant: PromoSlideVariant;
   onPress?: () => void;
+  /**
+   * Dégradé immersif — texte clair sur gradient + filigrane.
+   * Le gradient doit venir du thème (`colors.orbitGradient`).
+   */
+  gradient?: readonly [string, string, ...string[]];
+  /** Libellé CTA (pilule) — sinon pastille flèche seule. */
+  ctaLabel?: string;
 }
 
 interface PromoCarouselProps {
   slides: PromoSlideData[];
 }
 
-/** Carrousel promo — peek + gap 16px entre slides, pagination accent orange. */
+type SlidePalette = {
+  bg: string;
+  title: string;
+  body: string;
+  eyebrowColor: string;
+  dotColor: string;
+  iconBg: string;
+  iconColor: string;
+  ctaBg: string;
+  ctaFg: string;
+  border: string;
+  borderWidth: number;
+  watermark: string;
+};
+
+function resolvePalette(
+  variant: PromoSlideVariant,
+  colors: ThemeColors,
+  isDark: boolean,
+): SlidePalette {
+  switch (variant) {
+    case 'dark':
+      // Carte « ink » toujours sombre (premium), accents orbit thème.
+      return {
+        bg: isDark ? colors.surfaceDark : TRUE_INK,
+        title: TRUE_CREAM,
+        body: isDark ? 'rgba(243,240,238,0.7)' : '#D1CDC7',
+        eyebrowColor: TRUE_CREAM,
+        dotColor: colors.orbit,
+        iconBg: colors.orbit,
+        iconColor: colors.onOrbit,
+        ctaBg: TRUE_CREAM,
+        ctaFg: TRUE_INK,
+        border: isDark ? colors.borderHairline : 'transparent',
+        borderWidth: isDark ? 0.1 : 0,
+        watermark: 'rgba(243,240,238,0.1)',
+      };
+    case 'light':
+      return {
+        bg: colors.surfaceCard,
+        title: colors.ink,
+        body: colors.muted,
+        eyebrowColor: colors.ink,
+        dotColor: colors.orbit,
+        iconBg: isDark ? colors.orbitWash : colors.iconWash,
+        iconColor: isDark ? colors.orbit : colors.ink,
+        ctaBg: isDark ? colors.orbit : TRUE_INK,
+        ctaFg: isDark ? colors.onOrbit : TRUE_CREAM,
+        border: colors.borderStrong,
+        borderWidth: 0.1,
+        watermark: isDark ? 'rgba(6,182,212,0.12)' : 'rgba(11,61,145,0.08)',
+      };
+    case 'warm':
+    default:
+      return {
+        bg: isDark ? colors.surfaceStrong : colors.orbitWash,
+        title: colors.ink,
+        body: colors.muted,
+        eyebrowColor: colors.ink,
+        dotColor: colors.orbit,
+        iconBg: isDark ? colors.orbitWash : '#FFFFFF',
+        iconColor: colors.orbit,
+        ctaBg: colors.orbit,
+        ctaFg: colors.onOrbit,
+        border: colors.borderStrong,
+        borderWidth: 0.1,
+        watermark: isDark ? 'rgba(6,182,212,0.14)' : 'rgba(11,61,145,0.1)',
+      };
+  }
+}
+
+/** Carrousel promo — peek + gap, pagination orbit, palettes adaptées clair/sombre. */
 export function PromoCarousel({ slides }: PromoCarouselProps) {
   const { colors } = useAppTheme();
   const [activeIndex, setActiveIndex] = useState(0);
@@ -107,123 +193,205 @@ interface PromoSlideCardProps {
 }
 
 function PromoSlideCard({ slide, width }: PromoSlideCardProps) {
-  const { colors } = useAppTheme();
+  const { colors, isDark } = useAppTheme();
   const IconComponent = slide.icon;
 
-  const styles = {
-    dark: {
-      bg: colors.ink,
-      title: colors.onPrimary,
-      body: colors.dust,
-      eyebrowColor: colors.onPrimary,
-      dotColor: colors.orbit,
-      iconBg: colors.orbit,
-      iconColor: colors.onPrimary,
-      ctaBg: colors.surfaceCard,
-      ctaIcon: colors.ink,
-      border: 'transparent',
-    },
-    light: {
-      bg: colors.surfaceCard,
-      title: colors.ink,
-      body: colors.muted,
-      eyebrowColor: colors.ink,
-      dotColor: colors.orbit,
-      iconBg: colors.iconWash,
-      iconColor: colors.ink,
-      ctaBg: colors.ink,
-      ctaIcon: colors.onPrimary,
-      border: colors.border,
-    },
-    warm: {
-      bg: colors.surfaceStrong,
-      title: colors.ink,
-      body: colors.muted,
-      eyebrowColor: colors.ink,
-      dotColor: colors.orbit,
-      iconBg: '#FFE8DC',
-      iconColor: colors.orbit,
-      ctaBg: colors.orbit,
-      ctaIcon: colors.onPrimary,
-      border: colors.border,
-    },
-  }[slide.variant];
+  const card = slide.gradient ? (
+    <ImmersiveSlide slide={slide} width={width} IconComponent={IconComponent} />
+  ) : (
+    <FlatSlide
+      slide={slide}
+      width={width}
+      IconComponent={IconComponent}
+      palette={resolvePalette(slide.variant, colors, isDark)}
+    />
+  );
 
-  const content = (
+  if (!slide.onPress) return card;
+
+  return (
+    <Pressable onPress={slide.onPress} style={{ width }}>
+      {({ pressed }) => (
+        <View style={{ opacity: pressed ? 0.94 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] }}>
+          {card}
+        </View>
+      )}
+    </Pressable>
+  );
+}
+
+function FlatSlide({
+  slide,
+  width,
+  IconComponent,
+  palette,
+}: {
+  slide: PromoSlideData;
+  width: number;
+  IconComponent: PhosphorIcon;
+  palette: SlidePalette;
+}) {
+  return (
     <View
       style={{
         width,
-        minHeight: 148,
+        height: SLIDE_HEIGHT,
         borderRadius: Radius.lg,
-        backgroundColor: styles.bg,
+        backgroundColor: palette.bg,
         padding: Spacing.five,
-        borderWidth: slide.variant === 'dark' ? 0 : 1,
-        borderColor: styles.border,
+        borderWidth: palette.borderWidth,
+        borderColor: palette.border,
         justifyContent: 'space-between',
-        ...Shadows.nav,
+        overflow: 'hidden',
       }}
     >
+      <View pointerEvents="none" style={{ position: 'absolute', right: -28, top: -18, opacity: 1 }}>
+        <IconComponent size={148} color={palette.watermark} weight="fill" />
+      </View>
+
       <View>
-        <Eyebrow label={slide.eyebrow} color={styles.eyebrowColor} dotColor={styles.dotColor} />
+        <Eyebrow label={slide.eyebrow} color={palette.eyebrowColor} dotColor={palette.dotColor} />
         <Text
-          style={[
-            textStyle('featureHeading'),
-            { color: styles.title, marginBottom: Spacing.one },
-          ]}
+          numberOfLines={2}
+          style={[textStyle('featureHeading'), { color: palette.title, marginBottom: Spacing.one }]}
         >
           {slide.title}
         </Text>
-        <Text numberOfLines={2} style={[textStyle('caption'), { color: styles.body }]}>
+        <Text numberOfLines={2} style={[textStyle('caption'), { color: palette.body }]}>
           {slide.description}
         </Text>
       </View>
 
+      <SlideFooter
+        IconComponent={IconComponent}
+        iconBg={palette.iconBg}
+        iconColor={palette.iconColor}
+        ctaBg={palette.ctaBg}
+        ctaFg={palette.ctaFg}
+        ctaLabel={slide.ctaLabel}
+      />
+    </View>
+  );
+}
+
+function ImmersiveSlide({
+  slide,
+  width,
+  IconComponent,
+}: {
+  slide: PromoSlideData;
+  width: number;
+  IconComponent: PhosphorIcon;
+}) {
+  return (
+    <LinearGradient
+      colors={[...(slide.gradient as readonly [string, string, ...string[]])]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={{
+        width,
+        height: SLIDE_HEIGHT,
+        borderRadius: Radius.lg,
+        padding: Spacing.five,
+        justifyContent: 'space-between',
+        overflow: 'hidden',
+      }}
+    >
+      <View pointerEvents="none" style={{ position: 'absolute', right: -26, top: -20, opacity: 0.18 }}>
+        <IconComponent size={150} color="#FFFFFF" weight="fill" />
+      </View>
+
+      <View>
+        <Eyebrow label={slide.eyebrow} color="#FFFFFF" dotColor="#FFFFFF" />
+        <Text
+          numberOfLines={2}
+          style={[textStyle('featureHeading'), { color: '#FFFFFF', marginBottom: Spacing.one }]}
+        >
+          {slide.title}
+        </Text>
+        <Text numberOfLines={2} style={[textStyle('caption'), { color: 'rgba(255,255,255,0.88)' }]}>
+          {slide.description}
+        </Text>
+      </View>
+
+      <SlideFooter
+        IconComponent={IconComponent}
+        iconBg="rgba(255,255,255,0.22)"
+        iconColor="#FFFFFF"
+        ctaBg="#FFFFFF"
+        ctaFg={TRUE_INK}
+        ctaLabel={slide.ctaLabel}
+      />
+    </LinearGradient>
+  );
+}
+
+function SlideFooter({
+  IconComponent,
+  iconBg,
+  iconColor,
+  ctaBg,
+  ctaFg,
+  ctaLabel,
+}: {
+  IconComponent: PhosphorIcon;
+  iconBg: string;
+  iconColor: string;
+  ctaBg: string;
+  ctaFg: string;
+  ctaLabel?: string;
+}) {
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginTop: Spacing.three,
+      }}
+    >
       <View
         style={{
-          flexDirection: 'row',
+          width: 44,
+          height: 44,
+          borderRadius: 22,
+          backgroundColor: iconBg,
           alignItems: 'center',
-          justifyContent: 'space-between',
-          marginTop: Spacing.four,
+          justifyContent: 'center',
         }}
       >
+        <IconComponent size={22} color={iconColor} weight="bold" />
+      </View>
+
+      {ctaLabel ? (
         <View
           style={{
-            width: 44,
-            height: 44,
-            borderRadius: 22,
-            backgroundColor: styles.iconBg,
+            flexDirection: 'row',
             alignItems: 'center',
-            justifyContent: 'center',
+            gap: Spacing.two,
+            backgroundColor: ctaBg,
+            paddingVertical: Spacing.two,
+            paddingHorizontal: Spacing.four,
+            borderRadius: Radius.pill,
           }}
         >
-          <IconComponent size={22} color={styles.iconColor} weight="bold" />
+          <Text style={[textStyle('button'), { color: ctaFg }]}>{ctaLabel}</Text>
+          <ArrowRight size={16} color={ctaFg} weight="bold" />
         </View>
+      ) : (
         <View
           style={{
             width: 36,
             height: 36,
             borderRadius: 18,
-            backgroundColor: styles.ctaBg,
+            backgroundColor: ctaBg,
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <ArrowRight size={16} color={styles.ctaIcon} weight="bold" />
+          <ArrowRight size={16} color={ctaFg} weight="bold" />
         </View>
-      </View>
+      )}
     </View>
   );
-
-  if (slide.onPress) {
-    return (
-      <Pressable
-        onPress={slide.onPress}
-        style={({ pressed }) => ({ opacity: pressed ? 0.94 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] })}
-      >
-        {content}
-      </Pressable>
-    );
-  }
-
-  return content;
 }

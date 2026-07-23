@@ -21,7 +21,7 @@ import type { PaymentMethod } from '@/types';
 const PAYMENT_METHODS: { id: PaymentMethod; label: string; icon: PhosphorIcon }[] = [
   { id: 'airtel_money', label: 'Airtel Money', icon: DeviceMobile },
   { id: 'moov_money', label: 'Moov Money', icon: DeviceMobile },
-  { id: 'fedapay', label: 'FedaPay', icon: CreditCard },
+  { id: 'fedapay', label: 'Paiement sécurisé', icon: CreditCard },
   { id: 'off_platform', label: 'Hors plateforme', icon: Warning },
 ];
 
@@ -87,7 +87,7 @@ export default function CheckoutScreen() {
       } else if (result.sandbox) {
         Alert.alert(
           'Mode sandbox',
-          result.message ?? 'Paiement simulé — configurez FEDAPAY_SECRET_KEY pour la production.',
+          result.message ?? 'Paiement simulé — configurez la clé de paiement pour la production.',
         );
       }
 
@@ -117,7 +117,7 @@ export default function CheckoutScreen() {
               borderRadius: 20,
               padding: 20,
               marginBottom: 20,
-              borderWidth: 1,
+              borderWidth: 0.1,
               borderColor: colors.border,
             }}
           >
@@ -151,40 +151,40 @@ export default function CheckoutScreen() {
             const isOffPlatform = pm.id === 'off_platform';
             const Icon = pm.icon;
             return (
-              <Pressable
-                key={pm.id}
-                onPress={() => setMethod(pm.id)}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  backgroundColor: selected
-                    ? isOffPlatform
-                      ? colors.error + '10'
-                      : colors.primary + '10'
-                    : colors.surfaceCard,
-                  borderRadius: 20,
-                  padding: 16,
-                  marginBottom: 10,
-                  borderWidth: 2,
-                  borderColor: selected
-                    ? isOffPlatform
-                      ? colors.error
-                      : colors.primary
-                    : colors.border,
-                }}
-              >
-                <View style={{ marginRight: 12 }}>
-                  <Icon size={22} color={isOffPlatform ? colors.error : colors.ink} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 15, fontWeight: '600', color: colors.ink }}>
-                    {pm.id === 'off_platform' ? t('payment.offPlatform') : pm.label}
-                  </Text>
-                  {isOffPlatform && (
-                    <Text style={{ fontSize: 12, color: colors.error, marginTop: 4 }}>
-                      {t('payment.offPlatformWarning')}
+              <Pressable key={pm.id} onPress={() => setMethod(pm.id)}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: selected
+                      ? isOffPlatform
+                        ? colors.error + '10'
+                        : colors.primary + '10'
+                      : colors.surfaceCard,
+                    borderRadius: 20,
+                    padding: 16,
+                    marginBottom: 10,
+                    borderWidth: 0.1,
+                    borderColor: selected
+                      ? isOffPlatform
+                        ? colors.error
+                        : colors.primary
+                      : colors.border,
+                  }}
+                >
+                  <View style={{ marginRight: 12 }}>
+                    <Icon size={22} color={isOffPlatform ? colors.error : colors.ink} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 15, fontWeight: '600', color: colors.ink }}>
+                      {pm.id === 'off_platform' ? t('payment.offPlatform') : pm.label}
                     </Text>
-                  )}
+                    {isOffPlatform && (
+                      <Text style={{ fontSize: 12, color: colors.error, marginTop: 4 }}>
+                        {t('payment.offPlatformWarning')}
+                      </Text>
+                    )}
+                  </View>
                 </View>
               </Pressable>
             );
@@ -203,14 +203,14 @@ export default function CheckoutScreen() {
                 {t('payment.integratedBenefit')}
               </Text>
               <Text style={{ fontSize: 12, color: colors.body, marginTop: 6 }}>
-                Paiement sécurisé via FedaPay (Airtel Money / Moov Money)
+                Paiement sécurisé en ligne (Airtel Money / Moov Money)
               </Text>
             </View>
           )}
         </View>
       </PageScaffold>
 
-      <View style={{ padding: 16, paddingBottom: 24, borderTopWidth: 1, borderTopColor: colors.border }}>
+      <View style={{ padding: 16, paddingBottom: 24, borderTopWidth: 0.1, borderTopColor: colors.border }}>
         <Button
           title={method === 'off_platform' ? t('common.confirm') : t('payment.pay')}
           onPress={handlePay}

@@ -36,7 +36,7 @@ export default function ProviderDashboardScreen() {
                 backgroundColor: colors.surfaceCard,
                 borderRadius: 20,
                 padding: 20,
-                borderWidth: 1,
+                borderWidth: 0.1,
                 borderColor: colors.border,
               }}
             >

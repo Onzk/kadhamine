@@ -6,6 +6,7 @@ import {
   Pressable,
   Dimensions,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -16,29 +17,31 @@ import {
   CaretLeft,
   ChatCircleDots,
   Clock,
-  SealCheck,
   Crown,
   MapPin,
+  CheckCircle,
 } from 'phosphor-react-native';
 import type { Id } from '../../../convex/_generated/dataModel';
 
-import { Badge } from '@/components/ui/Badge';
 import { StarRating } from '@/components/ui/StarRating';
 import { CategoryIcon } from '@/lib/categoryIcons';
+import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { formatPrice } from '@/types';
-import { BrandColors, Radius, Shadows, Spacing } from '@/theme/tokens';
+import { Radius, Shadows, Spacing } from '@/theme/tokens';
 import { fontFamily, textStyle } from '@/theme/typography';
 import { api } from '../../../convex/_generated/api';
 
 const { height: SCREEN_H } = Dimensions.get('window');
 const HERO_H = Math.round(SCREEN_H * 0.46);
 const FOOTER_H = 88;
+const PAGE_PAD = Spacing.six;
 
 export default function ServiceDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
   const { colors, isDark } = useAppTheme();
+  const { user } = useAuth();
   const router = useRouter();
   const [contactLoading, setContactLoading] = useState(false);
   const [orderLoading, setOrderLoading] = useState(false);
@@ -54,6 +57,16 @@ export default function ServiceDetailScreen() {
     if (id) incrementView({ serviceId: id as Id<'services'> }).catch(() => {});
   }, [id, incrementView]);
 
+  const requireLogin = (actionLabel: string) => {
+    Alert.alert(t('auth.loginRequiredTitle'), t('auth.loginRequiredBody', { action: actionLabel }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('auth.signIn'),
+        onPress: () => router.push('/(auth)/login' as never),
+      },
+    ]);
+  };
+
   if (!data) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.canvas, alignItems: 'center', justifyContent: 'center' }}>
@@ -68,27 +81,54 @@ export default function ServiceDetailScreen() {
     ? profile.firstName.charAt(0).toUpperCase()
     : 'T';
   const trustScore = profile?.trustScore ?? 0;
+  const ratingValue = Number(service.averageRating ?? 0);
 
   const handleOrder = async () => {
+    if (!user?._id) {
+      requireLogin(t('service.order'));
+      return;
+    }
     setOrderLoading(true);
     try {
       const orderId = await createOrder({ serviceId: service._id });
       router.push(`/checkout/${orderId}`);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : t('common.error');
+      if (/non authentifié/i.test(message)) {
+        requireLogin(t('service.order'));
+      } else {
+        Alert.alert(t('common.error'), message);
+      }
     } finally {
       setOrderLoading(false);
     }
   };
 
   const handleContact = async () => {
+    if (!user?._id) {
+      requireLogin(t('service.contact'));
+      return;
+    }
     setContactLoading(true);
     try {
       const conversationId = await getOrCreateConversation({
         participantId: service.providerId,
       });
       router.push(`/chat/${conversationId}`);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : t('common.error');
+      if (/non authentifié/i.test(message)) {
+        requireLogin(t('service.contact'));
+      } else {
+        Alert.alert(t('common.error'), message);
+      }
     } finally {
       setContactLoading(false);
     }
+  };
+
+  const handleWriteReview = () => {
+    Alert.alert(t('service.writeReview'), t('service.writeReviewHint'));
   };
 
   return (
@@ -114,37 +154,74 @@ export default function ServiceDetailScreen() {
           )}
 
           <LinearGradient
-            colors={['transparent', isDark ? 'rgba(20,20,19,0.55)' : 'rgba(243,240,238,0.35)', colors.canvas]}
-            locations={[0.35, 0.72, 1]}
-            style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: HERO_H * 0.55 }}
+            colors={['transparent', isDark ? 'rgba(20,20,19,0.45)' : 'rgba(243,240,238,0.28)', colors.canvas]}
+            locations={[0.4, 0.78, 1]}
+            style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: HERO_H * 0.5 }}
           />
 
           {/* Retour flottant */}
-          <Pressable
-            onPress={() => router.back()}
-            style={({ pressed }) => ({
+          <View style={{ position: 'absolute', top: Spacing.four, left: PAGE_PAD }}>
+            <Pressable
+              onPress={() => router.back()}
+              style={({ pressed }) => ({
+                width: 44,
+                height: 44,
+                opacity: pressed ? 0.85 : 1,
+              })}
+            >
+              <View
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
+                  backgroundColor: 'rgba(20,20,19,0.55)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  ...Shadows.nav,
+                }}
+              >
+                <CaretLeft size={22} color="#F3F0EE" weight="bold" />
+              </View>
+            </Pressable>
+          </View>
+
+          {/* Tags haut-droite — catégorie + vérifié */}
+          <View
+            style={{
               position: 'absolute',
               top: Spacing.four,
-              left: Spacing.four,
-              width: 44,
-              height: 44,
-              borderRadius: 22,
-              backgroundColor: 'rgba(20,20,19,0.55)',
-              alignItems: 'center',
-              justifyContent: 'center',
-              opacity: pressed ? 0.85 : 1,
-              ...Shadows.nav,
-            })}
+              right: PAGE_PAD,
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              justifyContent: 'flex-end',
+              gap: Spacing.two,
+              maxWidth: '58%',
+            }}
           >
-            <CaretLeft size={22} color="#F3F0EE" weight="bold" />
-          </Pressable>
-        </View>
-
-        <View style={{ paddingHorizontal: Spacing.four, marginTop: -Spacing.two }}>
-          {/* Badges */}
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two, marginBottom: Spacing.four }}>
             {category ? (
-              <Badge label={category.nameFr} variant="default" />
+              <View
+                style={{
+                  paddingHorizontal: 10,
+                  paddingVertical: 5,
+                  borderRadius: Radius.md,
+                  backgroundColor: isDark ? 'rgba(38,38,39,0.92)' : 'rgba(55,55,52,0.88)',
+                }}
+              >
+                <Text
+                  style={[
+                    textStyle('micro'),
+                    {
+                      fontFamily: fontFamily('body', 'medium'),
+                      color: '#F3F0EE',
+                      letterSpacing: 0.4,
+                      textTransform: 'uppercase',
+                    },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {category.nameFr}
+                </Text>
+              </View>
             ) : null}
             {profile?.isVerified ? (
               <View
@@ -152,19 +229,22 @@ export default function ServiceDetailScreen() {
                   flexDirection: 'row',
                   alignItems: 'center',
                   gap: 4,
-                  paddingHorizontal: 12,
-                  paddingVertical: 4,
-                  borderRadius: Radius.pill,
-                  borderWidth: 1.5,
-                  borderColor: BrandColors.gold,
-                  backgroundColor: BrandColors.gold + '22',
+                  paddingHorizontal: 10,
+                  paddingVertical: 5,
+                  borderRadius: Radius.md,
+                  backgroundColor: colors.orbit + (isDark ? 'DD' : 'E8'),
                 }}
               >
-                <SealCheck size={12} color={BrandColors.gold} weight="fill" />
+                <CheckCircle size={12} color={colors.onOrbit} weight="fill" />
                 <Text
                   style={[
                     textStyle('micro'),
-                    { fontFamily: fontFamily('body', 'medium'), color: colors.ink },
+                    {
+                      fontFamily: fontFamily('body', 'medium'),
+                      color: colors.onOrbit,
+                      letterSpacing: 0.3,
+                      textTransform: 'uppercase',
+                    },
                   ]}
                 >
                   {t('common.verified')}
@@ -177,9 +257,9 @@ export default function ServiceDetailScreen() {
                   flexDirection: 'row',
                   alignItems: 'center',
                   gap: 4,
-                  paddingHorizontal: 12,
-                  paddingVertical: 4,
-                  borderRadius: Radius.pill,
+                  paddingHorizontal: 10,
+                  paddingVertical: 5,
+                  borderRadius: Radius.md,
                   backgroundColor: colors.accent,
                 }}
               >
@@ -195,14 +275,16 @@ export default function ServiceDetailScreen() {
               </View>
             ) : null}
           </View>
+        </View>
 
-          {/* Titre */}
+        <View style={{ paddingHorizontal: PAGE_PAD, marginTop: Spacing.two }}>
+          {/* Titre — charcoal bold, légèrement plus compact */}
           <Text
             style={{
-              fontFamily: fontFamily('body', 'medium'),
-              fontSize: 26,
-              lineHeight: 32,
-              letterSpacing: -0.5,
+              fontFamily: fontFamily('body', 'bold'),
+              fontSize: 22,
+              lineHeight: 28,
+              letterSpacing: -0.35,
               color: colors.ink,
               marginBottom: Spacing.three,
             }}
@@ -210,69 +292,118 @@ export default function ServiceDetailScreen() {
             {service.title}
           </Text>
 
-          {/* Note */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.three, marginBottom: Spacing.four }}>
-            <StarRating rating={service.averageRating} showValue />
-            <Text style={[textStyle('caption'), { color: colors.muted }]}>
-              ({service.reviewCount} {t('service.reviews').toLowerCase()})
-            </Text>
-          </View>
-
-          {/* Prix */}
-          <View
-            style={{
-              alignSelf: 'flex-start',
-              backgroundColor: colors.orbit + '18',
-              borderRadius: Radius.pill,
-              paddingHorizontal: Spacing.four,
-              paddingVertical: Spacing.two,
-              marginBottom: Spacing.five,
-              borderWidth: 1,
-              borderColor: colors.orbit + '40',
-            }}
-          >
-            <Text
+          {/* Note — étoiles or, note grande, avis + lien */}
+          <View style={{ marginBottom: Spacing.five }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.two }}>
+              <StarRating rating={ratingValue} size={18} />
+              <Text
+                style={{
+                  fontFamily: fontFamily('body', 'bold'),
+                  fontSize: 20,
+                  lineHeight: 24,
+                  color: colors.ink,
+                  marginLeft: 2,
+                }}
+              >
+                {ratingValue.toFixed(1)}
+              </Text>
+            </View>
+            <View
               style={{
-                fontFamily: fontFamily('body', 'medium'),
-                fontSize: 18,
-                color: colors.orbit,
+                flexDirection: 'row',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: Spacing.two,
+                marginTop: Spacing.oneHalf,
               }}
             >
-              {service.pricingType === 'negotiable'
-                ? t('common.negotiable')
-                : service.price
-                  ? formatPrice(service.price)
-                  : '—'}
-            </Text>
+              <Text style={[textStyle('caption'), { color: colors.muted, fontSize: 13 }]}>
+                ({service.reviewCount} {t('service.reviews').toLowerCase()})
+              </Text>
+              <Pressable
+                onPress={handleWriteReview}
+                hitSlop={8}
+                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+              >
+                <Text
+                  style={[
+                    textStyle('caption'),
+                    {
+                      color: colors.link,
+                      fontFamily: fontFamily('body', 'medium'),
+                      fontSize: 13,
+                      textDecorationLine: 'underline',
+                    },
+                  ]}
+                >
+                  {t('service.writeReview')}
+                </Text>
+              </Pressable>
+            </View>
           </View>
 
-          {/* Description */}
+          {/* Prix — sans pill, grand bleu royal */}
+          <Text
+            style={{
+              fontFamily: fontFamily('body', 'bold'),
+              fontSize: 26,
+              lineHeight: 32,
+              letterSpacing: -0.4,
+              color: colors.orbit,
+              marginBottom: Spacing.five,
+            }}
+          >
+            {service.pricingType === 'negotiable'
+              ? t('common.negotiable')
+              : service.price
+                ? formatPrice(service.price)
+                : '—'}
+          </Text>
+
+          {/* Description — leading augmenté, texte plus sombre */}
           <View
             style={{
               backgroundColor: colors.surfaceCard,
               borderRadius: 16,
-              padding: Spacing.four,
-              marginBottom: Spacing.four,
-              ...Shadows.nav,
+              padding: Spacing.five,
+              marginBottom: Spacing.five,
+              borderWidth: 0.1,
+              borderColor: colors.border,
             }}
           >
-            <Text style={[textStyle('body'), { color: colors.body, lineHeight: 24 }]}>
+            <Text
+              style={[
+                textStyle('body'),
+                {
+                  color: colors.ink,
+                  lineHeight: 28,
+                  fontSize: 15,
+                },
+              ]}
+            >
               {service.description}
             </Text>
           </View>
 
-          {/* Délai */}
+          {/* Délai — icône +150%, texte plus fort */}
           {service.deliveryDays ? (
             <View
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
-                gap: Spacing.two,
-                marginBottom: Spacing.five,
+                gap: Spacing.three,
+                marginBottom: Spacing.six,
               }}
             >
-              <Clock size={16} color={colors.muted} />
-              <Text style={[textStyle('caption'), { color: colors.muted }]}>
+              <Clock size={24} color={colors.ink} weight="bold" />
+              <Text
+                style={{
+                  fontFamily: fontFamily('body', 'medium'),
+                  fontSize: 15,
+                  lineHeight: 20,
+                  color: colors.ink,
+                }}
+              >
                 {t('service.delivery')} · {service.deliveryDays} {t('service.days')}
               </Text>
             </View>
@@ -284,22 +415,33 @@ export default function ServiceDetailScreen() {
               style={{
                 backgroundColor: colors.surfaceCard,
                 borderRadius: 16,
-                padding: Spacing.four,
+                padding: Spacing.five,
                 marginBottom: Spacing.five,
-                ...Shadows.nav,
+                borderWidth: 0.1,
+                borderColor: colors.border,
               }}
             >
-              <Text style={[textStyle('micro'), { color: colors.muted, marginBottom: Spacing.three }]}>
+              <Text
+                style={[
+                  textStyle('micro'),
+                  {
+                    color: colors.muted,
+                    marginBottom: Spacing.four,
+                    letterSpacing: 0.6,
+                    fontFamily: fontFamily('body', 'medium'),
+                  },
+                ]}
+              >
                 {t('service.provider').toUpperCase()}
               </Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.three }}>
                 <View
                   style={{
-                    width: 52,
-                    height: 52,
-                    borderRadius: 26,
+                    width: 56,
+                    height: 56,
+                    borderRadius: 28,
                     overflow: 'hidden',
-                    backgroundColor: colors.ink,
+                    backgroundColor: colors.surfaceStrong,
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
@@ -311,35 +453,82 @@ export default function ServiceDetailScreen() {
                       contentFit="cover"
                     />
                   ) : (
-                    <Text style={[textStyle('featureHeading'), { color: colors.onPrimary }]}>
+                    <Text style={[textStyle('featureHeading'), { color: colors.ink }]}>
                       {providerInitial}
                     </Text>
                   )}
                 </View>
-                <View style={{ flex: 1 }}>
+                <View style={{ flex: 1, minWidth: 0 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <Text
                       style={{
                         fontFamily: fontFamily('body', 'medium'),
                         fontSize: 17,
                         color: colors.ink,
+                        flexShrink: 1,
                       }}
+                      numberOfLines={1}
                     >
                       {profile.firstName} {profile.lastName}
                     </Text>
                     {profile.isVerified ? (
-                      <SealCheck size={16} color={BrandColors.gold} weight="fill" />
+                      <CheckCircle size={18} color={colors.orbit} weight="fill" />
                     ) : null}
                   </View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                    <MapPin size={12} color={colors.muted} />
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 }}>
+                    <MapPin size={13} color={colors.muted} />
                     <Text style={[textStyle('caption'), { color: colors.muted }]}>{profile.city}</Text>
                   </View>
                 </View>
+
+                {/* Contacter intégré — sans coupure */}
+                <Pressable
+                  onPress={handleContact}
+                  disabled={contactLoading}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('service.contact')}
+                  style={({ pressed }) => ({
+                    flexShrink: 0,
+                    opacity: contactLoading || pressed ? 0.88 : 1,
+                  })}
+                >
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 6,
+                      paddingHorizontal: Spacing.three,
+                      paddingVertical: Spacing.two,
+                      borderRadius: Radius.button,
+                      backgroundColor: colors.orbit,
+                      minHeight: 40,
+                    }}
+                  >
+                    {contactLoading ? (
+                      <ActivityIndicator color={colors.onOrbit} size="small" />
+                    ) : (
+                      <>
+                        <ChatCircleDots size={16} color={colors.onOrbit} weight="fill" />
+                        <Text
+                          style={[
+                            textStyle('caption'),
+                            {
+                              fontFamily: fontFamily('body', 'medium'),
+                              color: colors.onOrbit,
+                            },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {t('service.contact')}
+                        </Text>
+                      </>
+                    )}
+                  </View>
+                </Pressable>
               </View>
 
-              {/* Score de confiance — barre */}
-              <View style={{ marginTop: Spacing.four }}>
+              {/* Score de confiance */}
+              <View style={{ marginTop: Spacing.five }}>
                 <View
                   style={{
                     flexDirection: 'row',
@@ -386,16 +575,16 @@ export default function ServiceDetailScreen() {
             style={{
               backgroundColor: colors.surfaceStrong,
               borderRadius: 16,
-              padding: Spacing.four,
+              padding: Spacing.five,
               marginBottom: Spacing.five,
-              borderWidth: 1,
+              borderWidth: 0.1,
               borderColor: colors.border,
             }}
           >
-            <Text style={[textStyle('caption'), { color: colors.ink, lineHeight: 20 }]}>
+            <Text style={[textStyle('caption'), { color: colors.ink, lineHeight: 22, fontSize: 14 }]}>
               {t('payment.integratedBenefit')}
             </Text>
-            <Text style={[textStyle('micro'), { color: colors.muted, marginTop: 6, lineHeight: 18 }]}>
+            <Text style={[textStyle('micro'), { color: colors.muted, marginTop: 8, lineHeight: 20 }]}>
               {t('payment.offPlatformWarning')}
             </Text>
           </View>
@@ -421,12 +610,18 @@ export default function ServiceDetailScreen() {
                     borderRadius: 16,
                     padding: Spacing.four,
                     marginBottom: Spacing.two,
-                    ...Shadows.nav,
+                    borderWidth: 0.1,
+                    borderColor: colors.border,
                   }}
                 >
                   <StarRating rating={review.rating} size={14} />
                   {review.comment ? (
-                    <Text style={[textStyle('caption'), { color: colors.body, marginTop: Spacing.two }]}>
+                    <Text
+                      style={[
+                        textStyle('caption'),
+                        { color: colors.ink, marginTop: Spacing.two, lineHeight: 22 },
+                      ]}
+                    >
                       {review.comment}
                     </Text>
                   ) : null}
@@ -437,18 +632,18 @@ export default function ServiceDetailScreen() {
         </View>
       </ScrollView>
 
-      {/* Sticky footer — Contacter principal */}
+      {/* Sticky footer */}
       <View
         style={{
           position: 'absolute',
           bottom: 0,
           left: 0,
           right: 0,
-          paddingHorizontal: Spacing.four,
+          paddingHorizontal: PAGE_PAD,
           paddingTop: Spacing.three,
           paddingBottom: Spacing.four,
           backgroundColor: colors.canvas,
-          borderTopWidth: 1,
+          borderTopWidth: 0.1,
           borderTopColor: colors.border,
           flexDirection: 'row',
           gap: Spacing.three,
@@ -460,26 +655,33 @@ export default function ServiceDetailScreen() {
           style={({ pressed }) => ({
             flex: 1.4,
             height: 52,
-            borderRadius: Radius.button,
-            backgroundColor: colors.orbit,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
             opacity: contactLoading || pressed ? 0.88 : 1,
-            ...Shadows.elevated,
           })}
         >
-          {contactLoading ? (
-            <ActivityIndicator color={colors.onPrimary} />
-          ) : (
-            <>
-              <ChatCircleDots size={20} color={colors.onPrimary} weight="fill" />
-              <Text style={[textStyle('button'), { color: colors.onPrimary }]}>
-                {t('service.contact')}
-              </Text>
-            </>
-          )}
+          <View
+            style={{
+              height: 52,
+              borderRadius: Radius.button,
+              backgroundColor: colors.orbit,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              paddingHorizontal: Spacing.three,
+              ...Shadows.elevated,
+            }}
+          >
+            {contactLoading ? (
+              <ActivityIndicator color={colors.onOrbit} />
+            ) : (
+              <>
+                <ChatCircleDots size={20} color={colors.onOrbit} weight="fill" />
+                <Text style={[textStyle('button'), { color: colors.onOrbit }]} numberOfLines={1}>
+                  {t('service.contact')}
+                </Text>
+              </>
+            )}
+          </View>
         </Pressable>
         <Pressable
           onPress={handleOrder}
@@ -487,20 +689,27 @@ export default function ServiceDetailScreen() {
           style={({ pressed }) => ({
             flex: 1,
             height: 52,
-            borderRadius: Radius.button,
-            backgroundColor: colors.ink,
-            alignItems: 'center',
-            justifyContent: 'center',
             opacity: orderLoading || pressed ? 0.88 : 1,
           })}
         >
-          {orderLoading ? (
-            <ActivityIndicator color={colors.onPrimary} />
-          ) : (
-            <Text style={[textStyle('button'), { color: colors.onPrimary }]}>
-              {t('service.order')}
-            </Text>
-          )}
+          <View
+            style={{
+              height: 52,
+              borderRadius: Radius.button,
+              backgroundColor: colors.ink,
+              alignItems: 'center',
+              justifyContent: 'center',
+              paddingHorizontal: Spacing.three,
+            }}
+          >
+            {orderLoading ? (
+              <ActivityIndicator color={colors.onPrimary} />
+            ) : (
+              <Text style={[textStyle('button'), { color: colors.onPrimary }]} numberOfLines={1}>
+                {t('service.order')}
+              </Text>
+            )}
+          </View>
         </Pressable>
       </View>
     </View>

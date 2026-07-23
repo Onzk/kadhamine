@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Alert, TextInput } from 'react-native';
+import { View, Text, Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useAction } from 'convex/react';
 import * as WebBrowser from 'expo-web-browser';
@@ -7,6 +7,7 @@ import { Crown, Check } from 'phosphor-react-native';
 
 import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { formatPrice } from '@/types';
@@ -32,7 +33,7 @@ export default function PremiumScreen() {
 
   const handleSubscribe = async () => {
     if (!phoneNumber.trim()) {
-      Alert.alert('Numéro requis', 'Entrez votre numéro Mobile Money pour payer via FedaPay.');
+      Alert.alert('Numéro requis', 'Entrez votre numéro Mobile Money pour effectuer un paiement sécurisé.');
       return;
     }
 
@@ -111,7 +112,7 @@ export default function PremiumScreen() {
               borderRadius: 20,
               padding: 14,
               marginBottom: 20,
-              borderWidth: 1,
+              borderWidth: 0.1,
               borderColor: colors.success + '40',
             }}
           >
@@ -152,25 +153,12 @@ export default function PremiumScreen() {
           </Text>
         ) : !isActive ? (
           <View style={{ marginTop: 24 }}>
-            <Text style={{ fontSize: 13, color: colors.muted, marginBottom: 8 }}>
-              Numéro Mobile Money (FedaPay)
-            </Text>
-            <TextInput
+            <Input
+              label="Numéro Mobile Money"
               value={phoneNumber}
               onChangeText={setPhoneNumber}
               keyboardType="phone-pad"
               placeholder="66 XX XX XX"
-              placeholderTextColor={colors.muted}
-              style={{
-                backgroundColor: colors.surfaceCard,
-                borderRadius: 999,
-                borderWidth: 1,
-                borderColor: colors.border,
-                paddingHorizontal: 24,
-                paddingVertical: 12,
-                color: colors.ink,
-                marginBottom: 16,
-              }}
             />
             <Button
               title="S'abonner Premium"

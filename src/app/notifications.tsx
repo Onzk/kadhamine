@@ -1,11 +1,13 @@
 import React from 'react';
 import { View, Text, Pressable } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
 import { Bell } from 'phosphor-react-native';
 
 import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { Spacing } from '@/theme/tokens';
 import { textStyle } from '@/theme/typography';
@@ -14,7 +16,9 @@ import { api } from '../../convex/_generated/api';
 export default function NotificationsScreen() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
-  const notifications = useQuery(api.notifications.list, {});
+  const { user, isLoading } = useAuth();
+  const router = useRouter();
+  const notifications = useQuery(api.notifications.list, user?._id ? {} : 'skip');
   const markAllRead = useMutation(api.notifications.markAllRead);
 
   return (
@@ -23,15 +27,24 @@ export default function NotificationsScreen() {
       subtitle="Restez informé de l'activité sur votre compte."
       showBack
       rightAction={
-        <Pressable onPress={() => markAllRead({})} hitSlop={8}>
-          <Text style={[textStyle('caption'), { color: colors.orbit, fontWeight: '600' }]}>
-            {t('notifications.markAllRead')}
-          </Text>
-        </Pressable>
+        user ? (
+          <Pressable onPress={() => markAllRead({})} hitSlop={8}>
+            <Text style={[textStyle('caption'), { color: colors.orbit, fontWeight: '600' }]}>
+              {t('notifications.markAllRead')}
+            </Text>
+          </Pressable>
+        ) : undefined
       }
     >
       <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
-        {notifications === undefined ? (
+        {!user && !isLoading ? (
+          <EmptyState
+            icon={Bell}
+            title={t('auth.guestTitle')}
+            actionLabel={t('auth.signIn')}
+            onAction={() => router.push('/(auth)/login')}
+          />
+        ) : notifications === undefined ? (
           <Text style={{ color: colors.muted, textAlign: 'center', marginTop: 32 }}>
             {t('common.loading')}
           </Text>

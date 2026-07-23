@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, Text } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { fontFamily, textStyle } from '@/theme/typography';
 import { Radius, Spacing } from '@/theme/tokens';
@@ -19,29 +19,34 @@ export function CategoryChip({ label, selected, onPress }: CategoryChipProps) {
     <Pressable
       onPress={onPress}
       style={({ pressed }) => ({
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: Spacing.five,
-        paddingVertical: Spacing.two,
-        borderRadius: Radius.pill,
-        backgroundColor: selected ? colors.ink : colors.surfaceCard,
-        borderWidth: 1.5,
-        borderColor: colors.ink,
         opacity: pressed ? 0.88 : 1,
-        marginRight: Spacing.two,
       })}
     >
-      <Text
-        style={[
-          textStyle('caption'),
-          {
-            fontFamily: fontFamily('body', 'medium'),
-            color: selected ? colors.onPrimary : colors.ink,
-          },
-        ]}
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingHorizontal: Spacing.five,
+          paddingVertical: Spacing.two,
+          borderRadius: Radius.pill,
+          backgroundColor: selected ? colors.ink : colors.surfaceCard,
+          borderWidth: 0.1,
+          borderColor: colors.ink,
+          marginRight: Spacing.two,
+        }}
       >
-        {label}
-      </Text>
+        <Text
+          style={[
+            textStyle('caption'),
+            {
+              fontFamily: fontFamily('body', 'medium'),
+              color: selected ? colors.onPrimary : colors.ink,
+            },
+          ]}
+        >
+          {label}
+        </Text>
+      </View>
     </Pressable>
   );
 }

@@ -1,10 +1,10 @@
 /**
  * Design tokens TalentTchad — source de vérité : DESIGN.md (Mastercard-inspired).
- * Logo blue/gold/crimson réservés aux assets de marque et badges sémantiques.
+ * Logo blue is the primary brand accent; gold/crimson reserved for semantic badges.
  */
 
 export const BrandColors = {
-  /** Logo only — not a marketing CTA color */
+  /** Logo / primary brand accent */
   blue: '#0B3D91',
   /** Verified check / rating */
   gold: '#F5C400',
@@ -15,8 +15,8 @@ export const BrandColors = {
   canvas: '#F3F0EE',
   lifted: '#FCFBFA',
   signal: '#CF4500',
-  orbit: '#F37338',
-  clay: '#9A3A0A',
+  orbit: '#0B3D91',
+  clay: '#062352',
   dust: '#D1CDC7',
   link: '#3860BE',
   /** @deprecated alias → ink */
@@ -43,7 +43,10 @@ export const LightTheme = {
   surfaceDark: BrandColors.ink,
   surfaceNavy: BrandColors.ink,
   iconWash: '#E8E2DA',
-  border: '#D1CDC7',
+  /** Stronger than dust so cards read clearly on canvas/surfaceCard */
+  border: '#B5AFA6',
+  /** Card outline — ~3.4:1 on surfaceCard/canvas so it's clearly visible */
+  borderStrong: '#8C8578',
   borderHairline: '#D1CDC7',
   borderLight: '#E8E2DA',
   ink: '#141413',
@@ -58,8 +61,13 @@ export const LightTheme = {
   signal: BrandColors.signal,
   orbit: BrandColors.orbit,
   clay: BrandColors.clay,
+  /** Immersive promo / hero gradient — link → orbit → clay */
+  orbitGradient: ['#3860BE', '#0B3D91', '#062352'] as const,
+  /** Soft tint behind orbit icons (e.g. warm promo slide) */
+  orbitWash: '#D6E4F7',
   link: BrandColors.link,
   onPrimary: '#F3F0EE',
+  onOrbit: '#FFFFFF',
   onAccent: '#FFFFFF',
   onDark: '#FFFFFF',
   success: '#027A48',
@@ -84,7 +92,10 @@ export const DarkTheme = {
   surfaceDark: '#0A0A09',
   surfaceNavy: '#0A0A09',
   iconWash: '#333332',
-  border: '#3A3A38',
+  /** Stronger than surfaceStrong so cards read clearly on canvas/surfaceCard */
+  border: '#555552',
+  /** Card outline — ~3.4:1 on surfaceCard/canvas so it's clearly visible */
+  borderStrong: '#7A7A75',
   borderHairline: '#3A3A38',
   borderLight: '#262627',
   ink: '#F3F0EE',
@@ -97,10 +108,15 @@ export const DarkTheme = {
   accent: BrandColors.crimson,
   accentSoft: BrandColors.gold,
   signal: BrandColors.signal,
-  orbit: BrandColors.orbit,
-  clay: '#F37338',
-  link: '#7B9BE0',
+  /** Vibrant cyan brand accent in dark/night mode (logo blue stays in light) */
+  orbit: '#06B6D4',
+  clay: '#0E7490',
+  /** Cyan immersive gradient — lighter → orbit → clay */
+  orbitGradient: ['#22D3EE', '#06B6D4', '#0E7490'] as const,
+  orbitWash: '#164E63',
+  link: '#67E8F9',
   onPrimary: '#141413',
+  onOrbit: '#FFFFFF',
   onAccent: '#FFFFFF',
   onDark: '#FFFFFF',
   success: '#6CE9A6',
@@ -115,6 +131,26 @@ export const DarkTheme = {
 } as const;
 
 export type ThemeColors = typeof LightTheme | typeof DarkTheme;
+
+/**
+ * Inverted input scheme — shared by SearchBar and form fields.
+ * Light mode: ink background, white text/icon/placeholder.
+ * Dark mode: white background, ink text/icon/placeholder.
+ */
+export const InvertedInput = {
+  ink: BrandColors.ink,
+  white: '#FFFFFF',
+  placeholderLight: 'rgba(255,255,255,0.6)',
+  placeholderDark: 'rgba(20,20,19,0.5)',
+} as const;
+
+export function getInvertedInputColors(isDark: boolean) {
+  return {
+    background: isDark ? InvertedInput.white : InvertedInput.ink,
+    foreground: isDark ? InvertedInput.ink : InvertedInput.white,
+    placeholder: isDark ? InvertedInput.placeholderDark : InvertedInput.placeholderLight,
+  };
+}
 
 /** 8px grid — DESIGN.md spacing scale */
 export const Spacing = {
@@ -156,6 +192,12 @@ export const Radius = {
   stadium: 40,
   pill: 999,
   full: 9999,
+} as const;
+
+/** Uniform hairline border — all UI borders use this width. */
+export const BorderWidth = {
+  default: 0.1,
+  none: 0,
 } as const;
 
 export const MaxContentWidth = 800;

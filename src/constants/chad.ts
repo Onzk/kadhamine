@@ -27,6 +27,20 @@ export const MVP_CITY_REGION: Record<MvpCity, string> = {
   Mongo: 'guera',
 };
 
+/** Coords approximatives des 10 villes MVP (centres urbains). */
+export const MVP_CITY_COORDS: Record<MvpCity, { lat: number; lng: number }> = {
+  "N'Djamena": { lat: 12.1348, lng: 15.0557 },
+  Moundou: { lat: 8.5667, lng: 16.0833 },
+  Abéché: { lat: 13.8292, lng: 20.8324 },
+  Sarh: { lat: 9.1456, lng: 18.3928 },
+  Bongor: { lat: 10.2822, lng: 15.3722 },
+  Doba: { lat: 8.6639, lng: 16.8531 },
+  Kélo: { lat: 9.3167, lng: 15.55 },
+  Pala: { lat: 9.35, lng: 14.9167 },
+  Ati: { lat: 13.2167, lng: 18.3333 },
+  Mongo: { lat: 12.1833, lng: 18.6833 },
+};
+
 export const CHAD_REGIONS = [
   { id: 'ndjamena', nameFr: "N'Djamena", nameAr: 'انجمينا', nameSara: "N'Djamena" },
   { id: 'logone-occidental', nameFr: 'Logone Occidental', nameAr: 'لوقون الغربي', nameSara: 'Logone Occidental' },

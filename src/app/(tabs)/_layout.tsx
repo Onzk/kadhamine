@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Text, View } from 'react-native';
+import { Text, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import {
@@ -11,15 +11,24 @@ import {
   type Icon as PhosphorIcon,
 } from 'phosphor-react-native';
 import { useAppTheme } from '@/providers/ThemeProvider';
+import { Spacing } from '@/theme/tokens';
 import { fontFamily, textStyle } from '@/theme/typography';
 
+/** Icon + label row height (above the system-nav inset). */
 const TAB_CONTENT_HEIGHT = 52;
+/** Extra lift so tab items sit clearly above the system gesture/nav zone. */
+const TAB_BOTTOM_EXTRA = Spacing.two;
 
 export default function TabsLayout() {
   const { t } = useTranslation();
-  const { colors, isDark } = useAppTheme();
+  const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
-  const bottomInset = Math.max(insets.bottom, 8);
+
+  // Canvas fills the full tab bar (including under system nav).
+  // paddingBottom pushes icons/labels above that inset zone.
+  const bottomInset = Math.max(insets.bottom, Spacing.two);
+  const paddingBottom = bottomInset + TAB_BOTTOM_EXTRA;
+  const tabBarHeight = TAB_CONTENT_HEIGHT + paddingBottom;
 
   const activeColor = colors.orbit;
   const inactiveColor = colors.muted;
@@ -47,18 +56,23 @@ export default function TabsLayout() {
 
   return (
     <Tabs
-      key={isDark ? 'dark' : 'light'}
+      initialRouteName="index"
       screenOptions={{
         headerShown: false,
+        sceneStyle: { backgroundColor: colors.canvas },
         tabBarActiveTintColor: activeColor,
         tabBarInactiveTintColor: inactiveColor,
+        // Full-bleed canvas behind icons — covers the system-nav inset zone.
+        tabBarBackground: () => (
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.canvas }]} />
+        ),
         tabBarStyle: {
           backgroundColor: colors.canvas,
           borderTopWidth: 0,
           elevation: 0,
-          height: TAB_CONTENT_HEIGHT + bottomInset,
+          height: tabBarHeight,
           paddingTop: 6,
-          paddingBottom: bottomInset,
+          paddingBottom,
         },
         tabBarLabelStyle: {
           ...textStyle('micro'),
@@ -81,12 +95,6 @@ export default function TabsLayout() {
         ),
       }}
     >
-      <Tabs.Screen
-        name="categories"
-        options={{
-          href: null,
-        }}
-      />
       <Tabs.Screen
         name="index"
         options={{
@@ -120,6 +128,12 @@ export default function TabsLayout() {
         options={{
           title: t('tabs.profile'),
           tabBarIcon: renderIcon(User),
+        }}
+      />
+      <Tabs.Screen
+        name="categories"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

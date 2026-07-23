@@ -193,9 +193,13 @@ export const listForMap = query({
           return {
             serviceId: service._id,
             title: service.title,
+            description: service.description,
+            pricingType: service.pricingType,
+            price: service.price,
+            photos: service.photos ?? [],
+            city: service.city,
             latitude: service.latitude!,
             longitude: service.longitude!,
-            price: service.price,
             rating: service.averageRating,
             reviewCount: service.reviewCount,
             isPremium: profile?.isPremium ?? false,
@@ -272,6 +276,12 @@ export const create = mutation({
         v.literal('unavailable'),
       ),
     ),
+    /** Default true: copy city/region/lat/lng from provider profile. */
+    useProviderLocation: v.optional(v.boolean()),
+    city: v.optional(v.string()),
+    region: v.optional(v.string()),
+    latitude: v.optional(v.number()),
+    longitude: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const { userId } = await requireRole(ctx, ['provider']);
@@ -282,6 +292,34 @@ export const create = mutation({
       .first();
 
     if (!profile) throw new Error('Profil prestataire requis');
+
+    const useProviderLocation = args.useProviderLocation !== false;
+    let city: string;
+    let region: string;
+    let latitude: number | undefined;
+    let longitude: number | undefined;
+
+    if (useProviderLocation) {
+      city = profile.city;
+      region = profile.region;
+      latitude = profile.latitude;
+      longitude = profile.longitude;
+    } else {
+      if (
+        !args.city ||
+        !args.region ||
+        args.latitude === undefined ||
+        args.longitude === undefined
+      ) {
+        throw new Error(
+          'Localisation service requise (ville, région, latitude, longitude) ou utilisez useProviderLocation',
+        );
+      }
+      city = args.city;
+      region = args.region;
+      latitude = args.latitude;
+      longitude = args.longitude;
+    }
 
     const timestamp = now();
     return await ctx.db.insert('services', {
@@ -301,10 +339,10 @@ export const create = mutation({
       orderCount: 0,
       averageRating: 0,
       reviewCount: 0,
-      city: profile.city,
-      region: profile.region,
-      latitude: profile.latitude,
-      longitude: profile.longitude,
+      city,
+      region,
+      latitude,
+      longitude,
       createdAt: timestamp,
       updatedAt: timestamp,
     });

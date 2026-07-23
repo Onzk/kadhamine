@@ -47,9 +47,9 @@ export function ServiceCardSkeleton() {
       style={{
         width: '100%',
         borderRadius: Radius.lg,
-        borderWidth: 1.5,
-        borderColor: colors.border,
         backgroundColor: colors.surfaceCard,
+        borderWidth: 0.1,
+        borderColor: colors.borderStrong,
         overflow: 'hidden',
       }}
     >
@@ -67,7 +67,6 @@ export function ServiceCardSkeleton() {
       <View style={{ padding: Spacing.four, gap: 10 }}>
         <Skeleton height={18} width="75%" />
         <Skeleton height={13} width="95%" />
-        <Skeleton height={1} width="100%" />
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <Skeleton height={30} width={120} borderRadius={Radius.pill} />
           <Skeleton height={18} width={60} />

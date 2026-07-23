@@ -70,7 +70,7 @@ export default function AdminDashboard() {
                 backgroundColor: colors.surfaceCard,
                 borderRadius: 20,
                 padding: 16,
-                borderWidth: 1,
+                borderWidth: 0.1,
                 borderColor: colors.border,
               }}
             >
@@ -85,17 +85,21 @@ export default function AdminDashboard() {
             key={item.route}
             onPress={() => router.push(item.route as never)}
             style={({ pressed }) => ({
-              flexDirection: 'row',
-              alignItems: 'center',
-              backgroundColor: colors.surfaceCard,
-              borderRadius: 20,
-              padding: 16,
-              marginBottom: 8,
-              borderWidth: 1,
-              borderColor: colors.border,
               opacity: pressed ? 0.9 : 1,
             })}
           >
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: colors.surfaceCard,
+                borderRadius: 20,
+                padding: 16,
+                marginBottom: 8,
+                borderWidth: 0.1,
+                borderColor: colors.border,
+              }}
+            >
             <View
               style={{
                 width: 40,
@@ -125,6 +129,7 @@ export default function AdminDashboard() {
               </View>
             ) : null}
             <CaretRight size={18} color={colors.muted} />
+            </View>
           </Pressable>
         ))}
       </View>

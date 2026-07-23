@@ -15,7 +15,7 @@ interface RolePickerProps {
   onChange: (role: Role) => void;
 }
 
-/** Sélecteur Client / Prestataire — card sélectionnée orange corail. */
+/** Sélecteur Client / Prestataire — card sélectionnée brand blue. */
 export function RolePicker({ value, onChange }: RolePickerProps) {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
@@ -26,7 +26,7 @@ export function RolePicker({ value, onChange }: RolePickerProps) {
   ];
 
   return (
-    <View style={{ flexDirection: 'row', gap: Spacing.three, marginBottom: Spacing.six }}>
+    <View style={{ flexDirection: 'row', alignSelf: 'stretch', gap: Spacing.three, marginBottom: Spacing.six }}>
       {options.map(({ role, Icon, desc }) => {
         const selected = value === role;
         return (
@@ -35,45 +35,61 @@ export function RolePicker({ value, onChange }: RolePickerProps) {
             onPress={() => onChange(role)}
             style={({ pressed }) => ({
               flex: 1,
-              paddingVertical: Spacing.four,
-              paddingHorizontal: Spacing.three,
-              borderRadius: 16,
-              borderWidth: selected ? 2 : 1,
-              borderColor: selected ? colors.orbit : colors.border,
-              backgroundColor: selected ? colors.orbit + '14' : colors.surfaceCard,
-              alignItems: 'center',
+              flexBasis: 0,
+              minHeight: 132,
               opacity: pressed ? 0.92 : 1,
               transform: [{ scale: pressed ? 0.98 : 1 }],
-              ...Shadows.nav,
             })}
           >
             <View
               style={{
-                width: 44,
-                height: 44,
-                borderRadius: 22,
-                backgroundColor: selected ? colors.orbit : colors.iconWash,
+                flex: 1,
+                minHeight: 132,
+                paddingVertical: Spacing.four,
+                paddingHorizontal: Spacing.two,
+                borderRadius: Radius.lg,
+                borderWidth: 0.1,
+                borderColor: selected ? colors.orbit : colors.border,
+                backgroundColor: selected ? colors.orbit + '14' : colors.surfaceCard,
                 alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: Spacing.two,
+                ...Shadows.nav,
               }}
             >
-              <Icon size={22} color={selected ? colors.onPrimary : colors.ink} weight="bold" />
+              <View
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
+                  backgroundColor: selected ? colors.orbit : colors.iconWash,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: Spacing.two,
+                }}
+              >
+                <Icon size={22} color={selected ? colors.onOrbit : colors.ink} weight="bold" />
+              </View>
+              <Text
+                style={[
+                  textStyle('button'),
+                  { color: colors.ink, marginBottom: 4, textAlign: 'center' },
+                ]}
+              >
+                {t(`auth.${role}`)}
+              </Text>
+              <Text
+                style={[
+                  textStyle('micro'),
+                  {
+                    color: colors.muted,
+                    textAlign: 'center',
+                    lineHeight: 16,
+                    flexShrink: 1,
+                  },
+                ]}
+              >
+                {desc}
+              </Text>
             </View>
-            <Text
-              style={[
-                textStyle('button'),
-                { color: colors.ink, marginBottom: 4 },
-              ]}
-            >
-              {t(`auth.${role}`)}
-            </Text>
-            <Text
-              numberOfLines={2}
-              style={[textStyle('micro'), { color: colors.muted, textAlign: 'center' }]}
-            >
-              {desc}
-            </Text>
           </Pressable>
         );
       })}
@@ -87,7 +103,7 @@ interface CityChipsProps {
   onChange: (city: string) => void;
 }
 
-/** Chips ville — sélection orange plein, grille flexible. */
+/** Chips ville — sélection brand blue plein, grille flexible. */
 export function CityChips({ cities, value, onChange }: CityChipsProps) {
   const { colors } = useAppTheme();
 
@@ -113,26 +129,31 @@ export function CityChips({ cities, value, onChange }: CityChipsProps) {
               key={city}
               onPress={() => onChange(city)}
               style={({ pressed }) => ({
-                paddingHorizontal: Spacing.four,
-                paddingVertical: Spacing.two,
-                borderRadius: Radius.pill,
-                backgroundColor: selected ? colors.orbit : colors.surfaceCard,
-                borderWidth: 1,
-                borderColor: selected ? colors.orbit : colors.border,
                 opacity: pressed ? 0.88 : 1,
               })}
             >
-              <Text
-                style={[
-                  textStyle('caption'),
-                  {
-                    fontFamily: fontFamily('body', 'medium'),
-                    color: selected ? colors.onPrimary : colors.ink,
-                  },
-                ]}
+              <View
+                style={{
+                  paddingHorizontal: Spacing.four,
+                  paddingVertical: Spacing.two,
+                  borderRadius: Radius.pill,
+                  backgroundColor: selected ? colors.orbit : colors.surfaceCard,
+                  borderWidth: 0.1,
+                  borderColor: selected ? colors.orbit : colors.border,
+                }}
               >
-                {city}
-              </Text>
+                <Text
+                  style={[
+                    textStyle('caption'),
+                    {
+                      fontFamily: fontFamily('body', 'medium'),
+                      color: selected ? colors.onOrbit : colors.ink,
+                    },
+                  ]}
+                >
+                  {city}
+                </Text>
+              </View>
             </Pressable>
           );
         })}
@@ -148,7 +169,7 @@ interface AuthToggleRowProps {
   right?: React.ReactNode;
 }
 
-/** Toggle orange corail + label (+ action droite optionnelle). */
+/** Toggle brand blue + label (+ action droite optionnelle). */
 export function AuthToggleRow({ value, onChange, label, right }: AuthToggleRowProps) {
   const { colors } = useAppTheme();
 
@@ -158,42 +179,73 @@ export function AuthToggleRow({ value, onChange, label, right }: AuthToggleRowPr
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: Spacing.six,
-        gap: Spacing.three,
+        marginBottom: Spacing.five,
+        gap: Spacing.four,
+        minHeight: 48,
       }}
     >
       <Pressable
         onPress={() => onChange(!value)}
-        style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.three, flex: 1 }}
+        accessibilityRole="switch"
+        accessibilityState={{ checked: value }}
+        style={{
+          flex: 1,
+          minHeight: 48,
+        }}
       >
         <View
           style={{
-            width: 48,
-            height: 28,
-            borderRadius: 14,
-            padding: 3,
-            backgroundColor: value ? colors.orbit : colors.switchTrackOff,
-            justifyContent: 'center',
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: Spacing.three,
+            flex: 1,
+            minHeight: 48,
           }}
         >
           <View
             style={{
-              width: 22,
-              height: 22,
-              borderRadius: 11,
-              backgroundColor: colors.surfaceCard,
-              alignSelf: value ? 'flex-end' : 'flex-start',
-              ...Shadows.nav,
+              width: 48,
+              height: 28,
+              borderRadius: 14,
+              padding: 3,
+              backgroundColor: value ? colors.orbit : colors.switchTrackOff,
+              justifyContent: 'center',
+              flexShrink: 0,
             }}
-          />
+          >
+            <View
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: 11,
+                backgroundColor: colors.surfaceCard,
+                alignSelf: value ? 'flex-end' : 'flex-start',
+                ...Shadows.nav,
+              }}
+            />
+          </View>
+          {typeof label === 'string' ? (
+            <Text
+              style={[
+                textStyle('caption'),
+                {
+                  color: colors.ink,
+                  flexShrink: 1,
+                  lineHeight: 20,
+                },
+              ]}
+              numberOfLines={2}
+            >
+              {label}
+            </Text>
+          ) : (
+            label
+          )}
         </View>
-        {typeof label === 'string' ? (
-          <Text style={[textStyle('caption'), { color: colors.body, flex: 1 }]}>{label}</Text>
-        ) : (
-          label
-        )}
       </Pressable>
-      {right}
+      {right ? (
+        <View style={{ flexShrink: 0, justifyContent: 'center', minHeight: 48 }}>{right}</View>
+      ) : null}
     </View>
   );
 }
@@ -202,7 +254,7 @@ interface AuthLogoMarkProps {
   size?: number;
 }
 
-/** Logo dans halo orange — ancre visuelle de la marque. */
+/** Logo dans halo brand blue — ancre visuelle de la marque. */
 export function AuthLogoMark({ size = 72 }: AuthLogoMarkProps) {
   const { colors } = useAppTheme();
   const halo = size + 28;
@@ -302,16 +354,23 @@ export function AuthHeader({ title, subtitle, onBack, showLogo = true }: AuthHea
             style={({ pressed }) => ({
               width: 44,
               height: 44,
-              borderRadius: 22,
-              backgroundColor: colors.surfaceCard,
-              borderWidth: 1,
-              borderColor: colors.border,
-              alignItems: 'center',
-              justifyContent: 'center',
               opacity: pressed ? 0.85 : 1,
             })}
           >
-            <CaretLeft size={20} color={colors.ink} weight="bold" />
+            <View
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                backgroundColor: colors.surfaceCard,
+                borderWidth: 0.1,
+                borderColor: colors.border,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <CaretLeft size={20} color={colors.ink} weight="bold" />
+            </View>
           </Pressable>
         ) : (
           <View style={{ width: 44 }} />
@@ -347,7 +406,7 @@ export function AuthHeader({ title, subtitle, onBack, showLogo = true }: AuthHea
         {title}
       </Text>
       {subtitle ? (
-        <Text style={[textStyle('body'), { color: colors.muted, lineHeight: 24 }]}>{subtitle}</Text>
+        <Text style={[textStyle('body'), { color: colors.slate, lineHeight: 24 }]}>{subtitle}</Text>
       ) : null}
     </View>
   );

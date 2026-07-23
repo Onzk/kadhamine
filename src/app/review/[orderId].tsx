@@ -116,20 +116,20 @@ export default function ReviewScreen() {
         </Text>
         <View style={{ flexDirection: 'row', gap: 8, marginBottom: 24 }}>
           {[1, 2, 3, 4, 5].map((star) => (
-            <Pressable
-              key={star}
-              onPress={() => setRating(star)}
-              style={{
-                padding: 8,
-                borderRadius: Radius.md,
-                backgroundColor: star <= rating ? colors.iconWash : colors.surfaceStrong,
-              }}
-            >
-              <Star
-                size={32}
-                color={ratingColor}
-                weight={star <= rating ? 'fill' : 'regular'}
-              />
+            <Pressable key={star} onPress={() => setRating(star)}>
+              <View
+                style={{
+                  padding: 8,
+                  borderRadius: Radius.md,
+                  backgroundColor: star <= rating ? colors.iconWash : colors.surfaceStrong,
+                }}
+              >
+                <Star
+                  size={32}
+                  color={ratingColor}
+                  weight={star <= rating ? 'fill' : 'regular'}
+                />
+              </View>
             </Pressable>
           ))}
         </View>

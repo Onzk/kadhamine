@@ -59,10 +59,10 @@ export default function FabDemoScreen() {
       <FlutterFab
         absolute
         onPressed={() => {}}
-        icon={<Plus size={24} color={colors.onPrimary} weight="bold" />}
+        icon={<Plus size={24} color={colors.onOrbit} weight="bold" />}
         accessibilityLabel="Ajouter"
         backgroundColor={colors.orbit}
-        foregroundColor={colors.onPrimary}
+        foregroundColor={colors.onOrbit}
         bottom={Math.max(insets.bottom, 8) + 16}
       />
     </View>
@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
   },
   card: {
     borderRadius: 16,
-    borderWidth: 1,
+    borderWidth: 0.1,
     padding: 16,
   },
   cardTitle: {

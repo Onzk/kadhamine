@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { ArrowRight } from 'phosphor-react-native';
 import { useAppTheme } from '@/providers/ThemeProvider';
 
@@ -19,16 +19,23 @@ export function SatelliteButton({ onPress, size = 52 }: SatelliteButtonProps) {
       style={({ pressed }) => ({
         width: size,
         height: size,
-        borderRadius: size / 2,
-        backgroundColor: colors.surfaceCard,
-        alignItems: 'center',
-        justifyContent: 'center',
         opacity: pressed ? 0.88 : 1,
-        borderWidth: 1.5,
-        borderColor: colors.ink,
       })}
     >
-      <ArrowRight size={20} color={colors.ink} weight="bold" />
+      <View
+        style={{
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          backgroundColor: colors.surfaceCard,
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderWidth: 0.1,
+          borderColor: colors.ink,
+        }}
+      >
+        <ArrowRight size={20} color={colors.ink} weight="bold" />
+      </View>
     </Pressable>
   );
 }

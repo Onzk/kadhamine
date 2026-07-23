@@ -42,6 +42,35 @@ export const getMyProfile = query({
   },
 });
 
+export const updateAvatar = mutation({
+  args: { storageId: v.id('_storage') },
+  handler: async (ctx, args) => {
+    const { userId } = await requireAuth(ctx);
+    const profile = await ctx.db
+      .query('profiles')
+      .withIndex('by_user', (q) => q.eq('userId', userId))
+      .first();
+
+    if (!profile) throw new Error('Profil introuvable');
+
+    const avatarUrl = await ctx.storage.getUrl(args.storageId);
+    if (profile.avatarStorageId) {
+      try {
+        await ctx.storage.delete(profile.avatarStorageId);
+      } catch {
+        // Previous avatar may already be gone.
+      }
+    }
+
+    await ctx.db.patch(profile._id, {
+      avatarStorageId: args.storageId,
+      avatarUrl: avatarUrl ?? undefined,
+      updatedAt: now(),
+    });
+    return profile._id;
+  },
+});
+
 export const update = mutation({
   args: {
     firstName: v.optional(v.string()),

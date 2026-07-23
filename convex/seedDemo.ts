@@ -4,6 +4,8 @@
  * Usage :
  *   npx convex run seedDemo:seedAll
  *   npx convex run seedDemo:seedAll '{"force": true}'
+ *   npx convex run seedDemo:updateDemoGeoPositionsDev
+ *   (internal: seedDemo:updateDemoGeoPositions)
  *
  * Images Unsplash vérifiées le 2026-07-22 (HEAD → 200, content-type image/*).
  * Mot de passe des comptes démo : Demo2026! (non créés dans authAccounts — données browse-only).
@@ -18,6 +20,7 @@ import {
   now,
   PREMIUM_MONTHLY_PRICE,
 } from './lib';
+import { coordsForCity, jitterCoords, MVP_CITIES } from './cities';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 
@@ -162,18 +165,7 @@ const CATEGORY_DEFS = [
 
 type CategorySlug = (typeof CATEGORY_DEFS)[number]['slug'];
 
-const CITIES = [
-  { city: "N'Djamena", region: 'ndjamena', lat: 12.1348, lng: 15.0557 },
-  { city: 'Moundou', region: 'logone-occidental', lat: 8.5667, lng: 16.0833 },
-  { city: 'Abéché', region: 'ouaddai', lat: 13.8292, lng: 20.8324 },
-  { city: 'Sarh', region: 'moyen-chari', lat: 9.1456, lng: 18.3928 },
-  { city: 'Bongor', region: 'mayo-kebbi-est', lat: 10.2822, lng: 15.3722 },
-  { city: 'Doba', region: 'logone-oriental', lat: 8.6639, lng: 16.8531 },
-  { city: 'Kélo', region: 'tandjile', lat: 9.3167, lng: 15.55 },
-  { city: 'Pala', region: 'mayo-kebbi-ouest', lat: 9.35, lng: 14.9167 },
-  { city: 'Ati', region: 'batha', lat: 13.2167, lng: 18.3333 },
-  { city: 'Mongo', region: 'guera', lat: 12.1833, lng: 18.6833 },
-] as const;
+const CITIES = MVP_CITIES;
 
 const FEMALE_NAMES = [
   'Amina', 'Fatimé', 'Hawa', 'Khadija', 'Mariam', 'Zara', 'Salma', 'Aïcha',
@@ -595,6 +587,8 @@ async function runSeed(ctx: MutationCtx, force: boolean) {
     profileId: Id<'profiles'>;
     categorySlug: CategorySlug;
     cityIndex: number;
+    latitude: number;
+    longitude: number;
   }> = [];
   const serviceRecords: Array<{
     id: Id<'services'>;
@@ -640,8 +634,7 @@ async function runSeed(ctx: MutationCtx, force: boolean) {
       bio: i % 2 === 0 ? `Cliente active à ${city.city}, à la recherche de talents locaux.` : undefined,
       skills: [],
       availability: 'available',
-      latitude: city.lat + (i % 5) * 0.01,
-      longitude: city.lng + (i % 5) * 0.01,
+      ...jitterCoords(city.lat, city.lng, i + 10, 0.012),
       isVerified: false,
       isPremium: false,
       averageRating: 0,
@@ -686,6 +679,7 @@ async function runSeed(ctx: MutationCtx, force: boolean) {
     counts.users++;
 
     const experienceYears = 1 + (i % 12);
+    const providerGeo = jitterCoords(city.lat, city.lng, i + 40, 0.014);
     const profileId = await ctx.db.insert('profiles', {
       userId,
       firstName,
@@ -704,8 +698,8 @@ async function runSeed(ctx: MutationCtx, force: boolean) {
         i % 3 === 0
           ? { facebook: `https://facebook.com/${slugify(firstName)}`, instagram: `@${slugify(firstName)}_td` }
           : undefined,
-      latitude: city.lat + (i % 7) * 0.008,
-      longitude: city.lng + (i % 7) * 0.008,
+      latitude: providerGeo.latitude,
+      longitude: providerGeo.longitude,
       isVerified,
       isPremium,
       averageRating: 0,
@@ -727,6 +721,8 @@ async function runSeed(ctx: MutationCtx, force: boolean) {
       profileId,
       categorySlug: catDef.slug,
       cityIndex: (i + 2) % CITIES.length,
+      latitude: providerGeo.latitude,
+      longitude: providerGeo.longitude,
     });
 
     if (isPremium && !isPending && !isRejected) {
@@ -765,6 +761,11 @@ async function runSeed(ctx: MutationCtx, force: boolean) {
       if (!categoryId) {
         throw new Error(`Catégorie introuvable: ${provider.categorySlug}`);
       }
+      // ~half inherit provider geo; others get a distinct service offset (demo own position)
+      const inheritProviderGeo = j === 0 || serviceIndex % 3 === 0;
+      const serviceGeo = inheritProviderGeo
+        ? { latitude: provider.latitude, longitude: provider.longitude }
+        : jitterCoords(provider.latitude, provider.longitude, serviceIndex * 3 + j + 7, 0.018);
       const serviceId = await ctx.db.insert('services', {
         providerId: provider.userId,
         profileId: provider.profileId,
@@ -784,8 +785,8 @@ async function runSeed(ctx: MutationCtx, force: boolean) {
         reviewCount: 0,
         city: city.city,
         region: city.region,
-        latitude: city.lat,
-        longitude: city.lng,
+        latitude: serviceGeo.latitude,
+        longitude: serviceGeo.longitude,
         createdAt: daysAgo(120 - serviceIndex),
         updatedAt: ts,
       });
@@ -1119,4 +1120,80 @@ export const seedAll = internalMutation({
 export const seedAllDev = mutation({
   args: { force: v.optional(v.boolean()) },
   handler: async (ctx, args) => runSeed(ctx, args.force ?? false),
+});
+
+/**
+ * Re-patch lat/lng on existing profiles & services (no inserts).
+ * Spreads pins across MVP cities with jitter. Safe to re-run.
+ */
+async function runUpdateDemoGeoPositions(ctx: MutationCtx) {
+  const ts = now();
+  let profilesPatched = 0;
+  let servicesPatched = 0;
+
+  const profiles = await ctx.db.query('profiles').collect();
+  const profileGeo = new Map<Id<'profiles'>, { latitude: number; longitude: number; city: string; region: string }>();
+
+  for (let i = 0; i < profiles.length; i++) {
+    const profile = profiles[i]!;
+    const base = coordsForCity(profile.city);
+    const geo = jitterCoords(base.lat, base.lng, i + 100, 0.014);
+    await ctx.db.patch(profile._id, {
+      latitude: geo.latitude,
+      longitude: geo.longitude,
+      // keep city/region; only refresh region if empty mismatch from known city
+      region: profile.region || base.region,
+      updatedAt: ts,
+    });
+    profileGeo.set(profile._id, {
+      latitude: geo.latitude,
+      longitude: geo.longitude,
+      city: profile.city,
+      region: profile.region || base.region,
+    });
+    profilesPatched++;
+  }
+
+  const services = await ctx.db.query('services').collect();
+  for (let i = 0; i < services.length; i++) {
+    const service = services[i]!;
+    const providerPos = profileGeo.get(service.profileId);
+    const base = coordsForCity(service.city || providerPos?.city || "N'Djamena");
+    // Alternate: inherit provider coords vs own offset (demo both modes)
+    const geo =
+      i % 2 === 0 && providerPos
+        ? { latitude: providerPos.latitude, longitude: providerPos.longitude }
+        : jitterCoords(
+            providerPos?.latitude ?? base.lat,
+            providerPos?.longitude ?? base.lng,
+            i + 200,
+            0.018,
+          );
+    await ctx.db.patch(service._id, {
+      latitude: geo.latitude,
+      longitude: geo.longitude,
+      city: service.city || providerPos?.city || "N'Djamena",
+      region: service.region || providerPos?.region || base.region,
+      updatedAt: ts,
+    });
+    servicesPatched++;
+  }
+
+  return {
+    updated: true,
+    message: 'Positions géo démo mises à jour (patch only).',
+    profilesPatched,
+    servicesPatched,
+  };
+}
+
+export const updateDemoGeoPositions = internalMutation({
+  args: {},
+  handler: async (ctx) => runUpdateDemoGeoPositions(ctx),
+});
+
+/** Wrapper public pour lancer depuis le CLI / dashboard Convex. */
+export const updateDemoGeoPositionsDev = mutation({
+  args: {},
+  handler: async (ctx) => runUpdateDemoGeoPositions(ctx),
 });

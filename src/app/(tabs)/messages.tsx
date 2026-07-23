@@ -45,39 +45,44 @@ export default function MessagesScreen() {
               key={conv._id}
               onPress={() => router.push(`/chat/${conv._id}`)}
               style={({ pressed }) => ({
-                flexDirection: 'row',
-                alignItems: 'center',
-                backgroundColor: colors.surfaceCard,
-                borderRadius: Radius.stadium,
-                padding: 16,
-                marginBottom: 12,
                 opacity: pressed ? 0.9 : 1,
-                gap: 12,
               })}
             >
               <View
                 style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 24,
-                  backgroundColor: colors.iconWash,
+                  flexDirection: 'row',
                   alignItems: 'center',
-                  justifyContent: 'center',
+                  backgroundColor: colors.surfaceCard,
+                  borderRadius: Radius.stadium,
+                  padding: 16,
+                  marginBottom: 12,
+                  gap: 12,
                 }}
               >
-                <ChatCircleDots size={22} color={colors.ink} weight="fill" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 15, fontWeight: '600', color: colors.ink }}>
-                  Conversation
-                </Text>
-                {conv.lastMessagePreview ? (
-                  <Text numberOfLines={1} style={{ fontSize: 13, color: colors.muted, marginTop: 4 }}>
-                    {conv.lastMessagePreview}
+                <View
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 24,
+                    backgroundColor: colors.iconWash,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <ChatCircleDots size={22} color={colors.ink} weight="fill" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 15, fontWeight: '600', color: colors.ink }}>
+                    Conversation
                   </Text>
-                ) : null}
+                  {conv.lastMessagePreview ? (
+                    <Text numberOfLines={1} style={{ fontSize: 13, color: colors.muted, marginTop: 4 }}>
+                      {conv.lastMessagePreview}
+                    </Text>
+                  ) : null}
+                </View>
+                <CaretRight size={18} color={colors.muted} />
               </View>
-              <CaretRight size={18} color={colors.muted} />
             </Pressable>
           ))
         )}

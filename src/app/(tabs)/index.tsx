@@ -5,25 +5,26 @@ import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
 import {
-  MagnifyingGlass,
   Bell,
   Moon,
   Sun,
   MapPin,
-  CaretRight,
   Storefront,
   Crown,
   CreditCard,
 } from 'phosphor-react-native';
 
 import { ServiceCarousel } from '@/components/cards/ServiceCarousel';
-import { CategoryGrid } from '@/components/ui/CategoryGrid';
+import { Logo } from '@/components/brand/Logo';
+import { CategoryHorizontalMasonry } from '@/components/ui/CategoryHorizontalMasonry';
 import { PromoCarousel, type PromoSlideData } from '@/components/ui/PromoCarousel';
 import { TrustStrip } from '@/components/ui/TrustStrip';
+import { PAGE_H_PAD } from '@/components/ui/PageHeader';
+import { SearchBar } from '@/components/ui/SearchBar';
 import { Text } from '@/components/ui/ThemedText';
 import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
-import { Radius, Shadows, Spacing } from '@/theme/tokens';
+import { Spacing } from '@/theme/tokens';
 import { textStyle } from '@/theme/typography';
 import { api } from '../../../convex/_generated/api';
 
@@ -47,22 +48,27 @@ export default function HomeScreen() {
     seedSettings({}).catch(() => {});
   }, [seedCategories, seedSettings]);
 
+  const isGuest = !user;
   const firstName = user?.profile?.firstName ?? '';
-  const city = user?.profile?.city ?? "N'Djamena";
   const avatarUrl = user?.profile?.avatarUrl;
   const initial = (firstName || 'T').charAt(0).toUpperCase();
 
   const goToSearch = (params?: Record<string, string>) =>
-    router.push(params ? { pathname: '/(tabs)/search', params } : '/(tabs)/search');
+    router.navigate(
+      params
+        ? { pathname: '/(tabs)/search', params: { ...params, applyCategory: '1' } }
+        : '/(tabs)/search',
+    );
 
-  const iconBtn = {
+  const iconBtnSize = { width: 44, height: 44 };
+  const iconBtnInner = {
     width: 44,
     height: 44,
     borderRadius: 22,
     backgroundColor: colors.surfaceCard,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
-    borderWidth: 1.5,
+    borderWidth: 0.1,
     borderColor: colors.ink,
   };
 
@@ -70,17 +76,18 @@ export default function HomeScreen() {
     {
       id: 'premium',
       eyebrow: t('common.premium'),
-      title: 'Passez Premium',
-      description: 'Badge Premium + mise en avant dans les recherches pour les prestataires.',
+      title: 'Gagnez en visibilité',
+      description: 'Badge Premium, priorité dans les recherches et profil mis en avant.',
       icon: Crown,
       variant: 'dark',
+      ctaLabel: 'Découvrir',
       onPress: () => router.push('/premium'),
     },
     {
-      id: 'fedapay',
-      eyebrow: 'FedaPay',
-      title: t('payment.integratedBenefit'),
-      description: 'Payez via FedaPay pour débloquer les avis officiels et sécuriser la prestation.',
+      id: 'payment',
+      eyebrow: 'Paiement sécurisé',
+      title: 'Payez en toute confiance',
+      description: 'Règlement en ligne pour débloquer les avis officiels et sécuriser la prestation.',
       icon: CreditCard,
       variant: 'light',
     },
@@ -88,9 +95,11 @@ export default function HomeScreen() {
       id: 'nearby',
       eyebrow: t('home.nearYou'),
       title: 'Talents près de chez vous',
-      description: 'Découvrez les prestataires disponibles autour de vous sur la carte.',
+      description: 'Repérez les prestataires disponibles autour de vous, en direct sur la carte.',
       icon: MapPin,
       variant: 'warm',
+      gradient: [...colors.orbitGradient],
+      ctaLabel: 'Ouvrir la carte',
       onPress: () => router.push('/map' as never),
     },
   ];
@@ -109,29 +118,35 @@ export default function HomeScreen() {
         }}
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.three, flex: 1 }}>
-          <View
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 22,
-              overflow: 'hidden',
-              backgroundColor: colors.ink,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {avatarUrl ? (
-              <Image source={{ uri: avatarUrl }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
-            ) : (
-              <Text style={[textStyle('featureHeading'), { color: colors.onPrimary }]}>{initial}</Text>
-            )}
-          </View>
+          {isGuest ? (
+            <Logo size={44} />
+          ) : (
+            <View
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                overflow: 'hidden',
+                backgroundColor: colors.ink,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {avatarUrl ? (
+                <Image source={{ uri: avatarUrl }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+              ) : (
+                <Text style={[textStyle('featureHeading'), { color: colors.onPrimary }]}>{initial}</Text>
+              )}
+            </View>
+          )}
           <View style={{ flex: 1 }}>
-            <Text style={{ color: colors.muted }} variant="micro">
-              {t('home.greeting')}
-            </Text>
+            {!isGuest ? (
+              <Text style={{ color: colors.muted }} variant="micro">
+                {t('home.greeting')}
+              </Text>
+            ) : null}
             <Text numberOfLines={1} style={{ color: colors.ink }} variant="featureHeading" display>
-              {firstName || 'TalentTchad'}
+              {isGuest ? 'TalentTchad' : firstName || 'TalentTchad'}
             </Text>
             <Text numberOfLines={2} style={{ color: colors.muted, marginTop: 2 }} variant="micro">
               Découvrez les talents près de chez vous.
@@ -139,105 +154,63 @@ export default function HomeScreen() {
           </View>
         </View>
         <View style={{ flexDirection: 'row', gap: Spacing.two }}>
-          <Pressable onPress={toggle} style={iconBtn}>
-            {isDark ? <Sun size={18} color={colors.ink} /> : <Moon size={18} color={colors.ink} />}
+          <Pressable onPress={toggle} style={iconBtnSize}>
+            <View style={iconBtnInner}>
+              {isDark ? <Sun size={18} color={colors.ink} /> : <Moon size={18} color={colors.ink} />}
+            </View>
           </Pressable>
-          <Pressable onPress={() => router.push('/notifications')} style={iconBtn}>
-            <Bell size={18} color={colors.ink} />
-            <View
-              style={{
-                position: 'absolute',
-                top: 10,
-                right: 11,
-                width: 8,
-                height: 8,
-                borderRadius: 4,
-                backgroundColor: colors.signal,
-                borderWidth: 1.5,
-                borderColor: colors.surfaceCard,
-              }}
-            />
+          <Pressable onPress={() => router.push('/notifications')} style={iconBtnSize}>
+            <View style={[iconBtnInner, { position: 'relative' }]}>
+              <Bell size={18} color={colors.ink} />
+              <View
+                style={{
+                  position: 'absolute',
+                  top: 10,
+                  right: 11,
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: colors.signal,
+                  borderWidth: 0.1,
+                  borderColor: colors.surfaceCard,
+                }}
+              />
+            </View>
           </Pressable>
         </View>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: Spacing.eight }}>
         {/* Hero éditorial */}
-        <View style={{ paddingHorizontal: Spacing.six, marginBottom: SECTION_GAP }}>
-          <Pressable
-            onPress={() => router.push('/map' as never)}
-            style={({ pressed }) => ({
-              flexDirection: 'row',
-              alignItems: 'center',
-              alignSelf: 'flex-start',
-              gap: 6,
-              paddingVertical: Spacing.one,
-              paddingHorizontal: Spacing.three,
-              borderRadius: Radius.pill,
-              backgroundColor: colors.surfaceStrong,
-              marginBottom: Spacing.four,
-              opacity: pressed ? 0.85 : 1,
-            })}
-          >
-            <MapPin size={14} color={colors.ink} weight="fill" />
-            <Text style={[textStyle('micro'), { color: colors.ink }]}>{city}</Text>
-            <CaretRight size={12} color={colors.muted} />
-          </Pressable>
-
+        <View style={{ paddingHorizontal: PAGE_H_PAD, marginBottom: SECTION_GAP }}>
           <Text style={[textStyle('heroDisplay'), { color: colors.ink }]}>
             Le talent tchadien,{'\n'}
             <Text style={[textStyle('heroDisplay'), { color: colors.orbit }]}>à portée de main.</Text>
           </Text>
 
-          <Pressable
-            onPress={() => goToSearch()}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              backgroundColor: colors.surfaceCard,
-              borderRadius: Radius.pill,
-              paddingLeft: Spacing.six,
-              paddingRight: Spacing.two,
-              height: 56,
-              borderWidth: 1.5,
-              borderColor: colors.ink,
-              gap: 10,
-              marginTop: Spacing.six,
-              ...Shadows.nav,
-            }}
-          >
-            <MagnifyingGlass size={20} color={colors.muted} />
-            <Text style={{ color: colors.muted, fontSize: 15, flex: 1 }}>
-              {t('home.searchPlaceholder')}
-            </Text>
-            <View
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                backgroundColor: colors.ink,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <MagnifyingGlass size={18} color={colors.onPrimary} weight="bold" />
-            </View>
-          </Pressable>
+          <View style={{ marginTop: Spacing.six }}>
+            <SearchBar
+              value=""
+              onChangeText={() => {}}
+              onPress={() => goToSearch()}
+              placeholder={t('home.searchPlaceholder')}
+            />
+          </View>
         </View>
 
-        {/* Carrousel promo — avant les services en vedette */}
+        {/* Carrousel promo — puis mieux notés (horizontal) */}
         <PromoCarousel slides={promoSlides} />
 
         <ServiceCarousel
-          title={t('home.featured')}
+          title={t('home.topRated')}
           actionLabel={t('common.seeAll')}
           onAction={() => goToSearch()}
-          items={featured}
-          emptyMessage={'Aucun service pour le moment.\nSoyez le premier prestataire !'}
+          items={topRated}
+          emptyMessage={'Aucun service noté pour le moment.'}
           onPressItem={(id) => router.push(`/service/${id}`)}
         />
 
-        {/* Catégories — grid cards */}
+        {/* Catégories — masonry horizontal */}
         <View style={{ marginBottom: SECTION_GAP }}>
           <View
             style={{
@@ -251,12 +224,12 @@ export default function HomeScreen() {
             <Text style={[textStyle('featureHeading'), { color: colors.ink }]}>
               {t('home.categories')}
             </Text>
-            <Pressable onPress={() => router.push('/(tabs)/categories')} hitSlop={8}>
+            <Pressable onPress={() => router.navigate('/(tabs)/categories')} hitSlop={8}>
               <Text style={[textStyle('button'), { color: colors.ink }]}>{t('common.seeAll')} →</Text>
             </Pressable>
           </View>
 
-          <CategoryGrid
+          <CategoryHorizontalMasonry
             categories={categories?.map((cat) => ({
               id: cat._id,
               label: cat.nameFr,
@@ -264,18 +237,20 @@ export default function HomeScreen() {
               slug: cat.slug,
               serviceCount: cat.serviceCount,
             }))}
-            limit={10}
+            limit={12}
             onPressCategory={(id) => goToSearch({ categoryId: id })}
           />
         </View>
 
-        {/* Mieux notés */}
+        {/* Services en vedette — liste verticale */}
         <ServiceCarousel
-          title={t('home.topRated')}
+          title={t('home.featured')}
           actionLabel={t('common.seeAll')}
           onAction={() => goToSearch()}
-          items={topRated}
-          emptyMessage={'Aucun service noté pour le moment.'}
+          items={featured}
+          layout="vertical"
+          emptyTitle="Aucun service pour le moment"
+          emptyDescription="Soyez le premier prestataire !"
           onPressItem={(id) => router.push(`/service/${id}`)}
         />
 
@@ -285,18 +260,19 @@ export default function HomeScreen() {
         </View>
 
         {/* Pied éditorial */}
-        <Pressable
-          onPress={() => router.push('/premium')}
-          style={{
-            marginHorizontal: Spacing.four,
-            alignItems: 'center',
-            gap: Spacing.two,
-          }}
-        >
-          <Storefront size={22} color={colors.muted} />
-          <Text style={[textStyle('caption'), { color: colors.muted, textAlign: 'center' }]}>
-            {t('app.tagline')}
-          </Text>
+        <Pressable onPress={() => router.push('/premium')} style={{ alignSelf: 'stretch' }}>
+          <View
+            style={{
+              marginHorizontal: Spacing.four,
+              alignItems: 'center',
+              gap: Spacing.two,
+            }}
+          >
+            <Storefront size={22} color={colors.muted} />
+            <Text style={[textStyle('caption'), { color: colors.muted, textAlign: 'center' }]}>
+              {t('app.tagline')}
+            </Text>
+          </View>
         </Pressable>
       </ScrollView>
     </View>

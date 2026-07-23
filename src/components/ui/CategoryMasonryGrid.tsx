@@ -138,12 +138,18 @@ function CategoryMasonryTile({ item, size, height, width, onPress }: CategoryMas
         style={({ pressed }) => ({
           width,
           height,
-          borderRadius: TILE_RADIUS,
-          overflow: 'hidden',
-          backgroundColor: '#1a1a1a',
           transform: [{ scale: pressed ? 0.97 : 1 }],
         })}
       >
+        <View
+          style={{
+            width,
+            height,
+            borderRadius: TILE_RADIUS,
+            overflow: 'hidden',
+            backgroundColor: '#1a1a1a',
+          }}
+        >
         <Image
           source={{ uri: cover }}
           style={{
@@ -195,7 +201,7 @@ function CategoryMasonryTile({ item, size, height, width, onPress }: CategoryMas
             height: isHero ? 40 : 34,
             borderRadius: 999,
             backgroundColor: 'rgba(255,255,255,0.22)',
-            borderWidth: 1,
+            borderWidth: 0.1,
             borderColor: 'rgba(255,255,255,0.28)',
             alignItems: 'center',
             justifyContent: 'center',
@@ -225,7 +231,7 @@ function CategoryMasonryTile({ item, size, height, width, onPress }: CategoryMas
               paddingVertical: 5,
               borderRadius: Radius.pill,
               backgroundColor: 'rgba(255,255,255,0.18)',
-              borderWidth: 1,
+              borderWidth: 0.1,
               borderColor: 'rgba(255,255,255,0.25)',
             }}
           >
@@ -271,6 +277,7 @@ function CategoryMasonryTile({ item, size, height, width, onPress }: CategoryMas
           >
             {item.serviceCount ?? 0} service{(item.serviceCount ?? 0) !== 1 ? 's' : ''}
           </Text>
+        </View>
         </View>
       </Pressable>
     </View>

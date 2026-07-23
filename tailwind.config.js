@@ -1,5 +1,3 @@
-const { hairlineWidth } = require('nativewind/theme');
-
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   darkMode: 'class',
@@ -46,10 +44,14 @@ module.exports = {
           canvas: '#F3F0EE',
           lifted: '#FCFBFA',
           signal: '#CF4500',
-          orbit: '#F37338',
-          clay: '#9A3A0A',
+          /** Light-mode logo blue — use dark:brand-orbitDark in night mode */
+          orbit: '#0B3D91',
+          clay: '#062352',
+          orbitDark: '#06B6D4',
+          clayDark: '#0E7490',
           dust: '#D1CDC7',
           link: '#3860BE',
+          linkDark: '#67E8F9',
           blue: '#0B3D91',
           gold: '#F5C400',
           crimson: '#E11D48',
@@ -67,7 +69,8 @@ module.exports = {
         pill: '999px',
       },
       borderWidth: {
-        hairline: hairlineWidth(),
+        hairline: '0.1px',
+        DEFAULT: '0.1px',
       },
       fontFamily: {
         display: ['SofiaSans_500Medium'],

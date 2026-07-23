@@ -7,6 +7,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
+import { BrandColors } from '@/theme/tokens';
 
 /**
  * Specs Flutter Material (FloatingActionButton / .extended) :
@@ -82,7 +83,7 @@ export function FlutterExtendedFab({
   onPressed,
   label,
   icon,
-  backgroundColor = '#F37338',
+  backgroundColor = BrandColors.orbit,
   foregroundColor = '#FFFFFF',
   disabled = false,
   bottom = FLUTTER_FAB.edgeMargin,
@@ -112,19 +113,26 @@ export function FlutterExtendedFab({
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ disabled: isDisabled }}
       style={[
-        styles.extended,
-        elev,
         {
-          backgroundColor: isDisabled ? '#BDBDBD' : backgroundColor,
+          height: FLUTTER_FAB.height,
+          minWidth: FLUTTER_FAB.height,
           opacity: isDisabled ? 0.6 : 1,
         },
         !absolute ? style : null,
       ]}
     >
-      {iconNode ? <View style={styles.iconSlot}>{iconNode}</View> : null}
-      <Text style={[styles.label, { color: foregroundColor }]} numberOfLines={1}>
-        {label}
-      </Text>
+      <View
+        style={[
+          styles.extended,
+          elev,
+          { backgroundColor: isDisabled ? '#BDBDBD' : backgroundColor },
+        ]}
+      >
+        {iconNode ? <View style={styles.iconSlot}>{iconNode}</View> : null}
+        <Text style={[styles.label, { color: foregroundColor }]} numberOfLines={1}>
+          {label}
+        </Text>
+      </View>
     </Pressable>
   );
 
@@ -162,7 +170,7 @@ export type FlutterFabProps = {
 export function FlutterFab({
   onPressed,
   icon,
-  backgroundColor = '#F37338',
+  backgroundColor = BrandColors.orbit,
   foregroundColor = '#FFFFFF',
   disabled = false,
   size = 'regular',
@@ -199,19 +207,28 @@ export function FlutterFab({
         {
           width: dim,
           height: dim,
-          borderRadius: radius,
-          backgroundColor: isDisabled ? '#BDBDBD' : backgroundColor,
-          alignItems: 'center',
-          justifyContent: 'center',
           opacity: isDisabled ? 0.6 : 1,
-          borderWidth: borderColor ? 1 : 0,
-          borderColor: borderColor ?? 'transparent',
         },
-        elev,
         !absolute ? style : null,
       ]}
     >
-      {iconNode}
+      <View
+        style={[
+          {
+            width: dim,
+            height: dim,
+            borderRadius: radius,
+            backgroundColor: isDisabled ? '#BDBDBD' : backgroundColor,
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderWidth: borderColor ? 0.1 : 0,
+            borderColor: borderColor ?? 'transparent',
+          },
+          elev,
+        ]}
+      >
+        {iconNode}
+      </View>
     </Pressable>
   );
 

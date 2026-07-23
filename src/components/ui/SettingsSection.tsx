@@ -1,0 +1,63 @@
+import React from 'react';
+import { View, Text } from 'react-native';
+
+import { useAppTheme } from '@/providers/ThemeProvider';
+import { Radius, Spacing } from '@/theme/tokens';
+import { textStyle } from '@/theme/typography';
+
+interface SettingsSectionProps {
+  title?: string;
+  children: React.ReactNode;
+  /** Extra margin above the section. Default true. */
+  spaced?: boolean;
+}
+
+export function SettingsSection({ title, children, spaced = true }: SettingsSectionProps) {
+  const { colors } = useAppTheme();
+
+  return (
+    <View style={{ marginTop: spaced ? Spacing.six : 0, marginBottom: Spacing.three }}>
+      {title ? (
+        <Text
+          style={[
+            textStyle('micro'),
+            {
+              color: colors.slate,
+              fontWeight: '600',
+              textTransform: 'uppercase',
+              letterSpacing: 0.7,
+              marginBottom: Spacing.twoHalf,
+              paddingHorizontal: Spacing.one,
+            },
+          ]}
+        >
+          {title}
+        </Text>
+      ) : null}
+      <View
+        style={{
+          backgroundColor: colors.surfaceCard,
+          borderRadius: Radius.lg,
+          borderWidth: 0.1,
+          borderColor: colors.border,
+          overflow: 'hidden',
+        }}
+      >
+        {React.Children.toArray(children).map((child, index, arr) => (
+          <React.Fragment key={index}>
+            {child}
+            {index < arr.length - 1 ? (
+              <View
+                style={{
+                  height: 0.5,
+                  backgroundColor: colors.borderHairline,
+                  marginLeft: 40 + Spacing.three + Spacing.four,
+                }}
+              />
+            ) : null}
+          </React.Fragment>
+        ))}
+      </View>
+    </View>
+  );
+}

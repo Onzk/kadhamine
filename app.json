@@ -14,6 +14,7 @@
     },
     "android": {
       "package": "com.tchadtalent.app",
+      "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -23,8 +24,9 @@
       "predictiveBackGestureEnabled": false
     },
     "androidNavigationBar": {
-      "backgroundColor": "#F3F0EE",
-      "barStyle": "dark-content"
+      "backgroundColor": "#00000000",
+      "barStyle": "dark-content",
+      "enforceContrast": false
     },
     "web": {
       "output": "static",
@@ -36,11 +38,11 @@
       [
         "expo-navigation-bar",
         {
-          "backgroundColor": "#F3F0EE",
-          "barStyle": "dark",
-          "position": "absolute"
+          "backgroundColor": "#00000000",
+          "barStyle": "dark"
         }
       ],
+      "./plugins/withTransparentNavBar",
       "expo-secure-store",
       [
         "expo-location",

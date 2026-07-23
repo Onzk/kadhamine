@@ -1,9 +1,9 @@
+import { getCategoryVisual } from '@/lib/categoryTheme';
+import { useAppTheme } from '@/providers/ThemeProvider';
+import { Radius, Spacing } from '@/theme/tokens';
+import { fontFamily, textStyle } from '@/theme/typography';
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { useAppTheme } from '@/providers/ThemeProvider';
-import { getCategoryVisual } from '@/lib/categoryTheme';
-import { fontFamily, textStyle } from '@/theme/typography';
-import { Radius, Spacing } from '@/theme/tokens';
 
 const CARD_RADIUS = Radius.lg;
 const CARD_MIN_HEIGHT = 148;
@@ -16,8 +16,7 @@ export interface CategoryCardData {
   serviceCount?: number;
 }
 
-/** Mélange un hex avec du blanc pour adoucir le fond pastel. */
-function softenPastel(hex: string, whiteMix = 0.62): string {
+function parseRgb(hex: string): [number, number, number] {
   const raw = hex.replace('#', '');
   const full =
     raw.length === 3
@@ -26,115 +25,123 @@ function softenPastel(hex: string, whiteMix = 0.62): string {
           .map((c) => c + c)
           .join('')
       : raw;
-  const r = parseInt(full.slice(0, 2), 16);
-  const g = parseInt(full.slice(2, 4), 16);
-  const b = parseInt(full.slice(4, 6), 16);
+  return [
+    parseInt(full.slice(0, 2), 16),
+    parseInt(full.slice(2, 4), 16),
+    parseInt(full.slice(4, 6), 16),
+  ];
+}
+
+/** Mélange un hex avec du blanc pour adoucir le fond pastel (jour). */
+function softenPastel(hex: string, whiteMix = 0.62): string {
+  const [r, g, b] = parseRgb(hex);
   const mix = (c: number) => Math.round(c + (255 - c) * whiteMix);
   return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
 }
 
-/** Bordure légère teintée depuis la couleur d’accent. */
-function softBorder(hex: string, alpha = 0.22): string {
-  const raw = hex.replace('#', '');
-  const full =
-    raw.length === 3
-      ? raw
-          .split('')
-          .map((c) => c + c)
-          .join('')
-      : raw;
-  const r = parseInt(full.slice(0, 2), 16);
-  const g = parseInt(full.slice(2, 4), 16);
-  const b = parseInt(full.slice(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+/** Assombrit un pastel pour le mode nuit (mélange noir). */
+function darkenPastel(hex: string, blackMix = 0.72): string {
+  const [r, g, b] = parseRgb(hex);
+  const mix = (c: number) => Math.round(c * (1 - blackMix));
+  return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
 }
 
 interface CategoryCardProps {
   item: CategoryCardData;
   width: number;
+  /** Fixed height — defaults to CARD_MIN_HEIGHT. */
+  height?: number;
   onPress: () => void;
 }
 
-/** Card catégorie accueil — pastel adouci + bordure légère. */
-export function CategoryCard({ item, width, onPress }: CategoryCardProps) {
-  const { colors } = useAppTheme();
+/** Card catégorie accueil — pastel adouci + bordure visible (token). */
+export function CategoryCard({ item, width, height = CARD_MIN_HEIGHT, onPress }: CategoryCardProps) {
+  const { colors, isDark } = useAppTheme();
   const { Icon, pastel } = getCategoryVisual({
     icon: item.icon,
     slug: item.slug,
     label: item.label,
   });
   const isEmpty = item.serviceCount === 0;
-  const cardBg = softenPastel(pastel.bg, 0.58);
-  const borderColor = softBorder(pastel.fg, 0.2);
+  const cardBg = isDark ? darkenPastel(pastel.bg, .9) : softenPastel(pastel.bg, 0.58);
 
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => ({
         width,
-        minHeight: CARD_MIN_HEIGHT,
-        borderRadius: CARD_RADIUS,
-        backgroundColor: cardBg,
-        borderWidth: 1,
-        borderColor,
-        padding: Spacing.three,
+        height,
         opacity: pressed ? 0.9 : isEmpty ? 0.6 : 1,
         transform: [{ scale: pressed ? 0.97 : 1 }],
       })}
     >
       <View
         style={{
-          width: 44,
-          height: 44,
-          borderRadius: 22,
-          backgroundColor: pastel.bg,
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: Spacing.two,
+          width: '100%',
+          height: '100%',
+          borderRadius: CARD_RADIUS,
+          backgroundColor: cardBg,
+          borderWidth: 0.1,
+          borderColor: colors.borderStrong,
+          padding: Spacing.three,
+          justifyContent: 'space-between',
         }}
       >
-        <Icon size={22} color={pastel.fg} weight="bold" />
+        <View
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            backgroundColor: pastel.bg,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Icon size={22} color={pastel.fg} weight="bold" />
+        </View>
+
+        <View>
+          <Text
+            numberOfLines={2}
+            style={{
+              fontFamily: fontFamily('body', 'medium'),
+              fontSize: 13,
+              lineHeight: 17,
+              color: colors.ink,
+              marginBottom: Spacing.one,
+            }}
+          >
+            {item.label}
+          </Text>
+
+          {item.serviceCount !== undefined ? (
+            <Text style={[textStyle('micro'), { color: colors.muted }]}>
+              {item.serviceCount} service{item.serviceCount !== 1 ? 's' : ''}
+            </Text>
+          ) : null}
+        </View>
       </View>
-
-      <Text
-        numberOfLines={2}
-        style={{
-          fontFamily: fontFamily('body', 'medium'),
-          fontSize: 13,
-          lineHeight: 17,
-          color: colors.ink,
-          marginBottom: Spacing.one,
-          minHeight: 34,
-        }}
-      >
-        {item.label}
-      </Text>
-
-      {item.serviceCount !== undefined ? (
-        <Text style={[textStyle('micro'), { color: colors.muted }]}>
-          {item.serviceCount} service{item.serviceCount !== 1 ? 's' : ''}
-        </Text>
-      ) : null}
     </Pressable>
   );
 }
 
 interface CategoryCardSkeletonProps {
   width: number;
+  height?: number;
 }
 
-export function CategoryCardSkeleton({ width }: CategoryCardSkeletonProps) {
+export function CategoryCardSkeleton({ width, height = CARD_MIN_HEIGHT }: CategoryCardSkeletonProps) {
   const { colors } = useAppTheme();
 
   return (
     <View
       style={{
         width,
-        minHeight: CARD_MIN_HEIGHT,
+        height,
         borderRadius: CARD_RADIUS,
         backgroundColor: colors.surfaceCard,
-        borderWidth: 1,
-        borderColor: colors.border,
+        borderWidth: 0.1,
+        borderColor: colors.borderStrong,
         padding: Spacing.three,
       }}
     >

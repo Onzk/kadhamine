@@ -3,7 +3,7 @@
  * Images Unsplash vérifiées le 2026-07-19 (HEAD → 200, content-type image/*).
  */
 
-import { MVP_CITIES } from '@/constants/chad';
+import { MVP_CITIES, MVP_CITY_COORDS, MVP_CITY_REGION, type MvpCity } from '@/constants/chad';
 
 /** Vérifiées 2026-07-19 */
 export const MOCK_IMAGES = {
@@ -24,6 +24,18 @@ export const MOCK_IMAGES = {
   chatSample: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=600&q=80',
 } as const;
 
+function geo(city: MvpCity, seed: number) {
+  const base = MVP_CITY_COORDS[city];
+  const a = ((seed * 17) % 11) - 5;
+  const b = ((seed * 29) % 11) - 5;
+  return {
+    city,
+    region: MVP_CITY_REGION[city],
+    latitude: base.lat + a * 0.0012,
+    longitude: base.lng + b * 0.0012,
+  };
+}
+
 export const MOCK_CATEGORIES = [
   { id: 'cat-dev', slug: 'developpement', nameFr: 'Développement web & mobile', icon: 'code' },
   { id: 'cat-design', slug: 'design', nameFr: 'Design graphique', icon: 'palette' },
@@ -43,7 +55,7 @@ export const MOCK_USERS = [
     role: 'client' as const,
     firstName: 'Amina',
     lastName: 'Hassan',
-    city: MVP_CITIES[0],
+    ...geo(MVP_CITIES[0], 1),
     avatarUrl: MOCK_IMAGES.avatarWoman,
   },
   {
@@ -51,7 +63,7 @@ export const MOCK_USERS = [
     role: 'client' as const,
     firstName: 'Mahamat',
     lastName: 'Oumar',
-    city: MVP_CITIES[1],
+    ...geo(MVP_CITIES[1], 2),
     avatarUrl: MOCK_IMAGES.avatarMan,
   },
   {
@@ -59,7 +71,7 @@ export const MOCK_USERS = [
     role: 'provider' as const,
     firstName: 'Fatimé',
     lastName: 'Djimé',
-    city: MVP_CITIES[0],
+    ...geo(MVP_CITIES[0], 3),
     avatarUrl: MOCK_IMAGES.avatarWoman2,
     isVerified: true,
     isPremium: true,
@@ -71,7 +83,7 @@ export const MOCK_USERS = [
     role: 'provider' as const,
     firstName: 'Issa',
     lastName: 'Brahim',
-    city: MVP_CITIES[2],
+    ...geo(MVP_CITIES[2], 4),
     avatarUrl: MOCK_IMAGES.avatarMan2,
     isVerified: true,
     isPremium: false,
@@ -83,7 +95,7 @@ export const MOCK_USERS = [
     role: 'provider' as const,
     firstName: 'Hawa',
     lastName: 'Ndolassem',
-    city: MVP_CITIES[1],
+    ...geo(MVP_CITIES[1], 5),
     avatarUrl: MOCK_IMAGES.avatarWoman,
     isVerified: false,
     isPremium: false,
@@ -101,7 +113,8 @@ export const MOCK_SERVICES = [
     description: 'Création de site professionnel responsive, livraison en 10 jours.',
     price: 150000,
     pricingType: 'fixed' as const,
-    city: MVP_CITIES[0],
+    // Hérite de la position profil (même jitter seed 3)
+    ...geo(MVP_CITIES[0], 3),
     photo: MOCK_IMAGES.developpement,
     rating: 4.9,
     reviewCount: 18,
@@ -117,7 +130,8 @@ export const MOCK_SERVICES = [
     description: 'Reportage complet + 100 photos retouchées.',
     price: 80000,
     pricingType: 'fixed' as const,
-    city: MVP_CITIES[2],
+    // Position propre (offset vs profil Abéché seed 4)
+    ...geo(MVP_CITIES[2], 14),
     photo: MOCK_IMAGES.photographie,
     rating: 4.6,
     reviewCount: 12,
@@ -133,7 +147,7 @@ export const MOCK_SERVICES = [
     description: 'Création et retouches de tenues traditionnelles et modernes.',
     price: 25000,
     pricingType: 'negotiable' as const,
-    city: MVP_CITIES[1],
+    ...geo(MVP_CITIES[1], 5),
     photo: MOCK_IMAGES.couture,
     rating: 4.2,
     reviewCount: 7,
@@ -149,7 +163,8 @@ export const MOCK_SERVICES = [
     description: 'Pack logo + charte couleurs + déclinaisons réseaux.',
     price: 45000,
     pricingType: 'fixed' as const,
-    city: MVP_CITIES[0],
+    // Position propre à N'Djamena (autre quartier)
+    ...geo(MVP_CITIES[0], 21),
     photo: MOCK_IMAGES.design,
     rating: 4.8,
     reviewCount: 22,

@@ -1,15 +1,16 @@
 import React, { useMemo, useState } from 'react';
-import { View, TextInput, Text } from 'react-native';
+import { View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from 'convex/react';
-import { MagnifyingGlass } from 'phosphor-react-native';
+import { MagnifyingGlass, X } from 'phosphor-react-native';
 
 import { CategoryMasonryGrid } from '@/components/ui/CategoryMasonryGrid';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { FlutterFab } from '@/components/ui/FlutterFab';
 import { PageScaffold } from '@/components/ui/PageHeader';
+import { SearchBar } from '@/components/ui/SearchBar';
 import { useAppTheme } from '@/providers/ThemeProvider';
-import { Radius, Shadows, Spacing } from '@/theme/tokens';
-import { textStyle } from '@/theme/typography';
+import { Spacing } from '@/theme/tokens';
 import { api } from '../../../convex/_generated/api';
 
 export default function CategoriesScreen() {
@@ -37,9 +38,9 @@ export default function CategoriesScreen() {
   const isEmptyResult = gridItems !== undefined && gridItems.length === 0;
 
   const goToSearch = (categoryId?: string) => {
-    router.push({
+    router.navigate({
       pathname: '/(tabs)/search',
-      params: categoryId ? { categoryId } : {},
+      params: categoryId ? { categoryId, applyCategory: '1' } : {},
     });
   };
 
@@ -50,40 +51,23 @@ export default function CategoriesScreen() {
         subtitle="Explorez les métiers et talents disponibles sur TalentTchad."
         contentContainerStyle={{ paddingBottom: 100 }}
         headerActions={
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              backgroundColor: colors.surfaceStrong,
-              borderRadius: Radius.pill,
-              paddingHorizontal: Spacing.five,
-              height: 48,
-              borderWidth: 1,
-              borderColor: colors.border,
-              gap: 10,
-              ...Shadows.nav,
-            }}
-          >
-            <MagnifyingGlass size={18} color={colors.muted} />
-            <TextInput
-              value={search}
-              onChangeText={setSearch}
-              placeholder="Rechercher une catégorie..."
-              placeholderTextColor={colors.muted}
-              style={{ flex: 1, color: colors.ink, fontSize: 15, paddingVertical: 0 }}
-              returnKeyType="search"
-              clearButtonMode="while-editing"
-            />
-          </View>
+          <SearchBar
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Rechercher une catégorie..."
+          />
         }
       >
         <View style={{ marginTop: Spacing.five }}>
           {isEmptyResult ? (
-            <View style={{ paddingHorizontal: Spacing.six, paddingTop: Spacing.eight }}>
-              <Text style={[textStyle('body'), { color: colors.muted, textAlign: 'center' }]}>
-                Aucune catégorie ne correspond à « {search.trim()} ».
-              </Text>
-            </View>
+            <EmptyState
+              icon={MagnifyingGlass}
+              title="Aucune catégorie trouvée"
+              description={`Aucune catégorie ne correspond à « ${search.trim()} ».`}
+              actionLabel="Effacer la recherche"
+              onAction={() => setSearch('')}
+              actionVariant="outline"
+            />
           ) : (
             <CategoryMasonryGrid
               categories={gridItems}
@@ -96,10 +80,10 @@ export default function CategoriesScreen() {
       <FlutterFab
         absolute
         onPressed={() => goToSearch()}
-        icon={<MagnifyingGlass size={24} color={colors.onPrimary} weight="bold" />}
+        icon={<X size={24} color={colors.onPrimary} weight="bold" />}
         backgroundColor={colors.ink}
         foregroundColor={colors.onPrimary}
-        accessibilityLabel="Revenir à la recherche"
+        accessibilityLabel="Fermer et revenir à la recherche"
       />
     </View>
   );

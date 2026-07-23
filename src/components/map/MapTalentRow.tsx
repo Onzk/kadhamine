@@ -40,70 +40,75 @@ export function MapTalentRow({ item, selected, onPress }: MapTalentRowProps) {
     <Pressable
       onPress={onPress}
       style={({ pressed }) => ({
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.three,
-        paddingVertical: Spacing.three,
-        paddingHorizontal: Spacing.four,
-        backgroundColor: selected ? colors.surfaceStrong : colors.surfaceCard,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.border,
         opacity: pressed ? 0.9 : 1,
       })}
     >
       <View
         style={{
-          width: 52,
-          height: 52,
-          borderRadius: 26,
-          overflow: 'hidden',
-          backgroundColor: colors.iconWash,
+          flexDirection: 'row',
           alignItems: 'center',
-          justifyContent: 'center',
+          gap: Spacing.three,
+          paddingVertical: Spacing.three,
+          paddingHorizontal: Spacing.four,
+          backgroundColor: selected ? colors.surfaceStrong : colors.surfaceCard,
+          borderBottomWidth: 0.1,
+          borderBottomColor: colors.border,
         }}
       >
-        {item.avatarUrl ? (
-          <Image source={{ uri: item.avatarUrl }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
-        ) : (
-          <CategoryIcon icon={item.categoryIcon} size={22} color={colors.orbit} weight="bold" />
-        )}
-      </View>
-
-      <View style={{ flex: 1 }}>
-        <Text
-          numberOfLines={1}
+        <View
           style={{
-            fontFamily: fontFamily('body', 'medium'),
-            fontSize: 15,
-            color: colors.ink,
+            width: 52,
+            height: 52,
+            borderRadius: 26,
+            overflow: 'hidden',
+            backgroundColor: colors.iconWash,
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          {item.title}
-        </Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
-          <Text numberOfLines={1} style={[textStyle('micro'), { color: colors.muted, flexShrink: 1 }]}>
-            {item.providerName}
-          </Text>
-          {item.isVerified ? <SealCheck size={12} color={colors.info} weight="fill" /> : null}
-          {item.categoryLabel ? (
-            <Text style={[textStyle('micro'), { color: colors.slate }]}>· {item.categoryLabel}</Text>
-          ) : null}
+          {item.avatarUrl ? (
+            <Image source={{ uri: item.avatarUrl }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+          ) : (
+            <CategoryIcon icon={item.categoryIcon} size={22} color={colors.orbit} weight="bold" />
+          )}
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.three, marginTop: 4 }}>
-          {item.rating > 0 ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-              <Star size={12} color={ratingColor} weight="fill" />
-              <Text style={[textStyle('micro'), { color: colors.ink }]}>{formatRating(item.rating)}</Text>
-            </View>
-          ) : null}
-          {item.distanceKm !== undefined ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-              <MapPin size={12} color={colors.muted} />
-              <Text style={[textStyle('micro'), { color: colors.muted }]}>
-                {formatDistance(item.distanceKm)}
-              </Text>
-            </View>
-          ) : null}
+
+        <View style={{ flex: 1 }}>
+          <Text
+            numberOfLines={1}
+            style={{
+              fontFamily: fontFamily('body', 'medium'),
+              fontSize: 15,
+              color: colors.ink,
+            }}
+          >
+            {item.title}
+          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+            <Text numberOfLines={1} style={[textStyle('micro'), { color: colors.muted, flexShrink: 1 }]}>
+              {item.providerName}
+            </Text>
+            {item.isVerified ? <SealCheck size={12} color={colors.info} weight="fill" /> : null}
+            {item.categoryLabel ? (
+              <Text style={[textStyle('micro'), { color: colors.slate }]}>· {item.categoryLabel}</Text>
+            ) : null}
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.three, marginTop: 4 }}>
+            {item.rating > 0 ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                <Star size={12} color={ratingColor} weight="fill" />
+                <Text style={[textStyle('micro'), { color: colors.ink }]}>{formatRating(item.rating)}</Text>
+              </View>
+            ) : null}
+            {item.distanceKm !== undefined ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                <MapPin size={12} color={colors.muted} />
+                <Text style={[textStyle('micro'), { color: colors.muted }]}>
+                  {formatDistance(item.distanceKm)}
+                </Text>
+              </View>
+            ) : null}
+          </View>
         </View>
       </View>
     </Pressable>

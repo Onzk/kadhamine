@@ -1,274 +1,695 @@
-import React from 'react';
-import { View, Text, Pressable } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { View, Text, Alert, Pressable, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { useAction, useMutation } from 'convex/react';
+import * as ImagePicker from 'expo-image-picker';
 import {
-  Gear,
+  User,
+  Lock,
+  Globe,
   Moon,
-  Shield,
-  Crown,
+  Info,
+  ShieldCheck,
+  FileText,
+  DotsThree,
   SignOut,
-  CaretRight,
+  Bell,
+  Headset,
+  Crown,
   ChartBar,
   Wrench,
-  SquaresFour,
   Images,
+  ShoppingBag,
+  SquaresFour,
+  Camera,
+  Image as ImageIcon,
 } from 'phosphor-react-native';
 
-import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
-import { Eyebrow } from '@/components/ui/Eyebrow';
+import {
+  AuthField,
+  AuthPrimaryButton,
+  PasswordStrengthMeter,
+} from '@/components/auth/AuthField';
+import { GuestProfileHeader, ProfileHeader } from '@/components/profile/ProfileHeader';
+import { AppBottomSheet } from '@/components/ui/AppBottomSheet';
 import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
+import { SettingsRow } from '@/components/ui/SettingsRow';
+import { SettingsSection } from '@/components/ui/SettingsSection';
 import { useAuth } from '@/providers/AuthProvider';
-import { useAppTheme } from '@/providers/ThemeProvider';
 import { useAppLanguage } from '@/providers/I18nProvider';
+import { useAppTheme } from '@/providers/ThemeProvider';
 import { SUPPORTED_LANGUAGES } from '@/constants/chad';
-import { BrandColors, Radius, Spacing } from '@/theme/tokens';
+import { useUpload } from '@/hooks/useUpload';
+import { Spacing } from '@/theme/tokens';
 import { textStyle } from '@/theme/typography';
+import { api } from '../../../convex/_generated/api';
+
+type ThemeMode = 'light' | 'dark' | 'system';
 
 export default function ProfileScreen() {
   const { t } = useTranslation();
-  const { colors, toggle, isDark } = useAppTheme();
+  const { colors, mode, setMode } = useAppTheme();
   const { user, signOut } = useAuth();
   const { language, setLanguage } = useAppLanguage();
   const router = useRouter();
+  const { uploadFromUri } = useUpload();
 
+  const updateProfile = useMutation(api.profiles.update);
+  const updateAvatar = useMutation(api.profiles.updateAvatar);
+  const updateLanguagePref = useMutation(api.users.updateLanguage);
+  const changePassword = useAction(api.account.changePassword);
+
+  const [personalSheet, setPersonalSheet] = useState(false);
+  const [passwordSheet, setPasswordSheet] = useState(false);
+  const [languageSheet, setLanguageSheet] = useState(false);
+  const [appearanceSheet, setAppearanceSheet] = useState(false);
+  const [avatarSheet, setAvatarSheet] = useState(false);
+
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileError, setProfileError] = useState('');
+
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+
+  const [avatarLoading, setAvatarLoading] = useState(false);
+
+  const isGuest = !user;
   const profile = user?.profile;
   const isProvider = user?.role === 'provider';
   const isAdmin = user?.role === 'admin';
-  const isGuest = !user;
+
+  const displayName = profile
+    ? `${profile.firstName} ${profile.lastName}`.trim()
+    : user?.name ?? t('profile.defaultName');
+
+  const initials = useMemo(() => {
+    const a = profile?.firstName?.[0] ?? user?.name?.[0] ?? '?';
+    const b = profile?.lastName?.[0] ?? '';
+    return `${a}${b}`.toUpperCase();
+  }, [profile?.firstName, profile?.lastName, user?.name]);
+
+  const roleLabel = useMemo(() => {
+    if (!user?.role) return undefined;
+    if (user.role === 'admin') return t('profile.roleAdmin');
+    if (user.role === 'provider') return t('auth.provider');
+    return t('auth.client');
+  }, [t, user?.role]);
+
+  const themeLabel = useMemo(() => {
+    if (mode === 'light') return t('profile.themeLight');
+    if (mode === 'dark') return t('profile.themeDark');
+    return t('profile.themeSystem');
+  }, [mode, t]);
+
+  const currentLanguageLabel =
+    SUPPORTED_LANGUAGES.find((l) => l.code === language)?.nativeLabel ?? language;
+
+  const openPersonalSheet = () => {
+    setFirstName(profile?.firstName ?? '');
+    setLastName(profile?.lastName ?? '');
+    setProfileError('');
+    setPersonalSheet(true);
+  };
+
+  const handleSaveProfile = async () => {
+    if (!firstName.trim() || !lastName.trim()) {
+      setProfileError(t('profile.personalInfoRequired'));
+      return;
+    }
+    if (!profile) {
+      setProfileError(t('profile.personalInfoUnavailable'));
+      return;
+    }
+    setSavingProfile(true);
+    setProfileError('');
+    try {
+      await updateProfile({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+      });
+      setPersonalSheet(false);
+    } catch (err) {
+      console.error(err);
+      setProfileError(t('profile.personalInfoError'));
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const handleSavePassword = async () => {
+    if (newPassword.length < 8) {
+      setPasswordError(t('profile.passwordMinLength'));
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError(t('profile.passwordMismatch'));
+      return;
+    }
+    setSavingPassword(true);
+    setPasswordError('');
+    try {
+      await changePassword({ currentPassword, newPassword });
+      setPasswordSheet(false);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      Alert.alert(t('profile.passwordChangedTitle'), t('profile.passwordChangedBody'));
+    } catch (err) {
+      console.error(err);
+      setPasswordError(t('profile.passwordChangeError'));
+    } finally {
+      setSavingPassword(false);
+    }
+  };
+
+  const handleLanguageSelect = async (code: (typeof SUPPORTED_LANGUAGES)[number]['code']) => {
+    setLanguage(code);
+    if (user) {
+      try {
+        await updateLanguagePref({ language: code });
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    setLanguageSheet(false);
+  };
+
+  const cycleTheme = () => {
+    const order: ThemeMode[] = ['light', 'dark', 'system'];
+    const idx = order.indexOf(mode);
+    setMode(order[(idx + 1) % order.length]!);
+  };
+
+  const handleLogout = () => {
+    Alert.alert(t('auth.logout'), t('profile.logoutConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('auth.logout'), style: 'destructive', onPress: () => signOut() },
+    ]);
+  };
+
+  const pickAndUploadAvatar = useCallback(
+    async (source: 'camera' | 'library') => {
+      if (!profile) {
+        Alert.alert(t('profile.avatarUnavailable'));
+        return;
+      }
+      setAvatarSheet(false);
+      setAvatarLoading(true);
+      try {
+        let asset: ImagePicker.ImagePickerAsset | null = null;
+        if (source === 'camera') {
+          const { status } = await ImagePicker.requestCameraPermissionsAsync();
+          if (status !== 'granted') {
+            Alert.alert(t('profile.cameraPermission'));
+            return;
+          }
+          const result = await ImagePicker.launchCameraAsync({
+            mediaTypes: ['images'],
+            quality: 0.8,
+            allowsEditing: true,
+            aspect: [1, 1],
+          });
+          if (!result.canceled) asset = result.assets[0] ?? null;
+        } else {
+          const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          if (status !== 'granted') {
+            Alert.alert(t('profile.galleryPermission'));
+            return;
+          }
+          const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'],
+            quality: 0.8,
+            allowsEditing: true,
+            aspect: [1, 1],
+          });
+          if (!result.canceled) asset = result.assets[0] ?? null;
+        }
+        if (!asset) return;
+        const storageId = await uploadFromUri(asset.uri, asset.mimeType ?? 'image/jpeg');
+        await updateAvatar({ storageId });
+      } catch (err) {
+        console.error(err);
+        Alert.alert(t('common.error'), t('profile.avatarUploadError'));
+      } finally {
+        setAvatarLoading(false);
+      }
+    },
+    [profile, t, updateAvatar, uploadFromUri],
+  );
 
   if (isGuest) {
     return (
-      <PageScaffold
-        title={t('auth.guestTitle')}
-        subtitle={t('auth.guestSubtitle')}
-        headerActions={
-          <View>
-            <Button
-              title={t('auth.signIn')}
-              onPress={() => router.push('/(auth)/login')}
-              fullWidth
-              style={{ marginBottom: 12 }}
+      <PageScaffold title={t('profile.title')} subtitle={t('auth.guestSubtitle')}>
+        <View style={{ paddingHorizontal: PAGE_H_PAD }}>
+          <GuestProfileHeader
+            ctaLabel={t('auth.signInOrSignUp')}
+            onPressCta={() => router.push('/(auth)/login')}
+            onPressAvatar={() => router.push('/(auth)/login')}
+          />
+
+          <SettingsSection title={t('profile.sectionPreferences')}>
+            <SettingsRow
+              icon={Globe}
+              title={t('profile.language')}
+              description={currentLanguageLabel}
+              onPress={() => setLanguageSheet(true)}
             />
-            <Button
-              title={t('auth.signUp')}
-              variant="outline"
-              onPress={() => router.push('/(auth)/register')}
-              fullWidth
+            <SettingsRow
+              icon={Moon}
+              title={t('profile.appearance')}
+              description={themeLabel}
+              onPress={() => setAppearanceSheet(true)}
             />
-          </View>
-        }
-      >
-        <View style={{ paddingHorizontal: PAGE_H_PAD, marginTop: Spacing.two }}>
-          <Eyebrow label={t('profile.language')} />
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: Spacing.three }}>
-            {SUPPORTED_LANGUAGES.map((lang) => (
-              <Pressable
-                key={lang.code}
-                onPress={() => setLanguage(lang.code)}
-                style={{
-                  paddingHorizontal: 14,
-                  paddingVertical: 8,
-                  borderRadius: Radius.pill,
-                  backgroundColor: language === lang.code ? colors.orbit : colors.surfaceCard,
-                  borderWidth: 1,
-                  borderColor: language === lang.code ? colors.orbit : colors.border,
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: 13,
-                    fontWeight: '500',
-                    color: language === lang.code ? colors.onPrimary : colors.body,
-                  }}
-                >
-                  {lang.nativeLabel}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+          </SettingsSection>
+
+          <SettingsSection title={t('profile.sectionSupport')}>
+            <SettingsRow
+              icon={Info}
+              title={t('profile.about')}
+              description={t('profile.aboutRowDesc')}
+              onPress={() => router.push('/about')}
+            />
+            <SettingsRow
+              icon={ShieldCheck}
+              title={t('profile.privacy')}
+              description={t('profile.privacyRowDesc')}
+              onPress={() => router.push('/legal/privacy')}
+            />
+            <SettingsRow
+              icon={FileText}
+              title={t('profile.terms')}
+              description={t('profile.termsRowDesc')}
+              onPress={() => router.push('/legal/terms')}
+            />
+          </SettingsSection>
         </View>
+
+        <GuestSheets
+          languageSheet={languageSheet}
+          setLanguageSheet={setLanguageSheet}
+          appearanceSheet={appearanceSheet}
+          setAppearanceSheet={setAppearanceSheet}
+          language={language}
+          mode={mode}
+          themeLabel={themeLabel}
+          onLanguageSelect={handleLanguageSelect}
+          onThemeSelect={setMode}
+        />
       </PageScaffold>
     );
   }
 
-  const displayName = profile
-    ? `${profile.firstName} ${profile.lastName}`
-    : user?.name ?? 'Utilisateur';
+  return (
+    <PageScaffold title={t('profile.title')} subtitle={t('profile.subtitle')}>
+      <View style={{ paddingHorizontal: PAGE_H_PAD }}>
+        <ProfileHeader
+          displayName={displayName}
+          email={user?.email ?? undefined}
+          roleLabel={roleLabel}
+          avatarUrl={profile?.avatarUrl}
+          initials={initials}
+          onEditAvatar={profile ? () => setAvatarSheet(true) : undefined}
+          avatarLoading={avatarLoading}
+        />
 
-  const menuItems = [
-    ...(isProvider
-      ? [
-          { icon: ChartBar, label: t('profile.dashboard'), route: '/provider/dashboard' },
-          { icon: Wrench, label: t('profile.myServices'), route: '/provider/services' },
-          { icon: Images, label: t('service.portfolio'), route: '/portfolio' },
-        ]
-      : []),
-    { icon: Shield, label: t('profile.verification'), route: '/verification' },
-    { icon: Crown, label: t('profile.premium'), route: '/premium' },
-    ...(isAdmin ? [{ icon: SquaresFour, label: 'Administration', route: '/admin' }] : []),
-    { icon: Gear, label: t('profile.settings'), route: '/settings' },
+        <SettingsSection title={t('profile.sectionAccount')} spaced={false}>
+          <SettingsRow
+            icon={User}
+            title={t('profile.personalInfo')}
+            description={t('profile.personalInfoDesc')}
+            onPress={openPersonalSheet}
+          />
+          <SettingsRow
+            icon={Lock}
+            title={t('profile.password')}
+            description={t('profile.passwordDesc')}
+            onPress={() => {
+              setCurrentPassword('');
+              setNewPassword('');
+              setConfirmPassword('');
+              setPasswordError('');
+              setPasswordSheet(true);
+            }}
+          />
+          {!isProvider ? (
+            <SettingsRow
+              icon={ShoppingBag}
+              title={t('orders.title')}
+              description={t('profile.ordersDesc')}
+              onPress={() => router.push('/(tabs)/orders')}
+            />
+          ) : null}
+          {isProvider ? (
+            <>
+              <SettingsRow
+                icon={ChartBar}
+                title={t('profile.dashboard')}
+                description={t('profile.dashboardDesc')}
+                onPress={() => router.push('/provider/dashboard')}
+              />
+              <SettingsRow
+                icon={Wrench}
+                title={t('profile.myServices')}
+                description={t('profile.myServicesDesc')}
+                onPress={() => router.push('/provider/services')}
+              />
+              <SettingsRow
+                icon={Images}
+                title={t('service.portfolio')}
+                description={t('profile.portfolioDesc')}
+                onPress={() => router.push('/portfolio')}
+              />
+            </>
+          ) : null}
+          <SettingsRow
+            icon={ShieldCheck}
+            title={t('profile.verification')}
+            description={t('profile.verificationDesc')}
+            onPress={() => router.push('/verification')}
+          />
+          <SettingsRow
+            icon={Crown}
+            title={t('profile.premium')}
+            description={t('profile.premiumDesc')}
+            onPress={() => router.push('/premium')}
+          />
+          {isAdmin ? (
+            <SettingsRow
+              icon={SquaresFour}
+              title={t('profile.administration')}
+              description={t('profile.administrationDesc')}
+              onPress={() => router.push('/admin')}
+            />
+          ) : null}
+          <SettingsRow
+            icon={Bell}
+            title={t('profile.notifications')}
+            description={t('profile.notificationsDesc')}
+            onPress={() => router.push('/notifications')}
+          />
+          <SettingsRow
+            icon={DotsThree}
+            title={t('profile.moreActions')}
+            description={t('profile.moreActionsDesc')}
+            onPress={() => router.push('/account/danger-zone')}
+          />
+        </SettingsSection>
+
+        <SettingsSection title={t('profile.sectionPreferences')}>
+          <SettingsRow
+            icon={Globe}
+            title={t('profile.language')}
+            description={currentLanguageLabel}
+            onPress={() => setLanguageSheet(true)}
+          />
+          <SettingsRow
+            icon={Moon}
+            title={t('profile.appearance')}
+            description={themeLabel}
+            onPress={() => setAppearanceSheet(true)}
+          />
+        </SettingsSection>
+
+        <SettingsSection title={t('profile.sectionSupport')}>
+          <SettingsRow
+            icon={Headset}
+            title={t('profile.helpSupport')}
+            description={t('profile.helpSupportDesc')}
+            onPress={() => Linking.openURL('mailto:support@talenttchad.com')}
+          />
+          <SettingsRow
+            icon={Info}
+            title={t('profile.about')}
+            description={t('profile.aboutRowDesc')}
+            onPress={() => router.push('/about')}
+          />
+          <SettingsRow
+            icon={ShieldCheck}
+            title={t('profile.privacy')}
+            description={t('profile.privacyRowDesc')}
+            onPress={() => router.push('/legal/privacy')}
+          />
+          <SettingsRow
+            icon={FileText}
+            title={t('profile.terms')}
+            description={t('profile.termsRowDesc')}
+            onPress={() => router.push('/legal/terms')}
+          />
+        </SettingsSection>
+
+        <SettingsSection title={t('profile.sectionSession')}>
+          <SettingsRow
+            icon={SignOut}
+            title={t('auth.logout')}
+            description={t('profile.logoutDesc')}
+            onPress={handleLogout}
+            destructive
+            showChevron={false}
+          />
+        </SettingsSection>
+      </View>
+
+      <AppBottomSheet
+        visible={personalSheet}
+        onClose={() => setPersonalSheet(false)}
+        title={t('profile.personalInfo')}
+        subtitle={t('profile.personalInfoSheetSubtitle')}
+      >
+        {profileError ? (
+          <Text style={[textStyle('caption'), { color: colors.error, marginBottom: Spacing.three }]}>
+            {profileError}
+          </Text>
+        ) : null}
+        <AuthField label={t('profile.firstName')} value={firstName} onChangeText={setFirstName} />
+        <AuthField label={t('profile.lastName')} value={lastName} onChangeText={setLastName} />
+        <AuthField
+          label={t('auth.email')}
+          value={user?.email ?? ''}
+          editable={false}
+          hint={t('profile.emailReadOnly')}
+        />
+        <AuthField
+          label={t('profile.accountType')}
+          value={roleLabel ?? ''}
+          editable={false}
+          hint={t('profile.accountTypeReadOnly')}
+        />
+        <AuthPrimaryButton
+          title={t('common.save')}
+          onPress={handleSaveProfile}
+          loading={savingProfile}
+        />
+      </AppBottomSheet>
+
+      <AppBottomSheet
+        visible={passwordSheet}
+        onClose={() => setPasswordSheet(false)}
+        title={t('profile.password')}
+        subtitle={t('profile.passwordSheetSubtitle')}
+      >
+        {passwordError ? (
+          <Text style={[textStyle('caption'), { color: colors.error, marginBottom: Spacing.three }]}>
+            {passwordError}
+          </Text>
+        ) : null}
+        <AuthField
+          label={t('profile.currentPassword')}
+          value={currentPassword}
+          onChangeText={setCurrentPassword}
+          isPassword
+          showPassword={showCurrentPassword}
+          onTogglePassword={() => setShowCurrentPassword((v) => !v)}
+        />
+        <AuthField
+          label={t('profile.newPassword')}
+          value={newPassword}
+          onChangeText={setNewPassword}
+          isPassword
+          showPassword={showNewPassword}
+          onTogglePassword={() => setShowNewPassword((v) => !v)}
+        />
+        <PasswordStrengthMeter password={newPassword} />
+        <AuthField
+          label={t('auth.confirmPassword')}
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          isPassword
+          showPassword={showConfirmPassword}
+          onTogglePassword={() => setShowConfirmPassword((v) => !v)}
+        />
+        <AuthPrimaryButton
+          title={t('profile.changePassword')}
+          onPress={handleSavePassword}
+          loading={savingPassword}
+          disabled={!currentPassword || newPassword.length < 8}
+        />
+      </AppBottomSheet>
+
+      <AppBottomSheet
+        visible={avatarSheet}
+        onClose={() => setAvatarSheet(false)}
+        title={t('profile.avatarTitle')}
+        subtitle={t('profile.avatarSubtitle')}
+      >
+        <SettingsRow
+          icon={Camera}
+          title={t('profile.avatarCamera')}
+          onPress={() => pickAndUploadAvatar('camera')}
+          showChevron={false}
+        />
+        <SettingsRow
+          icon={ImageIcon}
+          title={t('profile.avatarGallery')}
+          onPress={() => pickAndUploadAvatar('library')}
+          showChevron={false}
+        />
+      </AppBottomSheet>
+
+      <GuestSheets
+        languageSheet={languageSheet}
+        setLanguageSheet={setLanguageSheet}
+        appearanceSheet={appearanceSheet}
+        setAppearanceSheet={setAppearanceSheet}
+        language={language}
+        mode={mode}
+        themeLabel={themeLabel}
+        onLanguageSelect={handleLanguageSelect}
+        onThemeSelect={setMode}
+        onAppearanceCycle={cycleTheme}
+      />
+    </PageScaffold>
+  );
+}
+
+interface GuestSheetsProps {
+  languageSheet: boolean;
+  setLanguageSheet: (v: boolean) => void;
+  appearanceSheet: boolean;
+  setAppearanceSheet: (v: boolean) => void;
+  language: string;
+  mode: ThemeMode;
+  themeLabel: string;
+  onLanguageSelect: (code: (typeof SUPPORTED_LANGUAGES)[number]['code']) => void;
+  onThemeSelect: (mode: ThemeMode) => void;
+  onAppearanceCycle?: () => void;
+}
+
+function GuestSheets({
+  languageSheet,
+  setLanguageSheet,
+  appearanceSheet,
+  setAppearanceSheet,
+  language,
+  mode,
+  onLanguageSelect,
+  onThemeSelect,
+  onAppearanceCycle,
+}: GuestSheetsProps) {
+  const { t } = useTranslation();
+  const { colors } = useAppTheme();
+
+  const themeOptions: { value: ThemeMode; labelKey: string }[] = [
+    { value: 'light', labelKey: 'profile.themeLight' },
+    { value: 'dark', labelKey: 'profile.themeDark' },
+    { value: 'system', labelKey: 'profile.themeSystem' },
   ];
 
-  const hasBadges = Boolean(profile?.isVerified || profile?.isPremium || profile?.badge);
-  const showProfileMeta = hasBadges || (isProvider && profile);
-
   return (
-    <PageScaffold
-      title={displayName}
-      subtitle="Gérez votre compte, vos préférences et vos accès."
-      rightAction={
-        <View
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: 22,
-            backgroundColor: colors.surfaceCard,
-            borderWidth: 1,
-            borderColor: colors.border,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Text style={{ fontSize: 18, fontWeight: '700', color: colors.ink }}>
-            {profile?.firstName?.[0] ?? '?'}
-          </Text>
-        </View>
-      }
-      headerActions={
-        showProfileMeta || user?.email ? (
-          <View>
-            {user?.email ? (
-              <Text style={{ fontSize: 13, color: colors.muted, marginBottom: hasBadges ? 8 : 0 }}>
-                {user.email}
-              </Text>
-            ) : null}
-            {hasBadges ? (
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                {profile?.isVerified && <Badge label={t('common.verified')} variant="verified" />}
-                {profile?.isPremium && <Badge label={t('common.premium')} variant="premium" />}
-                {profile?.badge && <Badge label={t(`badges.${profile.badge}`)} variant="accent" />}
-              </View>
-            ) : null}
-
-            {isProvider && profile ? (
-              <View
-                style={{
-                  flexDirection: 'row',
-                  gap: 24,
-                  marginTop: hasBadges ? Spacing.five : 0,
-                }}
-              >
-                <View>
-                  <Text style={{ fontSize: 20, fontWeight: '700', color: BrandColors.gold }}>
-                    {profile.averageRating.toFixed(1)}
-                  </Text>
-                  <Text style={{ fontSize: 12, color: colors.muted }}>Note</Text>
-                </View>
-                <View>
-                  <Text style={{ fontSize: 20, fontWeight: '700', color: BrandColors.gold }}>
-                    {profile.completedOrders}
-                  </Text>
-                  <Text style={{ fontSize: 12, color: colors.muted }}>Prestations</Text>
-                </View>
-                <View>
-                  <Text style={{ fontSize: 20, fontWeight: '700', color: BrandColors.gold }}>
-                    {profile.trustScore}
-                  </Text>
-                  <Text style={{ fontSize: 12, color: colors.muted }}>Confiance</Text>
-                </View>
-              </View>
-            ) : null}
-          </View>
-        ) : undefined
-      }
-    >
-      <View style={{ paddingHorizontal: PAGE_H_PAD, marginTop: Spacing.two }}>
-        <Eyebrow label={t('profile.language')} />
-        <View
-          style={{
-            flexDirection: 'row',
-            flexWrap: 'wrap',
-            gap: 8,
-            marginTop: Spacing.three,
-            marginBottom: Spacing.six,
-          }}
-        >
-          {SUPPORTED_LANGUAGES.map((lang) => (
-            <Pressable
-              key={lang.code}
-              onPress={() => setLanguage(lang.code)}
-              style={{
-                paddingHorizontal: 14,
-                paddingVertical: 8,
-                borderRadius: Radius.pill,
-                backgroundColor: language === lang.code ? colors.orbit : colors.surfaceCard,
-                borderWidth: 1,
-                borderColor: language === lang.code ? colors.orbit : colors.border,
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 13,
-                  fontWeight: '500',
-                  color: language === lang.code ? colors.onPrimary : colors.body,
-                }}
-              >
-                {lang.nativeLabel}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-
-        {menuItems.map((item) => (
+    <>
+      <AppBottomSheet
+        visible={languageSheet}
+        onClose={() => setLanguageSheet(false)}
+        title={t('profile.language')}
+        subtitle={t('profile.languageSheetSubtitle')}
+      >
+        {SUPPORTED_LANGUAGES.map((lang) => (
           <Pressable
-            key={item.label}
-            onPress={() => router.push(item.route as never)}
+            key={lang.code}
+            onPress={() => onLanguageSelect(lang.code)}
             style={({ pressed }) => ({
-              flexDirection: 'row',
-              alignItems: 'center',
-              backgroundColor: colors.surfaceCard,
-              borderRadius: Radius.stadium,
-              padding: Spacing.four,
-              marginBottom: Spacing.two,
               opacity: pressed ? 0.9 : 1,
             })}
           >
-            <item.icon size={20} color={colors.ink} />
-            <Text style={{ flex: 1, fontSize: 15, color: colors.ink, marginLeft: 12 }}>
-              {item.label}
-            </Text>
-            <CaretRight size={18} color={colors.muted} />
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingVertical: Spacing.three,
+                paddingHorizontal: Spacing.two,
+                borderRadius: 12,
+                backgroundColor: language === lang.code ? colors.orbitWash : 'transparent',
+                marginBottom: Spacing.one,
+              }}
+            >
+              <Text style={[textStyle('body'), { color: colors.ink, fontWeight: '600' }]}>
+                {lang.nativeLabel}
+              </Text>
+              {language === lang.code ? (
+                <Text style={[textStyle('caption'), { color: colors.orbit }]}>✓</Text>
+              ) : null}
+            </View>
           </Pressable>
         ))}
+      </AppBottomSheet>
 
-        <Pressable
-          onPress={toggle}
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            backgroundColor: colors.surfaceCard,
-            borderRadius: Radius.stadium,
-            padding: Spacing.four,
-            marginBottom: Spacing.two,
-          }}
-        >
-          <Moon size={20} color={colors.ink} />
-          <Text style={{ flex: 1, fontSize: 15, color: colors.ink, marginLeft: 12 }}>
-            {t('profile.theme')} ({isDark ? 'Sombre' : 'Clair'})
-          </Text>
-        </Pressable>
-
-        <Button
-          title={t('auth.logout')}
-          variant="outline"
-          onPress={signOut}
-          icon={<SignOut size={18} color={colors.error} />}
-          fullWidth
-          style={{ marginTop: Spacing.four, borderColor: colors.error }}
-        />
-      </View>
-    </PageScaffold>
+      <AppBottomSheet
+        visible={appearanceSheet}
+        onClose={() => setAppearanceSheet(false)}
+        title={t('profile.appearance')}
+        subtitle={t('profile.appearanceSheetSubtitle')}
+      >
+        {themeOptions.map((opt) => (
+          <Pressable
+            key={opt.value}
+            onPress={() => {
+              onThemeSelect(opt.value);
+              setAppearanceSheet(false);
+            }}
+            style={({ pressed }) => ({
+              opacity: pressed ? 0.9 : 1,
+            })}
+          >
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingVertical: Spacing.three,
+                paddingHorizontal: Spacing.two,
+                borderRadius: 12,
+                backgroundColor: mode === opt.value ? colors.orbitWash : 'transparent',
+                marginBottom: Spacing.one,
+              }}
+            >
+              <Text style={[textStyle('body'), { color: colors.ink, fontWeight: '600' }]}>
+                {t(opt.labelKey)}
+              </Text>
+              {mode === opt.value ? (
+                <Text style={[textStyle('caption'), { color: colors.orbit }]}>✓</Text>
+              ) : null}
+            </View>
+          </Pressable>
+        ))}
+        {onAppearanceCycle ? (
+          <View style={{ marginTop: Spacing.three }}>
+            <Pressable onPress={onAppearanceCycle}>
+              <Text style={[textStyle('caption'), { color: colors.link, textAlign: 'center' }]}>
+                {t('profile.appearanceCycleHint')}
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
+      </AppBottomSheet>
+    </>
   );
 }

@@ -133,7 +133,7 @@ export const createTransaction = action({
         sandbox: true,
         reference,
         paymentUrl: null,
-        message: 'Mode sandbox local — configurez FEDAPAY_SECRET_KEY',
+        message: 'Mode sandbox local — configurez la clé de paiement',
       };
     }
 

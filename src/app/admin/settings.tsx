@@ -49,7 +49,7 @@ export default function AdminSettingsScreen() {
           Commission sur les paiements in-app
         </Text>
         <Text style={{ fontSize: 13, color: colors.muted, marginBottom: 16 }}>
-          Taux prélevé sur chaque transaction FedaPay / Mobile Money (hors plateforme = 0 %).
+          Taux prélevé sur chaque paiement en ligne / Mobile Money (hors plateforme = 0 %).
         </Text>
         <Input
           label="Taux (%)"

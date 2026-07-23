@@ -30,7 +30,7 @@ export function Badge({ label, variant = 'default' }: BadgeProps) {
         paddingHorizontal: 12,
         paddingVertical: 4,
         borderRadius: Radius.pill,
-        borderWidth: 1,
+        borderWidth: 0.1,
         borderColor: s.border,
         alignSelf: 'flex-start',
       }}

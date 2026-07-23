@@ -147,7 +147,7 @@ export default function ChatScreen() {
                   padding: 12,
                   marginBottom: 8,
                   maxWidth: '80%',
-                  borderWidth: mine ? 0 : 1,
+                  borderWidth: mine ? 0 : 0.1,
                   borderColor: colors.border,
                 }}
               >
@@ -172,29 +172,25 @@ export default function ChatScreen() {
             flexDirection: 'row',
             padding: 12,
             gap: 8,
-            borderTopWidth: 1,
+            borderTopWidth: 0.1,
             borderTopColor: colors.border,
             backgroundColor: colors.canvas,
             alignItems: 'center',
           }}
         >
-          <Pressable
-            onPress={() => pickAndSendImage('library')}
-            disabled={uploading}
-            style={{ padding: 8 }}
-          >
-            {uploading ? (
-              <ActivityIndicator color={colors.primary} />
-            ) : (
-              <ImageIcon size={22} color={colors.ink} />
-            )}
+          <Pressable onPress={() => pickAndSendImage('library')} disabled={uploading}>
+            <View style={{ padding: 8 }}>
+              {uploading ? (
+                <ActivityIndicator color={colors.primary} />
+              ) : (
+                <ImageIcon size={22} color={colors.ink} />
+              )}
+            </View>
           </Pressable>
-          <Pressable
-            onPress={() => pickAndSendImage('camera')}
-            disabled={uploading}
-            style={{ padding: 8 }}
-          >
-            <Camera size={22} color={colors.ink} />
+          <Pressable onPress={() => pickAndSendImage('camera')} disabled={uploading}>
+            <View style={{ padding: 8 }}>
+              <Camera size={22} color={colors.ink} />
+            </View>
           </Pressable>
           <TextInput
             value={message}
@@ -208,7 +204,7 @@ export default function ChatScreen() {
               paddingHorizontal: 16,
               paddingVertical: 10,
               color: colors.ink,
-              borderWidth: 1,
+              borderWidth: 0.1,
               borderColor: colors.border,
             }}
           />

@@ -59,7 +59,7 @@ Référence docs Expo : [docs.expo.dev/versions/v54.0.0](https://docs.expo.dev/v
 Jeune (cible 18–35 ans) proposant des services.
 
 - Créer / gérer son profil
-- Publier des services (prix, délai, catégorie, ville)
+- Publier des services (prix, délai, catégorie, ville / position)
 - Portfolio **images**
 - Recevoir, accepter ou annuler des commandes
 - Chatter (texte + images)
@@ -99,7 +99,7 @@ Un seul opérateur au démarrage (compte seed).
 |---------|---------|
 | Auth | Inscription / connexion email + mot de passe ; reset email si disponible, sinon contact support |
 | Profils | Client & prestataire ; ville parmi 10 villes ; compétences ; bio ; photo |
-| Services | CRUD prestataire ; recherche / filtres ; détail |
+| Services | CRUD prestataire ; recherche / filtres ; détail ; position géo (propre ou héritée du profil) |
 | Portfolio | Images uniquement |
 | Commandes | Statuts simplifiés (voir §5) |
 | Messagerie | Temps réel Convex ; **texte + images** |
@@ -127,7 +127,7 @@ Un seul opérateur au démarrage (compte seed).
 | Sous-critères d’avis (ponctualité…) | V1.1 |
 | Vidéos portfolio / chat | Reporté |
 | PDF / documents dans le chat | Reporté |
-| Carte / géolocalisation avancée | V2 |
+| Carte / géolocalisation avancée (clustering, itinéraires, filtres géo riches) | V2 — le MVP stocke déjà lat/lng profil & service pour la carte basique |
 | Formations en ligne / IA | V2 |
 | Mode hors-ligne riche | V2 |
 | iOS Store en premier | Android / APK interne d’abord |
@@ -150,6 +150,7 @@ Un seul opérateur au démarrage (compte seed).
 | 11 | Compte non vérifié | Peut publier et recevoir des commandes |
 | 12 | Langues | 3 langues |
 | 13 | Villes | 10 villes (liste §8) |
+| 13b | Position service | Optionnelle : position propre **ou** « utiliser la position du profil » (défaut) |
 | 14 | Rôle | Un seul à l’inscription |
 | 15 | Admin | Mobile, opérateur unique |
 | 16 | Push | Commande + message |
@@ -198,8 +199,12 @@ Après inscription : redirection vers complétion de profil (ville, téléphone 
 ### 4.3 Services
 
 - Titre, description, catégorie, prix (fixe ou négociable), délai (jours), photos, ville/région, actif/pause
-- Recherche : texte, catégorie, ville, prix min/max, note, premium/vérifié
+- **Position géo** (lat/lng + ville/région) :
+  - par défaut : **utiliser la position du profil** prestataire (copie ville/région/lat/lng) ;
+  - sinon : le prestataire définit une position propre au service (là où il s’applique)
+- Recherche : texte, catégorie, ville, prix min/max, note, premium/vérifié, distance si lat/lng fournis
 - Tri : note, prix, popularité, récence — **Premium en tête** des résultats pertinents
+- Carte MVP : pins basés sur la position du **service** (pas uniquement le profil)
 
 ### 4.4 Portfolio
 
@@ -317,9 +322,9 @@ Aligné sur le schéma Convex actuel (`convex/schema.ts`), à ajuster seulement 
 | Table | Rôle |
 |-------|------|
 | `users` | Compte auth, rôle, statut, langue, push token |
-| `profiles` | Profil métier, ville, badges, stats, géo optionnelle |
+| `profiles` | Profil métier, ville, badges, stats, géo optionnelle (lat/lng) |
 | `categories` / `skills` | Taxonomie services |
-| `services` | Offres publiées |
+| `services` | Offres publiées + géo (propre ou héritée du profil à la création) |
 | `portfolio` | Médias prestataire |
 | `orders` | Commandes + flags paiement / review |
 | `payments` | Montants, commission, méthode, statut FedaPay |

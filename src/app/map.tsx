@@ -4,29 +4,32 @@ import {
   Text,
   Platform,
   Pressable,
-  TextInput,
   Dimensions,
-  ScrollView,
+  ScrollView as RNScrollView,
+  type LayoutChangeEvent,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from 'convex/react';
 import {
   CaretLeft,
-  MagnifyingGlass,
   Crosshair,
   MapPin,
 } from 'phosphor-react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector, ScrollView } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
 } from 'react-native-reanimated';
 
-import { FilterChip } from '@/components/ui/FilterChip';
+import { CategoryChipMasonry } from '@/components/ui/CategoryChipMasonry';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { PAGE_H_PAD } from '@/components/ui/PageHeader';
+import { SearchBar } from '@/components/ui/SearchBar';
+import { ServiceCardSkeleton } from '@/components/ui/Skeleton';
 import { FlutterFab, FLUTTER_FAB } from '@/components/ui/FlutterFab';
-import { TalentMapPin } from '@/components/map/TalentMapPin';
-import { MapTalentRow } from '@/components/map/MapTalentRow';
+import { ServiceCard } from '@/components/cards/ServiceCard';
+import { TalentMapMarker } from '@/components/map/TalentMapMarker';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { useLocation } from '@/hooks/useLocation';
 import { NDJAMENA } from '@/utils/geo';
@@ -48,6 +51,8 @@ const SHEET_COLLAPSED = 110;
 const SHEET_MID = Math.round(SCREEN_H * 0.42);
 const SHEET_EXPANDED = Math.round(SCREEN_H * 0.72);
 const SNAP_POINTS = [SHEET_COLLAPSED, SHEET_MID, SHEET_EXPANDED];
+/** Rayon partagé : bas de l’appbar = haut du panneau. */
+const PANEL_RADIUS = Radius.xl;
 
 function nearestSnap(value: number) {
   'worklet';
@@ -76,7 +81,10 @@ export default function MapScreen() {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [mapReady, setMapReady] = useState(false);
   const mapRef = useRef<any>(null);
+
+  const panelBg = colors.surfaceCard;
 
   const categories = useQuery(api.categories.list, { activeOnly: true });
   const talents = useQuery(api.services.listForMap, {
@@ -96,6 +104,7 @@ export default function MapScreen() {
       list = list.filter(
         (t) =>
           t.title.toLowerCase().includes(q) ||
+          t.description.toLowerCase().includes(q) ||
           t.providerName.toLowerCase().includes(q) ||
           (t.categoryLabel?.toLowerCase().includes(q) ?? false),
       );
@@ -105,8 +114,10 @@ export default function MapScreen() {
 
   const sheetHeight = useSharedValue(SHEET_COLLAPSED);
   const dragStart = useSharedValue(SHEET_COLLAPSED);
+  const headerHeight = useSharedValue(72);
 
   const pan = Gesture.Pan()
+    .activeOffsetY([-8, 8])
     .onStart(() => {
       dragStart.value = sheetHeight.value;
     })
@@ -124,11 +135,22 @@ export default function MapScreen() {
     height: sheetHeight.value,
   }));
 
+  /** Hauteur explicite (pas flex) — fiable avec une sheet à height animée. */
+  const listWrapStyle = useAnimatedStyle(() => ({
+    height: Math.max(0, sheetHeight.value - headerHeight.value),
+  }));
+
   // Le mini FAB de recentrage suit le sheet (reste 16px au-dessus).
   const recenterStyle = useAnimatedStyle(() => ({
     bottom: sheetHeight.value + FLUTTER_FAB.edgeMargin,
   }));
 
+  const onSheetHeaderLayout = useCallback(
+    (e: LayoutChangeEvent) => {
+      headerHeight.value = e.nativeEvent.layout.height;
+    },
+    [headerHeight],
+  );
   const focusTalent = useCallback(
     (serviceId: string, lat: number, lng: number) => {
       setSelectedId(serviceId);
@@ -165,25 +187,39 @@ export default function MapScreen() {
     <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       {/* Carte plein écran */}
       {Platform.OS === 'web' || !MapView ? (
-        <View style={{ flex: 1, paddingTop: 120, paddingHorizontal: Spacing.four }}>
+        <View style={{ flex: 1, paddingTop: 160, paddingHorizontal: Spacing.four }}>
           <Text style={{ color: colors.muted, marginBottom: Spacing.four }}>
             La carte interactive est disponible sur iOS et Android.
           </Text>
-          <ScrollView>
+          <RNScrollView contentContainerStyle={{ gap: Spacing.four, paddingBottom: Spacing.eight }}>
             {filtered?.map((t) => (
-              <MapTalentRow
+              <ServiceCard
                 key={t.serviceId}
-                item={t}
-                selected={selectedId === t.serviceId}
+                title={t.title}
+                description={t.description}
+                price={t.price}
+                pricingType={t.pricingType}
+                photo={t.photos[0]}
+                rating={t.rating}
+                reviewCount={t.reviewCount ?? 0}
+                providerName={t.providerName}
+                providerAvatar={t.avatarUrl}
+                city={t.city}
+                isVerified={t.isVerified}
+                isPremium={t.isPremium}
+                categoryIcon={t.categoryIcon}
+                categoryLabel={t.categoryLabel}
+                layout={t.isPremium ? 'card' : 'list'}
                 onPress={() => router.push(`/service/${t.serviceId}`)}
               />
             ))}
-          </ScrollView>
+          </RNScrollView>
         </View>
       ) : (
         <MapView
           ref={mapRef}
           style={{ flex: 1 }}
+          onMapReady={() => setMapReady(true)}
           initialRegion={{
             latitude,
             longitude,
@@ -195,102 +231,74 @@ export default function MapScreen() {
           showsCompass={false}
         >
           {Marker &&
-            filtered?.map((t) => (
-              <Marker
-                key={t.serviceId}
-                coordinate={{ latitude: t.latitude, longitude: t.longitude }}
-                onPress={() => focusTalent(t.serviceId, t.latitude, t.longitude)}
-                tracksViewChanges={false}
-              >
-                <TalentMapPin
+            filtered?.map((t) => {
+              const isSelected = selectedId === t.serviceId;
+              return (
+                <TalentMapMarker
+                  key={t.serviceId}
+                  MarkerComponent={Marker}
+                  coordinate={{ latitude: t.latitude, longitude: t.longitude }}
+                  onPress={() => focusTalent(t.serviceId, t.latitude, t.longitude)}
+                  selected={isSelected}
+                  mapReady={mapReady}
                   categoryIcon={t.categoryIcon}
+                  categoryLabel={t.categoryLabel}
                   isPremium={t.isPremium}
-                  selected={selectedId === t.serviceId}
                 />
-              </Marker>
-            ))}
+              );
+            })}
         </MapView>
       )}
 
-      {/* Header flottant */}
+      {/* Header flottant — chevron + recherche */}
       <View
         style={{
           position: 'absolute',
           top: Spacing.three,
           left: Spacing.four,
           right: Spacing.four,
+          zIndex: 30,
           flexDirection: 'row',
           alignItems: 'center',
           gap: Spacing.two,
         }}
       >
-        <Pressable
-          onPress={() => router.back()}
-          style={({ pressed }) => ({
-            width: 44,
-            height: 44,
-            borderRadius: 22,
-            backgroundColor: colors.surfaceCard,
-            alignItems: 'center',
-            justifyContent: 'center',
-            opacity: pressed ? 0.9 : 1,
-            ...Shadows.elevated,
-          })}
-        >
-          <CaretLeft size={20} color={colors.ink} weight="bold" />
+        <Pressable onPress={() => router.back()} style={{ width: 44, height: 44 }}>
+          <View
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              backgroundColor: colors.surfaceCard,
+              alignItems: 'center',
+              justifyContent: 'center',
+              ...Shadows.elevated,
+            }}
+          >
+            <CaretLeft size={20} color={colors.ink} weight="bold" />
+          </View>
         </Pressable>
 
-        <View
-          style={{
-            flex: 1,
-            flexDirection: 'row',
-            alignItems: 'center',
-            backgroundColor: colors.surfaceCard,
-            borderRadius: Radius.pill,
-            paddingHorizontal: Spacing.four,
-            height: 44,
-            gap: 8,
-            ...Shadows.elevated,
-          }}
-        >
-          <MagnifyingGlass size={16} color={colors.muted} />
-          <TextInput
-            value={search}
-            onChangeText={setSearch}
-            placeholder="Rechercher un talent, une catégorie..."
-            placeholderTextColor={colors.muted}
-            style={{ flex: 1, color: colors.ink, fontSize: 14, paddingVertical: 0 }}
-            returnKeyType="search"
-          />
-        </View>
+        <SearchBar
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Rechercher un talent, une catégorie..."
+          height={44}
+          style={{ flex: 1 }}
+        />
       </View>
 
-      {/* Chips catégories flottants */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={{ position: 'absolute', top: 68, left: 0, right: 0 }}
-        contentContainerStyle={{
-          paddingHorizontal: Spacing.four,
-          gap: Spacing.two,
-          paddingVertical: Spacing.two,
-        }}
-      >
-        <FilterChip
-          label="Toutes"
-          selected={!selectedCategory}
-          onPress={() => setSelectedCategory(undefined)}
-        />
-        {categories?.slice(0, 10).map((cat) => (
-          <FilterChip
-            key={cat._id}
-            label={cat.nameFr}
-            icon={cat.icon}
-            selected={selectedCategory === cat._id}
-            onPress={() => setSelectedCategory(cat._id)}
-          />
-        ))}
-      </ScrollView>
+      {/* Chips catégories — masonry léger 2 rangées */}
+      <CategoryChipMasonry
+        style={{ position: 'absolute', top: 68, left: 0, right: 0, zIndex: 30 }}
+        categories={categories?.slice(0, 12).map((cat) => ({
+          id: cat._id,
+          label: cat.nameFr,
+          icon: cat.icon,
+        }))}
+        selectedId={selectedCategory}
+        onSelect={setSelectedCategory}
+      />
 
       {/* Indicateur rayon — bas gauche, suit le sheet */}
       <Animated.View
@@ -299,7 +307,7 @@ export default function MapScreen() {
             position: 'absolute',
             left: Spacing.four,
             flexDirection: 'row',
-            backgroundColor: colors.surfaceCard,
+            backgroundColor: panelBg,
             borderRadius: Radius.pill,
             padding: 4,
             gap: 2,
@@ -310,27 +318,27 @@ export default function MapScreen() {
         ]}
       >
         {[5, 15, 25, 50].map((r) => (
-          <Pressable
-            key={r}
-            onPress={() => setRadiusKm(r)}
-            style={{
-              paddingHorizontal: 10,
-              paddingVertical: 6,
-              borderRadius: Radius.pill,
-              backgroundColor: radiusKm === r ? colors.orbit : 'transparent',
-            }}
-          >
-            <Text
-              style={[
-                textStyle('micro'),
-                {
-                  fontFamily: fontFamily('body', 'medium'),
-                  color: radiusKm === r ? colors.onPrimary : colors.ink,
-                },
-              ]}
+          <Pressable key={r} onPress={() => setRadiusKm(r)}>
+            <View
+              style={{
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+                borderRadius: Radius.pill,
+                backgroundColor: radiusKm === r ? colors.orbit : 'transparent',
+              }}
             >
-              {r} km
-            </Text>
+              <Text
+                style={[
+                  textStyle('micro'),
+                  {
+                    fontFamily: fontFamily('body', 'medium'),
+                    color: radiusKm === r ? colors.onOrbit : colors.ink,
+                  },
+                ]}
+              >
+                {r} km
+              </Text>
+            </View>
           </Pressable>
         ))}
       </Animated.View>
@@ -344,106 +352,156 @@ export default function MapScreen() {
           size="small"
           onPressed={recenter}
           accessibilityLabel="Recentrer sur ma position"
-          backgroundColor={colors.surfaceCard}
+          backgroundColor={panelBg}
           foregroundColor={colors.ink}
           borderColor={colors.border}
           icon={<Crosshair size={FLUTTER_FAB.smallIconSize} color={colors.ink} weight="bold" />}
         />
       </Animated.View>
 
-      {/* Bottom sheet draggable */}
-      <GestureDetector gesture={pan}>
-        <Animated.View
-          style={[
-            {
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: colors.surfaceCard,
-              borderTopLeftRadius: Radius.xl,
-              borderTopRightRadius: Radius.xl,
-              overflow: 'hidden',
-              ...Shadows.elevated,
-            },
-            sheetStyle,
-          ]}
-        >
-          {/* Poignée */}
-          <View style={{ alignItems: 'center', paddingTop: Spacing.three, paddingBottom: Spacing.two }}>
+      {/* Bottom sheet — drag header ; liste à hauteur explicite + GH ScrollView */}
+      <Animated.View
+        style={[
+          {
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: panelBg,
+            borderTopLeftRadius: PANEL_RADIUS,
+            borderTopRightRadius: PANEL_RADIUS,
+            overflow: 'hidden',
+            ...Shadows.elevated,
+          },
+          sheetStyle,
+        ]}
+      >
+        <GestureDetector gesture={pan}>
+          <Animated.View onLayout={onSheetHeaderLayout}>
+            <View style={{ alignItems: 'center', paddingTop: Spacing.three, paddingBottom: Spacing.two }}>
+              <View
+                style={{
+                  width: 40,
+                  height: 4,
+                  borderRadius: 2,
+                  backgroundColor: colors.border,
+                }}
+              />
+            </View>
+
             <View
               style={{
-                width: 40,
-                height: 4,
-                borderRadius: 2,
-                backgroundColor: colors.border,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingHorizontal: Spacing.four,
+                paddingBottom: Spacing.three,
               }}
-            />
-          </View>
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <MapPin size={16} color={colors.orbit} weight="fill" />
+                <Text
+                  style={{
+                    fontFamily: fontFamily('body', 'medium'),
+                    fontSize: 15,
+                    color: colors.ink,
+                  }}
+                >
+                  {locLoading
+                    ? 'Localisation...'
+                    : `${count} talent${count !== 1 ? 's' : ''} à proximité`}
+                </Text>
+              </View>
+              {selectedId ? (
+                <Pressable onPress={() => router.push(`/service/${selectedId}`)}>
+                  <Text style={[textStyle('button'), { color: colors.orbit }]}>Voir →</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          </Animated.View>
+        </GestureDetector>
 
-          {/* En-tête sheet */}
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              paddingHorizontal: Spacing.four,
-              paddingBottom: Spacing.three,
+        <Animated.View style={listWrapStyle}>
+          <ScrollView
+            style={{ flex: 1 }}
+            nestedScrollEnabled
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            bounces
+            contentContainerStyle={{
+              paddingHorizontal: PAGE_H_PAD,
+              paddingBottom: Spacing.eight,
+              gap: Spacing.two,
             }}
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <MapPin size={16} color={colors.orbit} weight="fill" />
-              <Text
-                style={{
-                  fontFamily: fontFamily('body', 'medium'),
-                  fontSize: 15,
-                  color: colors.ink,
-                }}
-              >
-                {locLoading
-                  ? 'Localisation...'
-                  : `${count} talent${count !== 1 ? 's' : ''} à proximité`}
-              </Text>
-            </View>
-            {selectedId ? (
-              <Pressable onPress={() => router.push(`/service/${selectedId}`)}>
-                <Text style={[textStyle('button'), { color: colors.orbit }]}>Voir →</Text>
-              </Pressable>
-            ) : null}
-          </View>
-
-          {/* Liste scrollable */}
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: Spacing.eight }}
-          >
             {filtered === undefined ? (
-              <Text style={{ textAlign: 'center', color: colors.muted, padding: Spacing.six }}>
-                Chargement...
-              </Text>
+              <>
+                <ServiceCardSkeleton />
+                <ServiceCardSkeleton />
+              </>
             ) : filtered.length === 0 ? (
-              <Text style={{ textAlign: 'center', color: colors.muted, padding: Spacing.six }}>
-                Aucun talent dans ce rayon.
-              </Text>
+              <EmptyState
+                compact
+                icon={MapPin}
+                title="Aucun talent dans ce rayon"
+                description={
+                  search.trim() || selectedCategory
+                    ? 'Modifiez votre recherche ou vos filtres, ou élargissez le rayon.'
+                    : 'Élargissez le rayon de recherche pour découvrir plus de talents.'
+                }
+                actions={
+                  radiusKm < 50
+                    ? [{ label: 'Élargir à 50 km', onPress: () => setRadiusKm(50), variant: 'outline' }]
+                    : undefined
+                }
+              />
             ) : (
-              filtered.map((t) => (
-                <MapTalentRow
-                  key={t.serviceId}
-                  item={t}
-                  selected={selectedId === t.serviceId}
-                  onPress={() => {
-                    if (selectedId === t.serviceId) {
-                      router.push(`/service/${t.serviceId}`);
-                      return;
+              filtered.map((t) => {
+                const isSelected = selectedId === t.serviceId;
+                return (
+                  <View
+                    key={t.serviceId}
+                    style={
+                      isSelected
+                        ? {
+                            borderRadius: Radius.md,
+                            borderWidth: 0.1,
+                            borderColor: colors.orbit,
+                          }
+                        : undefined
                     }
-                    focusTalent(t.serviceId, t.latitude, t.longitude);
-                  }}
-                />
-              ))
+                  >
+                    <ServiceCard
+                      title={t.title}
+                      description={t.description}
+                      price={t.price}
+                      pricingType={t.pricingType}
+                      photo={t.photos[0]}
+                      rating={t.rating}
+                      reviewCount={t.reviewCount ?? 0}
+                      providerName={t.providerName}
+                      providerAvatar={t.avatarUrl}
+                      city={t.city}
+                      isVerified={t.isVerified}
+                      isPremium={t.isPremium}
+                      categoryIcon={t.categoryIcon}
+                      categoryLabel={t.categoryLabel}
+                      layout={t.isPremium ? 'card' : 'list'}
+                      onPress={() => {
+                        if (isSelected) {
+                          router.push(`/service/${t.serviceId}`);
+                          return;
+                        }
+                        focusTalent(t.serviceId, t.latitude, t.longitude);
+                      }}
+                    />
+                  </View>
+                );
+              })
             )}
           </ScrollView>
         </Animated.View>
-      </GestureDetector>
+      </Animated.View>
     </View>
   );
 }

@@ -65,34 +65,39 @@ export default function SettingsScreen() {
             key={row.label}
             onPress={row.onPress}
             style={({ pressed }) => ({
-              flexDirection: 'row',
-              alignItems: 'center',
-              backgroundColor: colors.surfaceCard,
-              borderRadius: 20,
-              padding: 16,
-              marginBottom: 10,
-              borderWidth: 1,
-              borderColor: colors.border,
               opacity: pressed ? 0.9 : 1,
             })}
           >
             <View
               style={{
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                backgroundColor: colors.surfaceStrong,
+                flexDirection: 'row',
                 alignItems: 'center',
-                justifyContent: 'center',
-                marginRight: 12,
+                backgroundColor: colors.surfaceCard,
+                borderRadius: 20,
+                padding: 16,
+                marginBottom: 10,
+                borderWidth: 0.1,
+                borderColor: colors.border,
               }}
             >
-              <row.icon size={20} color={colors.primary} />
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: colors.surfaceStrong,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: 12,
+                }}
+              >
+                <row.icon size={20} color={colors.primary} />
+              </View>
+              <Text style={{ flex: 1, fontSize: 15, fontWeight: '500', color: colors.ink }}>
+                {row.label}
+              </Text>
+              <CaretRight size={18} color={colors.muted} />
             </View>
-            <Text style={{ flex: 1, fontSize: 15, fontWeight: '500', color: colors.ink }}>
-              {row.label}
-            </Text>
-            <CaretRight size={18} color={colors.muted} />
           </Pressable>
         ))}
 
@@ -110,31 +115,31 @@ export default function SettingsScreen() {
         </Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
           {SUPPORTED_LANGUAGES.map((lang) => (
-            <Pressable
-              key={lang.code}
-              onPress={() => setLanguage(lang.code)}
-              style={{
-                paddingHorizontal: 14,
-                paddingVertical: 10,
-                borderRadius: 9999,
-                backgroundColor: language === lang.code ? colors.primary : colors.surfaceCard,
-                borderWidth: 1,
-                borderColor: language === lang.code ? colors.primary : colors.border,
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 6,
-              }}
-            >
-              <Globe size={14} color={language === lang.code ? colors.onPrimary : colors.ink} />
-              <Text
+            <Pressable key={lang.code} onPress={() => setLanguage(lang.code)}>
+              <View
                 style={{
-                  color: language === lang.code ? colors.onPrimary : colors.ink,
-                  fontWeight: '600',
-                  fontSize: 13,
+                  paddingHorizontal: 14,
+                  paddingVertical: 10,
+                  borderRadius: 9999,
+                  backgroundColor: language === lang.code ? colors.primary : colors.surfaceCard,
+                  borderWidth: 0.1,
+                  borderColor: language === lang.code ? colors.primary : colors.border,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 6,
                 }}
               >
-                {lang.nativeLabel}
-              </Text>
+                <Globe size={14} color={language === lang.code ? colors.onPrimary : colors.ink} />
+                <Text
+                  style={{
+                    color: language === lang.code ? colors.onPrimary : colors.ink,
+                    fontWeight: '600',
+                    fontSize: 13,
+                  }}
+                >
+                  {lang.nativeLabel}
+                </Text>
+              </View>
             </Pressable>
           ))}
         </View>
@@ -151,19 +156,22 @@ export default function SettingsScreen() {
                 },
               ]);
             }}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              padding: 16,
-              borderRadius: 20,
-              borderWidth: 1,
-              borderColor: colors.error,
-            }}
           >
-            <SignOut size={18} color={colors.error} />
-            <Text style={{ color: colors.error, fontWeight: '600' }}>{t('auth.logout')}</Text>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                padding: 16,
+                borderRadius: 20,
+                borderWidth: 0.1,
+                borderColor: colors.error,
+              }}
+            >
+              <SignOut size={18} color={colors.error} />
+              <Text style={{ color: colors.error, fontWeight: '600' }}>{t('auth.logout')}</Text>
+            </View>
           </Pressable>
         ) : null}
       </View>

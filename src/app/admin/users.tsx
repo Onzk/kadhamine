@@ -60,7 +60,7 @@ export default function AdminUsersScreen() {
                 borderRadius: 20,
                 padding: 16,
                 marginBottom: 10,
-                borderWidth: 1,
+                borderWidth: 0.1,
                 borderColor: colors.border,
               }}
             >

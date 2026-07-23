@@ -1,4 +1,5 @@
 import { v } from 'convex/values';
+import { getAuthUserId } from '@convex-dev/auth/server';
 import {
   internalAction,
   internalQuery,
@@ -6,12 +7,12 @@ import {
   query,
 } from './_generated/server';
 import { internal } from './_generated/api';
-import { requireAuth, now } from './lib';
 
 export const list = query({
   args: { unreadOnly: v.optional(v.boolean()) },
   handler: async (ctx, args) => {
-    const { userId } = await requireAuth(ctx);
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
     let notifications = await ctx.db
       .query('notifications')
       .withIndex('by_user', (q) => q.eq('userId', userId))
@@ -29,7 +30,8 @@ export const list = query({
 export const markRead = mutation({
   args: { notificationId: v.id('notifications') },
   handler: async (ctx, args) => {
-    const { userId } = await requireAuth(ctx);
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return;
     const notification = await ctx.db.get(args.notificationId);
     if (!notification || notification.userId !== userId) return;
     await ctx.db.patch(args.notificationId, { isRead: true });
@@ -39,7 +41,8 @@ export const markRead = mutation({
 export const markAllRead = mutation({
   args: {},
   handler: async (ctx) => {
-    const { userId } = await requireAuth(ctx);
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return;
     const notifications = await ctx.db
       .query('notifications')
       .withIndex('by_user_read', (q) =>
@@ -56,7 +59,8 @@ export const markAllRead = mutation({
 export const unreadCount = query({
   args: {},
   handler: async (ctx) => {
-    const { userId } = await requireAuth(ctx);
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return 0;
     const unread = await ctx.db
       .query('notifications')
       .withIndex('by_user_read', (q) =>

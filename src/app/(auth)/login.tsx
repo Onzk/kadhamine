@@ -7,6 +7,7 @@ import {
   ScrollView,
   Pressable,
   Alert,
+  StyleSheet,
 } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -19,16 +20,16 @@ import {
   AuthPrimaryButton,
   AuthGhostButton,
   AuthDivider,
-  AuthLink,
   SocialAuthButton,
   GoogleIcon,
   AppleIcon,
   isValidEmail,
 } from '@/components/auth/AuthField';
 import { AuthHeader, AuthToggleRow } from '@/components/auth/AuthExtras';
+import { ForgotPasswordSheet } from '@/components/auth/ForgotPasswordSheet';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { Radius, Spacing } from '@/theme/tokens';
-import { textStyle } from '@/theme/typography';
+import { fontFamily, textStyle } from '@/theme/typography';
 
 const REMEMBER_EMAIL_KEY = 'talenttchad_remember_email';
 
@@ -45,6 +46,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [emailTouched, setEmailTouched] = useState(false);
+  const [forgotPasswordVisible, setForgotPasswordVisible] = useState(false);
 
   useEffect(() => {
     AsyncStorage.getItem(REMEMBER_EMAIL_KEY).then((stored) => {
@@ -99,15 +101,10 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={{ flex: 1, backgroundColor: colors.canvas }}
+      style={[styles.root, { backgroundColor: colors.canvas }]}
     >
       <ScrollView
-        contentContainerStyle={{
-          flexGrow: 1,
-          paddingHorizontal: Spacing.six,
-          paddingTop: Spacing.four,
-          paddingBottom: Spacing.ten,
-        }}
+        contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -117,10 +114,7 @@ export default function LoginScreen() {
           onBack={() => (router.canGoBack() ? router.back() : handleGuest())}
         />
 
-        <View style={{ height: Spacing.eight }} />
-
-        {/* Social */}
-        <View style={{ flexDirection: 'row', gap: Spacing.three }}>
+        <View style={styles.socialRow}>
           <SocialAuthButton label="Google" icon={<GoogleIcon />} onPress={() => handleSocial('Google')} />
           <SocialAuthButton label="Apple" icon={<AppleIcon />} onPress={() => handleSocial('Apple')} />
         </View>
@@ -129,17 +123,14 @@ export default function LoginScreen() {
 
         {error ? (
           <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: Spacing.two,
-              backgroundColor: colors.error + '12',
-              borderRadius: Radius.lg,
-              padding: Spacing.three,
-              marginBottom: Spacing.four,
-              borderWidth: 1,
-              borderColor: colors.error + '30',
-            }}
+            accessibilityRole="alert"
+            style={[
+              styles.errorBanner,
+              {
+                backgroundColor: colors.error + '12',
+                borderColor: colors.error + '30',
+              },
+            ]}
           >
             <WarningCircle size={18} color={colors.error} weight="fill" />
             <Text style={[textStyle('caption'), { color: colors.error, flex: 1 }]}>{error}</Text>
@@ -147,6 +138,7 @@ export default function LoginScreen() {
         ) : null}
 
         <AuthField
+          variant="light"
           label={t('auth.email')}
           value={email}
           onChangeText={setEmail}
@@ -156,11 +148,13 @@ export default function LoginScreen() {
           autoComplete="email"
           textContentType="emailAddress"
           placeholder="vous@exemple.com"
-          leftIcon={<Envelope size={20} color={colors.muted} />}
+          leftIcon={<Envelope size={20} />}
           error={emailError ? 'Adresse email invalide.' : undefined}
+          accessibilityLabel={t('auth.email')}
         />
 
         <AuthField
+          variant="light"
           label={t('auth.password')}
           value={password}
           onChangeText={setPassword}
@@ -170,9 +164,10 @@ export default function LoginScreen() {
           autoComplete="password"
           textContentType="password"
           placeholder="••••••••"
-          leftIcon={<Lock size={20} color={colors.muted} />}
+          leftIcon={<Lock size={20} />}
           onSubmitEditing={handleLogin}
           returnKeyType="go"
+          accessibilityLabel={t('auth.password')}
         />
 
         <AuthToggleRow
@@ -180,44 +175,121 @@ export default function LoginScreen() {
           onChange={setRememberMe}
           label={t('auth.rememberMe')}
           right={
-            <AuthLink
-              title={t('auth.forgotPassword')}
-              onPress={() => Alert.alert('Mot de passe oublié', t('auth.forgotPasswordSoon'))}
-            />
+            <Pressable
+              onPress={() => setForgotPasswordVisible(true)}
+              accessibilityRole="link"
+              accessibilityLabel={t('auth.forgotPassword')}
+              hitSlop={8}
+              style={({ pressed }) => [{ minHeight: 48 }, { opacity: pressed ? 0.75 : 1 }]}
+            >
+              <View style={styles.forgotLink}>
+                <Text
+                  style={[
+                    textStyle('caption'),
+                    { color: colors.link, fontFamily: fontFamily('body', 'medium') },
+                  ]}
+                >
+                  {t('auth.forgotPassword')}
+                </Text>
+              </View>
+            </Pressable>
           }
         />
 
-        <AuthPrimaryButton
-          title={t('auth.signIn')}
-          onPress={handleLogin}
-          loading={loading}
-          disabled={!canSubmit}
-          icon={<ArrowRight size={18} color={colors.onPrimary} weight="bold" />}
-        />
+        <View style={styles.actions}>
+          <AuthPrimaryButton
+            tone="ink"
+            title={t('auth.signIn')}
+            onPress={handleLogin}
+            loading={loading}
+            disabled={!canSubmit}
+            icon={<ArrowRight size={18} weight="bold" />}
+          />
 
-        <View style={{ marginTop: Spacing.two }}>
           <AuthGhostButton title={t('auth.continueWithoutAccount')} onPress={handleGuest} />
         </View>
 
-        <View style={{ flex: 1 }} />
-
-        <View
-          style={{
-            flexDirection: 'row',
-            justifyContent: 'center',
-            marginTop: Spacing.eight,
-            gap: Spacing.one,
-            flexWrap: 'wrap',
-          }}
-        >
-          <Text style={[textStyle('body'), { color: colors.muted }]}>{t('auth.noAccount')}</Text>
+        <View style={styles.footer}>
+          <Text style={[textStyle('body'), { color: colors.ink }]}>{t('auth.noAccount')}</Text>
           <Link href="/(auth)/register" asChild>
-            <Pressable>
-              <Text style={[textStyle('button'), { color: colors.orbit }]}>{t('auth.signUp')}</Text>
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel={t('auth.signUp')}
+              hitSlop={8}
+              style={({ pressed }) => [{ minHeight: 44 }, { opacity: pressed ? 0.75 : 1 }]}
+            >
+              <View style={styles.footerLink}>
+                <Text
+                  style={[
+                    textStyle('button'),
+                    { color: colors.orbit, fontFamily: fontFamily('body', 'medium') },
+                  ]}
+                >
+                  {t('auth.signUp')}
+                </Text>
+              </View>
             </Pressable>
           </Link>
         </View>
       </ScrollView>
+
+      <ForgotPasswordSheet
+        visible={forgotPasswordVisible}
+        onClose={() => setForgotPasswordVisible(false)}
+        initialEmail={email}
+      />
     </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    alignItems: 'stretch',
+    paddingHorizontal: Spacing.six,
+    paddingTop: Spacing.four,
+    paddingBottom: Spacing.ten,
+  },
+  socialRow: {
+    flexDirection: 'row',
+    alignSelf: 'stretch',
+    width: '100%',
+    alignItems: 'stretch',
+    gap: Spacing.three,
+    marginTop: Spacing.two,
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    borderRadius: Radius.lg,
+    padding: Spacing.three,
+    marginBottom: Spacing.four,
+    borderWidth: 0.1,
+  },
+  forgotLink: {
+    minHeight: 48,
+    justifyContent: 'center',
+    paddingVertical: Spacing.one,
+  },
+  actions: {
+    gap: Spacing.three,
+    marginTop: Spacing.one,
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: Spacing.eight,
+    paddingTop: Spacing.four,
+    gap: Spacing.one,
+    flexWrap: 'wrap',
+  },
+  footerLink: {
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+});

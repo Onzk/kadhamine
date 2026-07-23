@@ -131,7 +131,7 @@ export default function ProviderServicesScreen() {
               borderRadius: Radius.xl,
               padding: 16,
               marginBottom: 16,
-              borderWidth: 1,
+              borderWidth: 0.1,
               borderColor: colors.border,
             }}
           >
@@ -177,6 +177,9 @@ export default function ProviderServicesScreen() {
             icon={Wrench}
             title="Aucun service"
             description="Créez votre premier service pour commencer à recevoir des commandes."
+            actionLabel={t('services.new')}
+            onAction={openCreate}
+            actionVariant="primary"
           />
         ) : (
           services.map((item) => (
@@ -187,7 +190,7 @@ export default function ProviderServicesScreen() {
                 borderRadius: Radius.xl,
                 padding: 16,
                 marginBottom: 10,
-                borderWidth: 1,
+                borderWidth: 0.1,
                 borderColor: colors.border,
               }}
             >

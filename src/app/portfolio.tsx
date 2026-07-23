@@ -108,7 +108,7 @@ export default function PortfolioScreen() {
             borderRadius: 20,
             padding: 16,
             marginBottom: 20,
-            borderWidth: 1,
+            borderWidth: 0.1,
             borderColor: colors.border,
           }}
         >
@@ -147,7 +147,7 @@ export default function PortfolioScreen() {
               borderRadius: 20,
               marginBottom: 12,
               overflow: 'hidden',
-              borderWidth: 1,
+              borderWidth: 0.1,
               borderColor: colors.border,
             }}
           >

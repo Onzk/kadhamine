@@ -3,14 +3,18 @@ import { Platform } from 'react-native';
 import * as NavigationBar from 'expo-navigation-bar';
 import * as SystemUI from 'expo-system-ui';
 
+import { LightTheme } from '@/theme/tokens';
+
+/** Paint the native root as soon as the JS bundle loads (avoids a white/black flash). */
+void SystemUI.setBackgroundColorAsync(LightTheme.canvas);
+
 /**
- * Synchronise la couleur du root view + le contraste des boutons de la barre
- * de navigation système (Android).
+ * Keeps the native root background + Android nav button contrast in sync with
+ * the active theme canvas.
  *
- * En edge-to-edge (défaut SDK 54), la barre de navigation est transparente :
- * le fond racine (`SystemUI`) transparaît derrière, donc `setPositionAsync` et
- * `setBackgroundColorAsync` (non supportés en edge-to-edge) sont inutiles.
- * On garde uniquement le style des boutons pour le contraste.
+ * With edge-to-edge (SDK 54), the system nav bar is transparent when
+ * `enforceContrast` is false. The color seen under the nav buttons comes from
+ * `SystemUI.setBackgroundColorAsync` + React root views painted with canvas.
  */
 export function useSystemChrome(canvas: string, isDark: boolean) {
   useEffect(() => {
@@ -18,12 +22,14 @@ export function useSystemChrome(canvas: string, isDark: boolean) {
 
     if (Platform.OS !== 'android') return;
 
-    void (async () => {
-      try {
-        await NavigationBar.setButtonStyleAsync(isDark ? 'light' : 'dark');
-      } catch {
-        // Ignorer si non supporté (Expo Go, navigation gestuelle, etc.)
-      }
-    })();
+    try {
+      // Edge-to-edge (SDK 54+): `dark` = dark bar + light buttons; `light` = light bar + dark buttons.
+      NavigationBar.setStyle(isDark ? 'dark' : 'light');
+    } catch {
+      // Legacy: button style only — `light` buttons on dark bg, `dark` buttons on light bg.
+      void NavigationBar.setButtonStyleAsync(isDark ? 'light' : 'dark').catch(() => {
+        // Expo Go / gesture nav / unsupported devices
+      });
+    }
   }, [canvas, isDark]);
 }

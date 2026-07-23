@@ -1,6 +1,7 @@
 import { v } from 'convex/values';
 import { mutation, query } from './_generated/server';
 import { getAuthUserId } from '@convex-dev/auth/server';
+import { coordsForCity } from './cities';
 import { requireAuth, now } from './lib';
 
 export const current = query({
@@ -47,8 +48,7 @@ export const registerProfile = mutation({
       updatedAt: timestamp,
     });
 
-    const NDJAMENA_LAT = 12.1348;
-    const NDJAMENA_LNG = 15.0557;
+    const { lat, lng } = coordsForCity(args.city);
 
     const profileId = await ctx.db.insert('profiles', {
       userId,
@@ -57,8 +57,8 @@ export const registerProfile = mutation({
       city: args.city,
       region: args.region,
       phone: args.phone,
-      latitude: NDJAMENA_LAT,
-      longitude: NDJAMENA_LNG,
+      latitude: lat,
+      longitude: lng,
       skills: [],
       availability: 'available',
       isVerified: false,

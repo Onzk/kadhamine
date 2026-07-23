@@ -12,50 +12,63 @@ interface FilterChipProps {
   onPress?: () => void;
   /** py-2.5 / px-3 — style filtre Recherche. */
   compact?: boolean;
+  /** Hauteur fixe (ex. 44 pour aligner avec SearchBar). */
+  height?: number;
 }
 
 /**
  * Chip filtre/catégorie — pill.
  * compact: padding Tailwind-like py-2.5 (10) / px-3 (12).
  */
-export function FilterChip({ label, icon, selected, onPress, compact = false }: FilterChipProps) {
+/** White on brand blue — `onPrimary` is dark in dark theme (for light primary buttons). */
+const ON_ORBIT = '#FFFFFF';
+
+export function FilterChip({
+  label,
+  icon,
+  selected,
+  onPress,
+  compact = false,
+  height,
+}: FilterChipProps) {
   const { colors } = useAppTheme();
+  const labelColor = selected ? ON_ORBIT : colors.ink;
 
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => ({
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        paddingHorizontal: compact ? Spacing.three : Spacing.four,
-        paddingVertical: compact ? Spacing.twoHalf : Spacing.two,
-        borderRadius: Radius.pill,
-        backgroundColor: selected ? colors.orbit : colors.surfaceCard,
-        borderWidth: 1,
-        borderColor: selected ? colors.orbit : colors.border,
-        opacity: pressed ? 0.88 : 1,
-      })}
-    >
-      {icon ? (
-        <CategoryIcon
-          icon={icon}
-          size={14}
-          color={selected ? colors.onPrimary : colors.ink}
-          weight="bold"
-        />
-      ) : null}
-      <Text
-        style={[
-          textStyle('caption'),
-          {
-            fontFamily: fontFamily('body', 'medium'),
-            color: selected ? colors.onPrimary : colors.ink,
-          },
-        ]}
-      >
-        {label}
-      </Text>
+    <Pressable onPress={onPress} style={height ? { height } : undefined}>
+      {({ pressed }) => (
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            height: height ?? undefined,
+            paddingHorizontal: compact ? Spacing.three : Spacing.four,
+            paddingVertical: height ? 0 : compact ? Spacing.twoHalf : Spacing.two,
+            borderRadius: Radius.pill,
+            backgroundColor: selected ? colors.orbit : colors.surfaceCard,
+            borderWidth: 0.1,
+            borderColor: selected ? colors.orbit : colors.border,
+            opacity: pressed ? 0.88 : 1,
+          }}
+        >
+          {icon ? (
+            <CategoryIcon icon={icon} size={14} color={labelColor} weight="bold" />
+          ) : null}
+          <Text
+            style={[
+              textStyle('caption'),
+              {
+                fontFamily: fontFamily('body', 'medium'),
+                color: labelColor,
+              },
+            ]}
+          >
+            {label}
+          </Text>
+        </View>
+      )}
     </Pressable>
   );
 }

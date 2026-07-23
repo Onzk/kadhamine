@@ -1,0 +1,55 @@
+---
+description: Pressable only gets size styles — all other styles go on an inner View
+globs: **/*.{tsx,jsx}
+alwaysApply: true
+---
+
+# Pressable: size only — chrome on inner View
+
+On a `Pressable`, **only size / layout-for-hit-area styles** are allowed:
+- `width`, `height`, `minWidth`, `minHeight`, `maxWidth`, `maxHeight`
+- `flex`, `flexGrow`, `flexShrink`, `flexBasis`, `alignSelf`
+- Optional pressed feedback: `opacity`
+- `hitSlop`
+
+**Everything else** must live on an **inner `View`**:
+- `backgroundColor`
+- borders (`borderWidth`, `borderColor`, `borderRadius`, …)
+- shadows / elevation
+- **padding** (all variants)
+- margin, gap, alignItems, justifyContent, overflow, etc.
+
+```tsx
+// ❌ BAD
+<Pressable
+  onPress={onPress}
+  style={{
+    backgroundColor: colors.orbit,
+    borderRadius: 12,
+    padding: 16,
+    width: '100%',
+  }}
+>
+  <Text>Action</Text>
+</Pressable>
+
+// ✅ GOOD
+<Pressable
+  onPress={onPress}
+  style={({ pressed }) => [{ width: '100%' }, { opacity: pressed ? 0.9 : 1 }]}
+>
+  <View
+    style={{
+      backgroundColor: colors.orbit,
+      borderRadius: 12,
+      padding: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+    }}
+  >
+    <Text>Action</Text>
+  </View>
+</Pressable>
+```
+
+Never put visual chrome or padding on `Pressable`. Size on Pressable; the rest on View.

@@ -5,14 +5,20 @@ import {
   TextInput,
   Pressable,
   ActivityIndicator,
+  Platform,
+  StyleSheet,
   type TextInputProps,
+  type TextStyle,
 } from 'react-native';
 import { Eye, EyeSlash, AppleLogo, GoogleLogo, Check } from 'phosphor-react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { fontFamily, textStyle } from '@/theme/typography';
-import { Radius, Shadows, Spacing } from '@/theme/tokens';
+import { BrandColors, getInvertedInputColors, Radius, Shadows, Spacing } from '@/theme/tokens';
+
+/** Light auth fields use 8–12 radius (not pill / not design-system md=20). */
+const LIGHT_FIELD_RADIUS = 12;
 
 /** Validation email simple mais robuste. */
 export function isValidEmail(value: string): boolean {
@@ -30,6 +36,8 @@ export function passwordScore(pw: string): number {
   return Math.min(4, score);
 }
 
+export type AuthFieldVariant = 'light' | 'inverted';
+
 interface AuthFieldProps extends TextInputProps {
   label: string;
   error?: string;
@@ -38,9 +46,11 @@ interface AuthFieldProps extends TextInputProps {
   showPassword?: boolean;
   onTogglePassword?: () => void;
   leftIcon?: React.ReactNode;
+  /** `light` = white/surface + thin border (login). `inverted` = black pill (legacy / SearchBar-adjacent). */
+  variant?: AuthFieldVariant;
 }
 
-/** Champ auth — label, icône, focus orange, validation, œil password. */
+/** Champ auth — label, icône, focus, validation, œil password. */
 export function AuthField({
   label,
   error,
@@ -49,23 +59,54 @@ export function AuthField({
   showPassword,
   onTogglePassword,
   leftIcon,
+  variant = 'inverted',
   style,
   onFocus,
   onBlur,
   value,
   ...props
 }: AuthFieldProps) {
-  const { colors } = useAppTheme();
+  const { colors, isDark } = useAppTheme();
   const [focused, setFocused] = useState(false);
+  const inverted = getInvertedInputColors(isDark);
+  const isLight = variant === 'light';
 
-  const borderColor = error
-    ? colors.error
-    : focused
-      ? colors.orbit
-      : colors.border;
+  const scheme = isLight
+    ? {
+        background: colors.surfaceCard,
+        foreground: colors.ink,
+        placeholder: colors.muted,
+        icon: colors.muted,
+        borderWidth: 0.1,
+        borderColor: error
+          ? colors.error
+          : focused
+            ? colors.orbit
+            : colors.borderStrong,
+        borderRadius: LIGHT_FIELD_RADIUS,
+      }
+    : {
+        background: inverted.background,
+        foreground: inverted.foreground,
+        placeholder: inverted.placeholder,
+        icon: inverted.foreground,
+        borderWidth: error ? 0.1 : 0,
+        borderColor: error ? colors.error : 'transparent',
+        borderRadius: Radius.pill,
+      };
+
+  const fieldTextStyle: TextStyle = {
+    flex: 1,
+    fontFamily: fontFamily('body'),
+    fontSize: 16,
+    lineHeight: 22.4,
+    letterSpacing: -0.08,
+    paddingVertical: Spacing.three,
+    ...(Platform.OS === 'android' ? { includeFontPadding: false, textAlignVertical: 'center' } : null),
+  };
 
   return (
-    <View style={{ marginBottom: Spacing.four }}>
+    <View style={styles.fieldWrap}>
       <Text
         style={[
           textStyle('caption'),
@@ -79,22 +120,29 @@ export function AuthField({
         {label}
       </Text>
       <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          backgroundColor: colors.surfaceCard,
-          borderWidth: focused || error ? 1.5 : 1,
-          borderColor,
-          borderRadius: Radius.lg,
-          paddingHorizontal: Spacing.four,
-          minHeight: 54,
-          gap: Spacing.two,
-        }}
+        style={[
+          styles.fieldRow,
+          {
+            backgroundColor: scheme.background,
+            borderWidth: scheme.borderWidth,
+            borderColor: scheme.borderColor,
+            borderRadius: scheme.borderRadius,
+          },
+        ]}
       >
-        {leftIcon ? <View style={{ marginRight: 2 }}>{leftIcon}</View> : null}
+        {leftIcon ? (
+          <View style={styles.leftIcon}>
+            {React.isValidElement(leftIcon)
+              ? React.cloneElement(leftIcon as React.ReactElement<{ color?: string }>, {
+                  color: scheme.icon,
+                })
+              : leftIcon}
+          </View>
+        ) : null}
         <TextInput
           value={value}
-          placeholderTextColor={colors.muted}
+          placeholderTextColor={scheme.placeholder}
+          selectionColor={isLight ? colors.orbit : scheme.foreground}
           secureTextEntry={isPassword && !showPassword}
           onFocus={(e) => {
             setFocused(true);
@@ -104,25 +152,24 @@ export function AuthField({
             setFocused(false);
             onBlur?.(e);
           }}
-          style={[
-            textStyle('body'),
-            {
-              flex: 1,
-              color: colors.ink,
-              paddingVertical: Spacing.three,
-              fontFamily: fontFamily('body'),
-            },
-            style,
-          ]}
+          style={[fieldTextStyle, { color: scheme.foreground }, style]}
           {...props}
         />
         {isPassword ? (
-          <Pressable onPress={onTogglePassword} hitSlop={10} style={{ padding: 4 }}>
-            {showPassword ? (
-              <EyeSlash size={20} color={colors.muted} />
-            ) : (
-              <Eye size={20} color={colors.muted} />
-            )}
+          <Pressable
+            onPress={onTogglePassword}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+            style={styles.eyeButton}
+          >
+            <View style={styles.eyeButtonInner}>
+              {showPassword ? (
+                <EyeSlash size={22} color={scheme.icon} weight="bold" />
+              ) : (
+                <Eye size={22} color={scheme.icon} weight="bold" />
+              )}
+            </View>
           </Pressable>
         ) : null}
       </View>
@@ -131,7 +178,7 @@ export function AuthField({
           {error}
         </Text>
       ) : hint ? (
-        <Text style={[textStyle('micro'), { color: colors.muted, marginTop: Spacing.oneHalf }]}>
+        <Text style={[textStyle('micro'), { color: colors.slate, marginTop: Spacing.oneHalf }]}>
           {hint}
         </Text>
       ) : null}
@@ -181,61 +228,124 @@ export function PasswordStrengthMeter({ password }: PasswordStrengthMeterProps) 
   );
 }
 
+export type AuthPrimaryButtonTone = 'orbit' | 'ink';
+
 interface AuthPrimaryButtonProps {
   title: string;
   onPress: () => void;
   loading?: boolean;
   disabled?: boolean;
   icon?: React.ReactNode;
+  /** `ink` = full black/dark CTA (login). `orbit` = brand blue (default). */
+  tone?: AuthPrimaryButtonTone;
 }
 
-/** CTA principal — orange corail pleine largeur. */
-export function AuthPrimaryButton({ title, onPress, loading, disabled, icon }: AuthPrimaryButtonProps) {
+/** CTA principal — pleine largeur, contraste élevé. */
+export function AuthPrimaryButton({
+  title,
+  onPress,
+  loading,
+  disabled,
+  icon,
+  tone = 'orbit',
+}: AuthPrimaryButtonProps) {
   const { colors } = useAppTheme();
+  const isDisabled = disabled || loading;
+  const isInk = tone === 'ink';
+
+  const bg = isInk
+    ? isDisabled
+      ? BrandColors.ink + '55'
+      : BrandColors.ink
+    : isDisabled
+      ? colors.orbit + '55'
+      : colors.orbit;
+  const fg = '#FFFFFF';
 
   return (
     <Pressable
       onPress={onPress}
-      disabled={disabled || loading}
+      disabled={isDisabled}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      accessibilityState={{ disabled: isDisabled, busy: !!loading }}
       style={({ pressed }) => ({
-        flexDirection: 'row',
-        gap: Spacing.two,
-        backgroundColor: colors.orbit,
-        borderRadius: Radius.pill,
+        alignSelf: 'stretch',
+        width: '100%',
         minHeight: 54,
-        paddingHorizontal: Spacing.six,
-        alignItems: 'center',
-        justifyContent: 'center',
-        opacity: disabled ? 0.45 : loading ? 0.8 : pressed ? 0.9 : 1,
-        transform: [{ scale: pressed && !disabled ? 0.99 : 1 }],
-        ...Shadows.nav,
+        opacity: pressed && !isDisabled ? 0.92 : 1,
+        transform: [{ scale: pressed && !isDisabled ? 0.99 : 1 }],
       })}
     >
-      {loading ? (
-        <ActivityIndicator color={colors.onPrimary} />
-      ) : (
-        <>
-          <Text style={[textStyle('button'), { color: colors.onPrimary }]}>{title}</Text>
-          {icon}
-        </>
-      )}
+      <View
+        style={[
+          styles.primaryButtonInner,
+          {
+            backgroundColor: bg,
+            ...Shadows.nav,
+          },
+        ]}
+      >
+        {loading ? (
+          <ActivityIndicator color={fg} />
+        ) : (
+          <>
+            <Text style={[textStyle('button'), { color: fg }]}>{title}</Text>
+            {icon
+              ? React.isValidElement(icon)
+                ? React.cloneElement(icon as React.ReactElement<{ color?: string }>, {
+                    color: fg,
+                  })
+                : icon
+              : null}
+          </>
+        )}
+      </View>
     </Pressable>
   );
 }
 
 export function AuthGhostButton({ title, onPress }: { title: string; onPress: () => void }) {
   const { colors } = useAppTheme();
+  const [pressed, setPressed] = React.useState(false);
 
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => ({
-        opacity: pressed ? 0.7 : 1,
-        alignItems: 'center',
-        paddingVertical: Spacing.three,
-      })}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      style={{
+        alignSelf: 'stretch',
+        minHeight: 48,
+        opacity: pressed ? 0.85 : 1,
+      }}
     >
-      <Text style={[textStyle('button'), { color: colors.ink }]}>{title}</Text>
+      <View
+        style={{
+          minHeight: 48,
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingVertical: Spacing.three,
+          paddingHorizontal: Spacing.four,
+          borderRadius: Radius.lg,
+          backgroundColor: pressed ? colors.surfaceStrong : 'transparent',
+        }}
+      >
+        <Text
+          style={[
+            textStyle('button'),
+            {
+              color: colors.link,
+              fontFamily: fontFamily('body', 'medium'),
+              textAlign: 'center',
+            },
+          ]}
+        >
+          {title}
+        </Text>
+      </View>
     </Pressable>
   );
 }
@@ -244,10 +354,21 @@ export function AuthLink({ title, onPress }: { title: string; onPress?: () => vo
   const { colors } = useAppTheme();
 
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}>
-      <Text style={[textStyle('caption'), { color: colors.orbit, fontFamily: fontFamily('body', 'medium') }]}>
-        {title}
-      </Text>
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="link"
+      accessibilityLabel={title}
+      hitSlop={8}
+      style={({ pressed }) => ({
+        minHeight: 44,
+        opacity: pressed ? 0.75 : 1,
+      })}
+    >
+      <View style={{ minHeight: 44, justifyContent: 'center', paddingVertical: Spacing.one }}>
+        <Text style={[textStyle('caption'), { color: colors.link, fontFamily: fontFamily('body', 'medium') }]}>
+          {title}
+        </Text>
+      </View>
     </Pressable>
   );
 }
@@ -256,17 +377,21 @@ export function AuthDivider({ label = 'ou' }: { label?: string }) {
   const { colors } = useAppTheme();
 
   return (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginVertical: Spacing.six,
-        gap: Spacing.three,
-      }}
-    >
-      <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
-      <Text style={[textStyle('caption'), { color: colors.muted }]}>{label}</Text>
-      <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
+    <View style={styles.divider}>
+      <View style={[styles.dividerLine, { backgroundColor: colors.borderStrong }]} />
+      <Text
+        style={[
+          textStyle('caption'),
+          {
+            color: colors.slate,
+            fontFamily: fontFamily('body', 'medium'),
+            paddingHorizontal: Spacing.one,
+          },
+        ]}
+      >
+        {label}
+      </Text>
+      <View style={[styles.dividerLine, { backgroundColor: colors.borderStrong }]} />
     </View>
   );
 }
@@ -283,24 +408,29 @@ export function SocialAuthButton({ label, icon, onPress }: SocialAuthButtonProps
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Continuer avec ${label}`}
       style={({ pressed }) => ({
         flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: Spacing.two,
+        flexBasis: 0,
         minHeight: 52,
-        paddingHorizontal: Spacing.three,
-        borderRadius: Radius.pill,
-        borderWidth: 1,
-        borderColor: colors.border,
-        backgroundColor: colors.surfaceCard,
         opacity: pressed ? 0.88 : 1,
-        ...Shadows.nav,
+        transform: [{ scale: pressed ? 0.98 : 1 }],
       })}
     >
-      {icon}
-      <Text style={[textStyle('button'), { color: colors.ink }]}>{label}</Text>
+      <View
+        style={[
+          styles.socialButtonInner,
+          {
+            borderColor: colors.borderStrong,
+            backgroundColor: colors.surfaceCard,
+            ...Shadows.nav,
+          },
+        ]}
+      >
+        <View style={styles.socialIcon}>{icon}</View>
+        <Text style={[textStyle('button'), { color: colors.ink }]}>{label}</Text>
+      </View>
     </Pressable>
   );
 }
@@ -357,7 +487,72 @@ export function AuthBenefit({ label }: { label: string }) {
       >
         <Check size={11} color={colors.orbit} weight="bold" />
       </View>
-      <Text style={[textStyle('micro'), { color: colors.muted }]}>{label}</Text>
+      <Text style={[textStyle('micro'), { color: colors.slate }]}>{label}</Text>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  fieldWrap: {
+    marginBottom: Spacing.four,
+  },
+  fieldRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.four,
+    minHeight: 52,
+    gap: Spacing.twoHalf,
+    overflow: 'hidden',
+  },
+  leftIcon: {
+    marginRight: 2,
+  },
+  eyeButton: {
+    minWidth: 44,
+    minHeight: 44,
+  },
+  eyeButtonInner: {
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: -Spacing.two,
+  },
+  primaryButtonInner: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+    borderRadius: Radius.lg,
+    minHeight: 54,
+    paddingHorizontal: Spacing.six,
+    paddingVertical: Spacing.three,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: Spacing.six,
+    gap: Spacing.three,
+  },
+  dividerLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth < 1 ? 1 : StyleSheet.hairlineWidth,
+    minHeight: 1,
+  },
+  socialButtonInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.two,
+    minHeight: 52,
+    paddingHorizontal: Spacing.three,
+    borderRadius: Radius.lg,
+    borderWidth: 0.1,
+  },
+  socialIcon: {
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});

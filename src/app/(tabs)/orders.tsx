@@ -82,7 +82,14 @@ export default function OrdersScreen() {
             {t('common.loading')}
           </Text>
         ) : filtered?.length === 0 ? (
-          <EmptyState icon={ClipboardText} title={t('orders.empty')} />
+          <EmptyState
+            icon={ClipboardText}
+            title={t('orders.empty')}
+            description={filter !== 'all' ? 'Aucune commande ne correspond à ce filtre.' : undefined}
+            actionLabel={filter !== 'all' ? t('common.all') : undefined}
+            onAction={filter !== 'all' ? () => setFilter('all') : undefined}
+            actionVariant="outline"
+          />
         ) : (
           filtered?.map(({ order, service, payment, hasReview }) => (
             <View

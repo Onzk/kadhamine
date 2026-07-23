@@ -2,6 +2,7 @@ import React from 'react';
 import {
   Pressable,
   Text,
+  View,
   ActivityIndicator,
   type PressableProps,
   type TextStyle,
@@ -52,22 +53,24 @@ export function Button({
         ]}
         {...props}
       >
-        {loading ? (
-          <ActivityIndicator color={colors.link} size="small" />
-        ) : (
-          <Text
-            style={[
-              textStyle('button'),
-              {
-                color: colors.link,
-                textDecorationLine: 'underline',
-                textAlign: fullWidth ? 'center' : 'left',
-              },
-            ]}
-          >
-            {title}
-          </Text>
-        )}
+        <View>
+          {loading ? (
+            <ActivityIndicator color={colors.link} size="small" />
+          ) : (
+            <Text
+              style={[
+                textStyle('button'),
+                {
+                  color: colors.link,
+                  textDecorationLine: 'underline',
+                  textAlign: fullWidth ? 'center' : 'left',
+                },
+              ]}
+            >
+              {title}
+            </Text>
+          )}
+        </View>
       </Pressable>
     );
   }
@@ -80,7 +83,7 @@ export function Button({
       bg: colors.primary,
       text: colors.onPrimary,
       border: colors.primary,
-      borderWidth: 1.5,
+      borderWidth: 0.1,
       radius: Radius.button,
       padV: 6,
       padH: 24,
@@ -89,7 +92,7 @@ export function Button({
       bg: colors.surfaceCard,
       text: colors.ink,
       border: colors.ink,
-      borderWidth: 1.5,
+      borderWidth: 0.1,
       radius: Radius.button,
       padV: 6,
       padH: 24,
@@ -98,7 +101,7 @@ export function Button({
       bg: colors.surfaceCard,
       text: colors.ink,
       border: colors.ink,
-      borderWidth: 1.5,
+      borderWidth: 0.1,
       radius: Radius.button,
       padV: 6,
       padH: 24,
@@ -141,6 +144,17 @@ export function Button({
       disabled={isDisabled}
       style={({ pressed }) => [
         {
+          minHeight: 44,
+          width: fullWidth ? '100%' : undefined,
+          opacity: isDisabled ? 0.5 : pressed ? 0.88 : 1,
+          transform: pressed && !isDisabled ? [{ scale: 0.98 }] : undefined,
+        } as ViewStyle,
+        style as ViewStyle,
+      ]}
+      {...props}
+    >
+      <View
+        style={{
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',
@@ -152,22 +166,17 @@ export function Button({
           backgroundColor: v.bg,
           borderWidth: v.borderWidth ?? 0,
           borderColor: v.border,
-          opacity: isDisabled ? 0.5 : pressed ? 0.88 : 1,
-          transform: pressed && !isDisabled ? [{ scale: 0.98 }] : undefined,
-          width: fullWidth ? '100%' : undefined,
-        } as ViewStyle,
-        style as ViewStyle,
-      ]}
-      {...props}
-    >
-      {loading ? (
-        <ActivityIndicator color={v.text} size="small" />
-      ) : (
-        <>
-          {icon}
-          <Text style={[textStyle('button'), { color: v.text } as TextStyle]}>{title}</Text>
-        </>
-      )}
+        }}
+      >
+        {loading ? (
+          <ActivityIndicator color={v.text} size="small" />
+        ) : (
+          <>
+            {icon}
+            <Text style={[textStyle('button'), { color: v.text } as TextStyle]}>{title}</Text>
+          </>
+        )}
+      </View>
     </Pressable>
   );
 }

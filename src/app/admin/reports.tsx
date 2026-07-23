@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text } from 'react-native';
 import { useQuery, useMutation } from 'convex/react';
+import { Scales } from 'phosphor-react-native';
 
 import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { Input } from '@/components/ui/Input';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { Spacing } from '@/theme/tokens';
@@ -31,9 +33,11 @@ export default function AdminReportsScreen() {
     >
       <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
         {reports?.length === 0 && (
-          <Text style={{ color: colors.muted, textAlign: 'center', marginTop: 32 }}>
-            Aucun litige ouvert
-          </Text>
+          <EmptyState
+            icon={Scales}
+            title="Aucun litige ouvert"
+            description="Tous les signalements ont été traités."
+          />
         )}
 
         {reports?.map(({ report, reporter }) => (
@@ -44,7 +48,7 @@ export default function AdminReportsScreen() {
               borderRadius: 20,
               padding: 16,
               marginBottom: 12,
-              borderWidth: 1,
+              borderWidth: 0.1,
               borderColor: colors.border,
             }}
           >

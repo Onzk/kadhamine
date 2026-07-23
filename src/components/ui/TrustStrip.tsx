@@ -15,7 +15,7 @@ interface TrustItem {
 
 const ITEMS: TrustItem[] = [
   { icon: ShieldCheck, title: 'Vérifiés', caption: 'Talents contrôlés' },
-  { icon: CreditCard, title: 'Sécurisé', caption: 'Paiement FedaPay' },
+  { icon: CreditCard, title: 'Sécurisé', caption: 'Paiement en ligne' },
   { icon: SealCheck, title: 'Fiable', caption: 'Avis officiels' },
 ];
 
@@ -30,7 +30,7 @@ export function TrustStrip() {
         flexDirection: 'row',
         borderRadius: Radius.lg,
         backgroundColor: colors.surfaceCard,
-        borderWidth: 1.5,
+        borderWidth: 0.1,
         borderColor: colors.border,
         paddingVertical: Spacing.four,
       }}
@@ -44,7 +44,7 @@ export function TrustStrip() {
               flex: 1,
               alignItems: 'center',
               paddingHorizontal: Spacing.two,
-              borderLeftWidth: index === 0 ? 0 : 1,
+              borderLeftWidth: index === 0 ? 0 : 0.1,
               borderLeftColor: colors.border,
             }}
           >
