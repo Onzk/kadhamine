@@ -1,15 +1,14 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
-  Pressable,
   KeyboardAvoidingView,
+  Keyboard,
   Platform,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
-import { CaretLeft } from 'phosphor-react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
   useSharedValue,
   useAnimatedScrollHandler,
@@ -20,7 +19,7 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 
-import { AuthHeader } from '@/components/auth/AuthExtras';
+import { AuthBackButton, AuthHeader } from '@/components/auth/AuthExtras';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { textStyle } from '@/theme/typography';
 import { Spacing } from '@/theme/tokens';
@@ -77,32 +76,7 @@ function AuthStickyBar({ title, onBack, progress, active }: AuthStickyBarProps) 
         style,
       ]}
     >
-      {onBack ? (
-        <Pressable
-          onPress={onBack}
-          hitSlop={8}
-          style={({ pressed }) => ({
-            width: 40,
-            height: 40,
-            opacity: pressed ? 0.8 : 1,
-          })}
-        >
-          <View
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: colors.surfaceCard,
-              borderWidth: 0.1,
-              borderColor: colors.border,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <CaretLeft size={18} color={colors.ink} weight="bold" />
-          </View>
-        </Pressable>
-      ) : null}
+      {onBack ? <AuthBackButton onPress={onBack} /> : null}
       <Text
         numberOfLines={1}
         style={[
@@ -142,9 +116,24 @@ export function AuthScaffold({
   contentContainerStyle,
 }: AuthScaffoldProps) {
   const { colors } = useAppTheme();
-  const insets = useSafeAreaInsets();
   const scrollY = useSharedValue(0);
   const [stickyActive, setStickyActive] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const onShow = Keyboard.addListener(showEvent, (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+    const onHide = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+    return () => {
+      onShow.remove();
+      onHide.remove();
+    };
+  }, []);
 
   const onScroll = useAnimatedScrollHandler({
     onScroll: (e) => {
@@ -153,46 +142,49 @@ export function AuthScaffold({
     },
   });
 
-  const bottomPad = Math.max(insets.bottom, Spacing.three) + BOTTOM_EXTRA + Spacing.six;
+  const bottomPad = BOTTOM_EXTRA + Spacing.six + keyboardHeight;
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={{ flex: 1, backgroundColor: colors.canvas }}
-    >
-      <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-        <AuthStickyBar
-          title={barTitle}
-          onBack={onBack}
-          progress={scrollY}
-          active={stickyActive}
-        />
-
-        <Animated.ScrollView
-          onScroll={onScroll}
-          scrollEventThrottle={16}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={[
-            {
-              flexGrow: 1,
-              alignItems: 'stretch',
-              paddingHorizontal: Spacing.six,
-              paddingTop: Spacing.four,
-              paddingBottom: bottomPad,
-            },
-            contentContainerStyle,
-          ]}
-        >
-          <AuthHeader
-            title={title}
-            subtitle={subtitle}
+    <SafeAreaView edges={['bottom']} style={{ flex: 1, backgroundColor: colors.canvas }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1, backgroundColor: colors.canvas }}
+      >
+        <View style={{ flex: 1, backgroundColor: colors.canvas }}>
+          <AuthStickyBar
+            title={barTitle}
             onBack={onBack}
-            showLogo={showLogo}
+            progress={scrollY}
+            active={stickyActive}
           />
-          {children}
-        </Animated.ScrollView>
-      </View>
-    </KeyboardAvoidingView>
+
+          <Animated.ScrollView
+            onScroll={onScroll}
+            scrollEventThrottle={16}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="none"
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={[
+              {
+                flexGrow: 1,
+                alignItems: 'stretch',
+                paddingHorizontal: Spacing.six,
+                paddingTop: Spacing.four,
+                paddingBottom: bottomPad,
+              },
+              contentContainerStyle,
+            ]}
+          >
+            <AuthHeader
+              title={title}
+              subtitle={subtitle}
+              onBack={onBack}
+              showLogo={showLogo}
+            />
+            {children}
+          </Animated.ScrollView>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }

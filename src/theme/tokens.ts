@@ -55,7 +55,7 @@ export const LightTheme = {
   slate: '#555555',
   dust: '#D1CDC7',
   primary: BrandColors.ink,
-  primaryActive: '#262627',
+  primaryActive: '#141413',
   accent: BrandColors.crimson,
   accentSoft: BrandColors.gold,
   signal: BrandColors.signal,
@@ -84,14 +84,14 @@ export const LightTheme = {
 export const DarkTheme = {
   canvas: '#141413',
   canvasSoft: '#1C1C1B',
-  canvasGreenWash: '#262627',
-  canvasBlueWash: '#262627',
+  canvasGreenWash: '#141413',
+  canvasBlueWash: '#141413',
   surface: '#1C1C1B',
-  surfaceCard: '#262627',
+  surfaceCard: '#141413',
   surfaceStrong: '#333332',
   surfaceDark: '#0A0A09',
   surfaceNavy: '#0A0A09',
-  iconWash: '#333332',
+  iconWash: '#262627',
   /** Stronger than surfaceStrong so cards read clearly on canvas/surfaceCard */
   border: '#555552',
   /** Card outline — ~3.4:1 on surfaceCard/canvas so it's clearly visible */

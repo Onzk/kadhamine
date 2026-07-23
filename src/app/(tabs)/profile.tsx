@@ -24,6 +24,7 @@ import {
   SquaresFour,
   Camera,
   Image as ImageIcon,
+  UserFocus,
 } from 'phosphor-react-native';
 
 import {
@@ -339,7 +340,7 @@ export default function ProfileScreen() {
         >
           <View
             style={{
-              backgroundColor: colors.surfaceCard,
+              backgroundColor: colors.canvas,
               borderTopLeftRadius: Radius.xl,
               borderTopRightRadius: Radius.xl,
               paddingHorizontal: PAGE_H_PAD,
@@ -441,6 +442,16 @@ export default function ProfileScreen() {
                 description={t('profile.portfolioDesc')}
                 onPress={() => router.push('/portfolio')}
               />
+              {profile?._id ? (
+                <SettingsRow
+                  icon={UserFocus}
+                  title={t('profile.publicProfile')}
+                  description={t('profile.publicProfileDesc')}
+                  onPress={() =>
+                    router.push({ pathname: '/provider/[id]', params: { id: profile._id } })
+                  }
+                />
+              ) : null}
             </>
           ) : null}
           <SettingsRow

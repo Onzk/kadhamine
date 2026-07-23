@@ -7,6 +7,8 @@ import {
   ActivityIndicator,
   Platform,
   StyleSheet,
+  type StyleProp,
+  type ViewStyle,
   type TextInputProps,
   type TextStyle,
 } from 'react-native';
@@ -228,7 +230,7 @@ export function PasswordStrengthMeter({ password }: PasswordStrengthMeterProps) 
   );
 }
 
-export type AuthPrimaryButtonTone = 'orbit' | 'ink';
+export type AuthPrimaryButtonTone = 'orbit' | 'ink' | 'outline' | 'danger';
 
 interface AuthPrimaryButtonProps {
   title: string;
@@ -238,6 +240,14 @@ interface AuthPrimaryButtonProps {
   icon?: React.ReactNode;
   /** `ink` = full black/dark CTA (login). `orbit` = brand blue (default). */
   tone?: AuthPrimaryButtonTone;
+  /** Désactive ombre / élévation (bottom sheets). */
+  flat?: boolean;
+  /** Remplit un slot flex (rangée 50/50). */
+  fill?: boolean;
+  /** Override du fond (ex. CTA inversé en mode nuit). */
+  backgroundColor?: string;
+  /** Override du libellé / icône. */
+  textColor?: string;
 }
 
 /** CTA principal — pleine largeur, contraste élevé. */
@@ -248,19 +258,41 @@ export function AuthPrimaryButton({
   disabled,
   icon,
   tone = 'orbit',
+  flat = false,
+  fill = false,
+  backgroundColor,
+  textColor,
 }: AuthPrimaryButtonProps) {
   const { colors } = useAppTheme();
   const isDisabled = disabled || loading;
   const isInk = tone === 'ink';
+  const isOutline = tone === 'outline';
+  const isDanger = tone === 'danger';
 
-  const bg = isInk
-    ? isDisabled
-      ? BrandColors.ink + '55'
-      : BrandColors.ink
-    : isDisabled
-      ? colors.orbit + '55'
-      : colors.orbit;
-  const fg = '#FFFFFF';
+  const bg = isDisabled
+    ? colors.iconWash
+    : (backgroundColor ??
+      (isOutline
+        ? colors.iconWash
+        : isDanger
+          ? colors.error
+          : isInk
+            ? BrandColors.ink
+            : colors.orbit));
+  const fg = isDisabled
+    ? colors.muted
+    : (textColor ??
+      (isOutline
+        ? colors.ink
+        : isDanger
+          ? colors.onAccent
+          : isInk
+            ? colors.onPrimary
+            : colors.onOrbit));
+  const borderColor =
+    isDisabled || isOutline ? colors.borderStrong : isDanger ? colors.error : 'transparent';
+  const borderWidth = isDisabled || isOutline ? 0.1 : isDanger ? 0.1 : 0;
+  const showShadow = !flat && !isDisabled && !isOutline;
 
   return (
     <Pressable
@@ -270,8 +302,10 @@ export function AuthPrimaryButton({
       accessibilityLabel={title}
       accessibilityState={{ disabled: isDisabled, busy: !!loading }}
       style={({ pressed }) => ({
+        ...(fill ? { flex: 1 } : null),
         alignSelf: 'stretch',
         width: '100%',
+        minWidth: 0,
         minHeight: 54,
         opacity: pressed && !isDisabled ? 0.92 : 1,
         transform: [{ scale: pressed && !isDisabled ? 0.99 : 1 }],
@@ -282,7 +316,9 @@ export function AuthPrimaryButton({
           styles.primaryButtonInner,
           {
             backgroundColor: bg,
-            ...Shadows.nav,
+            borderWidth,
+            borderColor,
+            ...(showShadow ? Shadows.nav : null),
           },
         ]}
       >
@@ -290,7 +326,17 @@ export function AuthPrimaryButton({
           <ActivityIndicator color={fg} />
         ) : (
           <>
-            <Text style={[textStyle('button'), { color: fg }]}>{title}</Text>
+            <Text
+              style={[
+                textStyle('button'),
+                {
+                  color: fg,
+                  fontFamily: fontFamily('body', 'medium'),
+                },
+              ]}
+            >
+              {title}
+            </Text>
             {icon
               ? React.isValidElement(icon)
                 ? React.cloneElement(icon as React.ReactElement<{ color?: string }>, {
@@ -402,40 +448,61 @@ interface SocialAuthButtonProps {
   onPress: () => void;
 }
 
+/** Rangée Google + Apple — 50 / 50 de la largeur disponible. */
+export function AuthSocialRow({
+  children,
+  style,
+}: {
+  children: React.ReactNode;
+  style?: StyleProp<ViewStyle>;
+}) {
+  return <View style={[styles.socialRow, style]}>{children}</View>;
+}
+
 export function SocialAuthButton({ label, icon, onPress }: SocialAuthButtonProps) {
   const { colors } = useAppTheme();
 
   return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`Continuer avec ${label}`}
-      style={({ pressed }) => ({
-        flex: 1,
-        flexBasis: 0,
-        minWidth: 0,
-        minHeight: 52,
-        opacity: pressed ? 0.88 : 1,
-        transform: [{ scale: pressed ? 0.98 : 1 }],
-      })}
-    >
-      <View
-        style={[
-          styles.socialButtonInner,
-          {
-            flex: 1,
-            borderColor: colors.borderStrong,
-            backgroundColor: colors.surfaceCard,
-            ...Shadows.nav,
-          },
-        ]}
+    <View style={styles.socialSlot}>
+      <Pressable
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={`Continuer avec ${label}`}
+        style={({ pressed }) => ({
+          flex: 1,
+          alignSelf: 'stretch',
+          width: '100%',
+          minHeight: 52,
+          opacity: pressed ? 0.88 : 1,
+          transform: [{ scale: pressed ? 0.98 : 1 }],
+        })}
       >
-        <View style={styles.socialIcon}>{icon}</View>
-        <Text style={[textStyle('button'), { color: colors.ink }]} numberOfLines={1}>
-          {label}
-        </Text>
-      </View>
-    </Pressable>
+        <View
+          style={[
+            styles.socialButtonInner,
+            {
+              borderColor: colors.borderStrong,
+              backgroundColor: colors.surfaceCard,
+            },
+          ]}
+        >
+          <View style={styles.socialIcon}>{icon}</View>
+          <Text
+            style={[
+              textStyle('button'),
+              {
+                color: colors.ink,
+                fontFamily: fontFamily('body', 'medium'),
+                flexShrink: 1,
+              },
+            ]}
+            numberOfLines={1}
+          >
+            {label}
+          </Text>
+        </View>
+      </Pressable>
+    </View>
   );
 }
 
@@ -523,7 +590,10 @@ const styles = StyleSheet.create({
     marginRight: -Spacing.two,
   },
   primaryButtonInner: {
+    flex: 1,
     flexDirection: 'row',
+    alignSelf: 'stretch',
+    width: '100%',
     gap: Spacing.two,
     borderRadius: Radius.lg,
     minHeight: 54,
@@ -543,13 +613,27 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth < 1 ? 1 : StyleSheet.hairlineWidth,
     minHeight: 1,
   },
+  socialRow: {
+    flexDirection: 'row',
+    alignSelf: 'stretch',
+    width: '100%',
+    alignItems: 'stretch',
+    gap: Spacing.three,
+  },
+  socialSlot: {
+    flex: 1,
+    flexBasis: 0,
+    minWidth: 0,
+  },
   socialButtonInner: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.two,
     minHeight: 52,
-    paddingHorizontal: Spacing.three,
+    width: '100%',
+    paddingHorizontal: Spacing.two,
     borderRadius: Radius.lg,
     borderWidth: 0.1,
   },

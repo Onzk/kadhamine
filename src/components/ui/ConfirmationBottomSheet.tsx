@@ -1,8 +1,9 @@
 import React from 'react';
 import { View } from 'react-native';
 
+import { AuthPrimaryButton } from '@/components/auth/AuthField';
 import { AppBottomSheet } from '@/components/ui/AppBottomSheet';
-import { Button } from '@/components/ui/Button';
+import { SheetActionRow, SheetActionSlot, SheetActionsFooter } from '@/components/ui/SheetActions';
 import { Text } from '@/components/ui/ThemedText';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { Spacing } from '@/theme/tokens';
@@ -43,31 +44,42 @@ export function ConfirmationBottomSheet({
       onClose={onClose}
       title={title}
       scrollable={false}
+      showHandle={false}
       showClose={false}
       maxHeightRatio={0.5}
     >
-      {message ? (
-        <Text variant="body" style={{ color: colors.muted, marginBottom: Spacing.five }}>
-          {message}
-        </Text>
-      ) : (
-        <View style={{ height: Spacing.two }} />
-      )}
-      <View style={{ flexDirection: 'row', gap: Spacing.two }}>
-        <Button
-          title={cancelLabel}
-          variant="outline"
-          onPress={onClose}
-          disabled={loading}
-          style={{ flex: 1 }}
-        />
-        <Button
-          title={confirmLabel}
-          variant={destructive ? 'danger' : 'primary'}
-          onPress={handleConfirm}
-          loading={loading}
-          style={{ flex: 1 }}
-        />
+      <View style={{ alignSelf: 'stretch', width: '100%', paddingBottom: Spacing.four }}>
+        {message ? (
+          <Text variant="body" style={{ color: colors.muted, marginBottom: Spacing.five }}>
+            {message}
+          </Text>
+        ) : (
+          <View style={{ height: Spacing.two }} />
+        )}
+        <SheetActionsFooter>
+          <SheetActionRow>
+            <SheetActionSlot>
+              <AuthPrimaryButton
+                title={cancelLabel}
+                onPress={onClose}
+                disabled={loading}
+                tone="outline"
+                flat
+                fill
+              />
+            </SheetActionSlot>
+            <SheetActionSlot>
+              <AuthPrimaryButton
+                title={confirmLabel}
+                onPress={handleConfirm}
+                loading={loading}
+                tone={destructive ? 'danger' : 'ink'}
+                flat
+                fill
+              />
+            </SheetActionSlot>
+          </SheetActionRow>
+        </SheetActionsFooter>
       </View>
     </AppBottomSheet>
   );

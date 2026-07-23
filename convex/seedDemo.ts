@@ -5,7 +5,11 @@
  *   npx convex run seedDemo:seedAll
  *   npx convex run seedDemo:seedAll '{"force": true}'
  *   npx convex run seedDemo:updateDemoGeoPositionsDev
- *   (internal: seedDemo:updateDemoGeoPositions)
+ *   npx convex run seedDemo:updateDemoGeoPositionsDev '{"spread":"ndjamena"}'
+ *   npx convex run seedDemo:updateDemoGeoPositionsDev '{"spread":"wide"}'
+ *   npx convex run seedDemo:disperseDemoServicePositionsDev
+ *   (wide / disperse = disque ≤ 50 km autour de N'Djamena ; ndjamena = cluster ≤ 22 km)
+ *   (internal: seedDemo:updateDemoGeoPositions / seedDemo:disperseDemoServicePositions)
  *
  * Images Unsplash vérifiées le 2026-07-22 (HEAD → 200, content-type image/*).
  * Mot de passe des comptes démo : Demo2026! (non créés dans authAccounts — données browse-only).
@@ -17,12 +21,70 @@ import {
   calculateBadge,
   calculateTrustScore,
   DEFAULT_COMMISSION_RATE,
+  haversineDistanceKm,
   now,
   PREMIUM_MONTHLY_PRICE,
 } from './lib';
 import { coordsForCity, jitterCoords, MVP_CITIES } from './cities';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
+
+const GEO_SPREAD = v.union(v.literal('wide'), v.literal('ndjamena'));
+type GeoSpread = 'wide' | 'ndjamena';
+
+/** Same center as map fallback / `NDJAMENA` (~12.1348, 15.0557). */
+const NDJ_CENTER = { lat: MVP_CITIES[0]!.lat, lng: MVP_CITIES[0]!.lng };
+/** `wide` — fill disk up to this radius (hard max). */
+const WIDE_MAX_KM = 50;
+/** `ndjamena` — tighter urban cluster (~15–25 km). */
+const NDJAMENA_MAX_KM = 22;
+
+/** Deterministic unit float in [0, 1). */
+function seededUnit(seed: number, salt: number): number {
+  const x = Math.sin(seed * 12.9898 + salt * 78.233) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+/**
+ * Uniform sample in a disk of radius `maxKm` around center (deterministic).
+ * Haversine-clamped so no point exceeds `maxKm`.
+ */
+function sampleInDiskKm(
+  centerLat: number,
+  centerLng: number,
+  seed: number,
+  maxKm: number,
+): { latitude: number; longitude: number } {
+  const bearing = seededUnit(seed, 1) * 2 * Math.PI;
+  // sqrt → area-uniform in the disk
+  const distKm = Math.sqrt(seededUnit(seed, 2)) * maxKm;
+
+  const R = 6371;
+  const δ = distKm / R;
+  const φ1 = (centerLat * Math.PI) / 180;
+  const λ1 = (centerLng * Math.PI) / 180;
+  const φ2 = Math.asin(
+    Math.sin(φ1) * Math.cos(δ) + Math.cos(φ1) * Math.sin(δ) * Math.cos(bearing),
+  );
+  const λ2 =
+    λ1 +
+    Math.atan2(
+      Math.sin(bearing) * Math.sin(δ) * Math.cos(φ1),
+      Math.cos(δ) - Math.sin(φ1) * Math.sin(φ2),
+    );
+
+  let latitude = (φ2 * 180) / Math.PI;
+  let longitude = (((λ2 * 180) / Math.PI + 540) % 360) - 180;
+
+  const d = haversineDistanceKm(centerLat, centerLng, latitude, longitude);
+  if (d > maxKm && d > 0) {
+    const scale = maxKm / d;
+    latitude = centerLat + (latitude - centerLat) * scale;
+    longitude = centerLng + (longitude - centerLng) * scale;
+  }
+
+  return { latitude, longitude };
+}
 
 // ---------------------------------------------------------------------------
 // Constantes & images (vérifiées 2026-07-22)
@@ -753,6 +815,7 @@ async function runSeed(ctx: MutationCtx, force: boolean) {
     const city = CITIES[provider.cityIndex]!;
     const titles = SERVICE_TITLES[provider.categorySlug];
     const serviceCount = 2 + (serviceIndex % 2);
+    const providerServiceIds: Id<'services'>[] = [];
 
     for (let j = 0; j < serviceCount; j++) {
       const title = pick(titles, serviceIndex + j);
@@ -791,6 +854,7 @@ async function runSeed(ctx: MutationCtx, force: boolean) {
         updatedAt: ts,
       });
       counts.services++;
+      providerServiceIds.push(serviceId);
       serviceRecords.push({
         id: serviceId,
         providerId: provider.userId,
@@ -802,8 +866,12 @@ async function runSeed(ctx: MutationCtx, force: boolean) {
       serviceIndex++;
     }
 
-    // Portfolio (2-3 items)
+    // Portfolio (2-3 items) — lié à un service du prestataire
     for (let p = 0; p < 2 + (provider.userId.length % 2); p++) {
+      const linkedServiceId =
+        providerServiceIds.length > 0
+          ? providerServiceIds[p % providerServiceIds.length]
+          : undefined;
       await ctx.db.insert('portfolio', {
         profileId: provider.profileId,
         providerId: provider.userId,
@@ -812,6 +880,7 @@ async function runSeed(ctx: MutationCtx, force: boolean) {
         mediaType: 'image',
         mediaUrl: pick(PORTFOLIO_IMAGES, serviceIndex + p),
         thumbnailUrl: pick(PORTFOLIO_IMAGES, serviceIndex + p + 1),
+        serviceId: linkedServiceId,
         sortOrder: p,
         createdAt: daysAgo(60 - p * 5),
         updatedAt: ts,
@@ -1124,17 +1193,22 @@ export const seedAllDev = mutation({
 
 /**
  * Re-patch lat/lng (+ ville) on existing profiles & services (no inserts).
- * ~60 % concentrés à N'Djamena (marché MVP / carte « près de moi »),
- * le reste réparti sur les autres villes — jitter pour des pins distincts.
- * Safe to re-run.
+ *
+ * All points stay within a circle around N'Djamena center (~12.1348, 15.0557).
+ * spread:
+ *   - "ndjamena" — tighter cluster, mostly within ~15–25 km (max 22 km)
+ *   - "wide" — fill the full 50 km disk more evenly (hard max 50 km, haversine-clamped)
+ *
+ * Safe to re-run (idempotent patch).
  */
-async function runUpdateDemoGeoPositions(ctx: MutationCtx) {
+async function runUpdateDemoGeoPositions(ctx: MutationCtx, spread: GeoSpread = 'ndjamena') {
   const ts = now();
   let profilesPatched = 0;
   let servicesPatched = 0;
 
   const ndj = MVP_CITIES[0]!;
-  const otherCities = MVP_CITIES.slice(1);
+  const wide = spread === 'wide';
+  const maxKm = wide ? WIDE_MAX_KM : NDJAMENA_MAX_KM;
 
   const profiles = await ctx.db.query('profiles').collect();
   const profileGeo = new Map<
@@ -1144,12 +1218,10 @@ async function runUpdateDemoGeoPositions(ctx: MutationCtx) {
 
   for (let i = 0; i < profiles.length; i++) {
     const profile = profiles[i]!;
-    // 6 sur 10 → N'Djamena ; sinon autre ville MVP
-    const cityEntry = i % 10 < 6 ? ndj : otherCities[i % otherCities.length]!;
-    const geo = jitterCoords(cityEntry.lat, cityEntry.lng, i + 100, 0.016);
+    const geo = sampleInDiskKm(NDJ_CENTER.lat, NDJ_CENTER.lng, i + 100, maxKm);
     await ctx.db.patch(profile._id, {
-      city: cityEntry.city,
-      region: cityEntry.region,
+      city: ndj.city,
+      region: ndj.region,
       latitude: geo.latitude,
       longitude: geo.longitude,
       updatedAt: ts,
@@ -1157,8 +1229,8 @@ async function runUpdateDemoGeoPositions(ctx: MutationCtx) {
     profileGeo.set(profile._id, {
       latitude: geo.latitude,
       longitude: geo.longitude,
-      city: cityEntry.city,
-      region: cityEntry.region,
+      city: ndj.city,
+      region: ndj.region,
     });
     profilesPatched++;
   }
@@ -1168,33 +1240,17 @@ async function runUpdateDemoGeoPositions(ctx: MutationCtx) {
     const service = services[i]!;
     const providerPos = profileGeo.get(service.profileId);
 
-    const resolved =
-      i % 10 < 6
-        ? { city: ndj.city, region: ndj.region, lat: ndj.lat, lng: ndj.lng }
-        : providerPos
-          ? {
-              city: providerPos.city,
-              region: providerPos.region,
-              lat: providerPos.latitude,
-              lng: providerPos.longitude,
-            }
-          : {
-              city: otherCities[i % otherCities.length]!.city,
-              region: otherCities[i % otherCities.length]!.region,
-              lat: otherCities[i % otherCities.length]!.lat,
-              lng: otherCities[i % otherCities.length]!.lng,
-            };
-
+    // ~1/5 keep provider coords (already in-disk) for realism; else independent sample.
     const geo =
-      i % 3 === 0 && providerPos && resolved.city === providerPos.city
+      i % 5 === 0 && providerPos
         ? { latitude: providerPos.latitude, longitude: providerPos.longitude }
-        : jitterCoords(resolved.lat, resolved.lng, i + 200, 0.018);
+        : sampleInDiskKm(NDJ_CENTER.lat, NDJ_CENTER.lng, i + 200, maxKm);
 
     await ctx.db.patch(service._id, {
       latitude: geo.latitude,
       longitude: geo.longitude,
-      city: resolved.city,
-      region: resolved.region,
+      city: ndj.city,
+      region: ndj.region,
       updatedAt: ts,
     });
     servicesPatched++;
@@ -1202,20 +1258,47 @@ async function runUpdateDemoGeoPositions(ctx: MutationCtx) {
 
   return {
     updated: true,
-    message:
-      "Positions géo démo mises à jour (patch only) — ~60 % à N'Djamena pour la carte locale.",
+    spread,
+    maxKm,
+    message: wide
+      ? "Positions géo démo dispersées (patch only) — disque ≤ 50 km autour de N'Djamena."
+      : "Positions géo démo mises à jour (patch only) — cluster serré ≤ 22 km autour de N'Djamena.",
     profilesPatched,
     servicesPatched,
   };
 }
 
 export const updateDemoGeoPositions = internalMutation({
-  args: {},
-  handler: async (ctx) => runUpdateDemoGeoPositions(ctx),
+  args: { spread: v.optional(GEO_SPREAD) },
+  handler: async (ctx, args) => runUpdateDemoGeoPositions(ctx, args.spread ?? 'ndjamena'),
 });
 
-/** Wrapper public pour lancer depuis le CLI / dashboard Convex. */
+/**
+ * Wrapper public pour lancer depuis le CLI / dashboard Convex.
+ * Default "ndjamena" = cluster serré (≤ 22 km) ; spread:"wide" = disque ≤ 50 km.
+ *
+ *   npx convex run seedDemo:updateDemoGeoPositionsDev '{"spread":"wide"}'
+ */
 export const updateDemoGeoPositionsDev = mutation({
+  args: { spread: v.optional(GEO_SPREAD) },
+  handler: async (ctx, args) => runUpdateDemoGeoPositions(ctx, args.spread ?? 'ndjamena'),
+});
+
+/**
+ * Alias explicite — disperse services/profiles in the 50 km disk around N'Djamena.
+ *
+ *   npx convex run seedDemo:disperseDemoServicePositionsDev
+ */
+async function runDisperseDemoServicePositions(ctx: MutationCtx) {
+  return runUpdateDemoGeoPositions(ctx, 'wide');
+}
+
+export const disperseDemoServicePositions = internalMutation({
   args: {},
-  handler: async (ctx) => runUpdateDemoGeoPositions(ctx),
+  handler: async (ctx) => runDisperseDemoServicePositions(ctx),
+});
+
+export const disperseDemoServicePositionsDev = mutation({
+  args: {},
+  handler: async (ctx) => runDisperseDemoServicePositions(ctx),
 });

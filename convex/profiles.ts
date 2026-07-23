@@ -1,6 +1,99 @@
 import { v } from 'convex/values';
 import { mutation, query } from './_generated/server';
+import type { Doc, Id } from './_generated/dataModel';
+import type { QueryCtx } from './_generated/server';
 import { requireAuth, requireRole, calculateTrustScore, calculateBadge, now } from './lib';
+
+type HomeProviderItem = {
+  profile: Doc<'profiles'>;
+  serviceCount: number;
+  topServiceId: Id<'services'>;
+  category: Doc<'categories'> | null;
+};
+
+async function enrichHomeProvider(
+  ctx: QueryCtx,
+  profile: Doc<'profiles'>,
+): Promise<HomeProviderItem | null> {
+  const user = await ctx.db.get(profile.userId);
+  if (!user || user.role !== 'provider') return null;
+  if (user.status && user.status !== 'active') return null;
+
+  const services = await ctx.db
+    .query('services')
+    .withIndex('by_profile', (q) => q.eq('profileId', profile._id))
+    .filter((q) => q.eq(q.field('isActive'), true))
+    .collect();
+
+  if (services.length === 0) return null;
+
+  const topService = [...services].sort(
+    (a, b) =>
+      b.averageRating - a.averageRating ||
+      b.orderCount - a.orderCount ||
+      b.viewCount - a.viewCount,
+  )[0]!;
+
+  const category = await ctx.db.get(topService.categoryId);
+
+  return {
+    profile,
+    serviceCount: services.length,
+    topServiceId: topService._id,
+    category,
+  };
+}
+
+/** Prestataires accueil — premium en tête, puis note / confiance. */
+export const listHome = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const limit = Math.min(Math.max(args.limit ?? 20, 1), 40);
+    const results: HomeProviderItem[] = [];
+    const seen = new Set<Id<'profiles'>>();
+
+    const premiumProfiles = await ctx.db
+      .query('profiles')
+      .withIndex('by_premium', (q) => q.eq('isPremium', true))
+      .collect();
+
+    const sortedPremium = [...premiumProfiles].sort(
+      (a, b) =>
+        b.averageRating - a.averageRating ||
+        b.trustScore - a.trustScore ||
+        b.completedOrders - a.completedOrders,
+    );
+
+    for (const profile of sortedPremium) {
+      if (results.length >= limit) break;
+      const item = await enrichHomeProvider(ctx, profile);
+      if (item) {
+        results.push(item);
+        seen.add(profile._id);
+      }
+    }
+
+    if (results.length < limit) {
+      const others = await ctx.db.query('profiles').collect();
+      const sortedOthers = others
+        .filter((p) => !p.isPremium && !seen.has(p._id))
+        .sort(
+          (a, b) =>
+            b.averageRating - a.averageRating ||
+            b.trustScore - a.trustScore ||
+            b.completedOrders - a.completedOrders,
+        );
+
+      for (const profile of sortedOthers) {
+        if (results.length >= limit) break;
+        const item = await enrichHomeProvider(ctx, profile);
+        if (item) results.push(item);
+      }
+    }
+
+    return results;
+  },
+});
 
 export const getById = query({
   args: { profileId: v.id('profiles') },
@@ -28,6 +121,148 @@ export const getById = query({
       .take(10);
 
     return { profile, user, services, portfolio, reviews };
+  },
+});
+
+/** Profil prestataire public — champs exposables uniquement. */
+export const getPublicProvider = query({
+  args: { profileId: v.id('profiles') },
+  handler: async (ctx, args) => {
+    const profile = await ctx.db.get(args.profileId);
+    if (!profile) return null;
+
+    const user = await ctx.db.get(profile.userId);
+    if (!user || user.role !== 'provider') return null;
+    if (user.status && user.status !== 'active') return null;
+
+    const services = await ctx.db
+      .query('services')
+      .withIndex('by_profile', (q) => q.eq('profileId', args.profileId))
+      .filter((q) => q.eq(q.field('isActive'), true))
+      .collect();
+
+    const servicesWithCategory = await Promise.all(
+      services.map(async (service) => {
+        const category = await ctx.db.get(service.categoryId);
+        return {
+          _id: service._id,
+          title: service.title,
+          description: service.description,
+          pricingType: service.pricingType,
+          price: service.price,
+          currency: service.currency,
+          photos: service.photos,
+          averageRating: service.averageRating,
+          reviewCount: service.reviewCount,
+          orderCount: service.orderCount,
+          city: service.city,
+          region: service.region,
+          availability: service.availability,
+          deliveryDays: service.deliveryDays,
+          category: category
+            ? {
+                _id: category._id,
+                nameFr: category.nameFr,
+                nameAr: category.nameAr,
+                nameSara: category.nameSara,
+                icon: category.icon,
+                slug: category.slug,
+              }
+            : null,
+        };
+      }),
+    );
+
+    const portfolioRaw = await ctx.db
+      .query('portfolio')
+      .withIndex('by_profile', (q) => q.eq('profileId', args.profileId))
+      .collect();
+
+    const portfolio = await Promise.all(
+      portfolioRaw
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .map(async (item) => {
+          const mediaUrl = item.storageId
+            ? await ctx.storage.getUrl(item.storageId)
+            : item.mediaUrl;
+
+          let relatedService: { _id: Id<'services'>; title: string } | null = null;
+          if (item.serviceId) {
+            const linked = await ctx.db.get(item.serviceId);
+            if (linked && linked.isActive) {
+              relatedService = { _id: linked._id, title: linked.title };
+            }
+          }
+
+          return {
+            _id: item._id,
+            title: item.title,
+            description: item.description,
+            mediaType: item.mediaType,
+            mediaUrl: mediaUrl ?? item.mediaUrl,
+            thumbnailUrl: item.thumbnailUrl,
+            serviceId: item.serviceId,
+            relatedService,
+            sortOrder: item.sortOrder,
+            createdAt: item.createdAt,
+          };
+        }),
+    );
+
+    const reviewsRaw = await ctx.db
+      .query('reviews')
+      .withIndex('by_provider', (q) => q.eq('providerId', profile.userId))
+      .filter((q) => q.eq(q.field('isVisible'), true))
+      .order('desc')
+      .take(10);
+
+    const reviews = await Promise.all(
+      reviewsRaw.map(async (review) => {
+        const clientProfile = await ctx.db
+          .query('profiles')
+          .withIndex('by_user', (q) => q.eq('userId', review.clientId))
+          .first();
+        return {
+          _id: review._id,
+          rating: review.rating,
+          comment: review.comment,
+          createdAt: review.createdAt,
+          providerResponse: review.providerResponse,
+          clientName: clientProfile
+            ? `${clientProfile.firstName} ${clientProfile.lastName.charAt(0)}.`
+            : null,
+        };
+      }),
+    );
+
+    return {
+      userId: profile.userId,
+      profile: {
+        _id: profile._id,
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        city: profile.city,
+        region: profile.region,
+        bio: profile.bio,
+        avatarUrl: profile.avatarUrl,
+        skills: profile.skills,
+        experienceYears: profile.experienceYears,
+        availability: profile.availability,
+        isVerified: profile.isVerified,
+        isPremium: profile.isPremium,
+        badge: profile.badge,
+        averageRating: profile.averageRating,
+        reviewCount: profile.reviewCount,
+        completedOrders: profile.completedOrders,
+        responseTimeMinutes: profile.responseTimeMinutes,
+        trustScore: profile.trustScore,
+        viewCount: profile.viewCount,
+        createdAt: profile.createdAt,
+      },
+      services: servicesWithCategory,
+      portfolio,
+      reviews,
+    };
   },
 });
 

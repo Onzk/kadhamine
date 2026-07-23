@@ -249,12 +249,15 @@ export default defineSchema({
     mediaUrl: v.optional(v.string()),
     storageId: v.optional(v.id('_storage')),
     thumbnailUrl: v.optional(v.string()),
+    /** Service associé (optionnel) — affiché dans le détail portfolio. */
+    serviceId: v.optional(v.id('services')),
     sortOrder: v.number(),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index('by_profile', ['profileId'])
     .index('by_provider', ['providerId'])
+    .index('by_service', ['serviceId'])
     .index('by_sort', ['sortOrder']),
 
   orders: defineTable({

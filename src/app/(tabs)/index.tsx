@@ -15,6 +15,7 @@ import {
 } from 'phosphor-react-native';
 
 import { ServiceCarousel } from '@/components/cards/ServiceCarousel';
+import { ProviderPodium } from '@/components/cards/ProviderPodium';
 import { Logo } from '@/components/brand/Logo';
 import { CategoryHorizontalMasonry } from '@/components/ui/CategoryHorizontalMasonry';
 import { PromoCarousel, type PromoSlideData } from '@/components/ui/PromoCarousel';
@@ -40,6 +41,7 @@ export default function HomeScreen() {
   const categories = useQuery(api.categories.listWithCounts, { activeOnly: true });
   const featured = useQuery(api.services.getFeatured, { limit: 10 });
   const topRated = useQuery(api.services.list, { sortBy: 'rating', limit: 10 });
+  const homeProviders = useQuery(api.profiles.listHome, { limit: 6 });
   const seedCategories = useMutation(api.seed.seedCategories);
   const seedSettings = useMutation(api.seed.seedSettings);
 
@@ -200,6 +202,16 @@ export default function HomeScreen() {
 
         {/* Carrousel promo — puis mieux notés (horizontal) */}
         <PromoCarousel slides={promoSlides} />
+
+        <ProviderPodium
+          title={t('home.topTalents')}
+          actionLabel={t('common.seeAll')}
+          onAction={() => router.push('/talents' as never)}
+          items={homeProviders}
+          onPressProvider={(profileId) =>
+            router.push({ pathname: '/provider/[id]', params: { id: profileId } })
+          }
+        />
 
         <ServiceCarousel
           title={t('home.topRated')}

@@ -1,8 +1,9 @@
 import React from 'react';
 import { View } from 'react-native';
 
+import { AuthPrimaryButton } from '@/components/auth/AuthField';
 import { AppBottomSheet } from '@/components/ui/AppBottomSheet';
-import { Button } from '@/components/ui/Button';
+import { SheetActionsFooter, SheetSingleAction } from '@/components/ui/SheetActions';
 import { Text } from '@/components/ui/ThemedText';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { Spacing } from '@/theme/tokens';
@@ -35,20 +36,32 @@ export function AlertBottomSheet({
   return (
     <AppBottomSheet
       visible={visible}
-      onClose={handlePress}
+      onClose={onClose}
       title={title}
       scrollable={false}
+      showHandle={false}
       showClose={false}
       maxHeightRatio={0.5}
     >
-      {message ? (
-        <Text variant="body" style={{ color: colors.muted, marginBottom: Spacing.five }}>
-          {message}
-        </Text>
-      ) : (
-        <View style={{ height: Spacing.two }} />
-      )}
-      <Button title={buttonLabel} onPress={handlePress} fullWidth />
+      <View style={{ alignSelf: 'stretch', width: '100%', paddingBottom: Spacing.four }}>
+        {message ? (
+          <Text variant="body" style={{ color: colors.muted, marginBottom: Spacing.five }}>
+            {message}
+          </Text>
+        ) : (
+          <View style={{ height: Spacing.two }} />
+        )}
+        <SheetActionsFooter>
+          <SheetSingleAction>
+            <AuthPrimaryButton
+              title={buttonLabel}
+              onPress={handlePress}
+              tone="ink"
+              flat
+            />
+          </SheetSingleAction>
+        </SheetActionsFooter>
+      </View>
     </AppBottomSheet>
   );
 }

@@ -1,6 +1,38 @@
 import { v } from 'convex/values';
 import { mutation, query } from './_generated/server';
-import { requireAuth, requireRole, now } from './lib';
+import type { Id } from './_generated/dataModel';
+import type { QueryCtx } from './_generated/server';
+import { requireRole, now } from './lib';
+
+async function enrichPortfolioItem(ctx: QueryCtx, item: {
+  _id: Id<'portfolio'>;
+  profileId: Id<'profiles'>;
+  providerId: Id<'users'>;
+  title: string;
+  description?: string;
+  mediaType: 'image' | 'video' | 'document';
+  mediaUrl?: string;
+  storageId?: Id<'_storage'>;
+  thumbnailUrl?: string;
+  serviceId?: Id<'services'>;
+  sortOrder: number;
+  createdAt: number;
+  updatedAt: number;
+}) {
+  const mediaUrl = item.storageId
+    ? await ctx.storage.getUrl(item.storageId)
+    : item.mediaUrl;
+
+  let relatedService: { _id: Id<'services'>; title: string } | null = null;
+  if (item.serviceId) {
+    const service = await ctx.db.get(item.serviceId);
+    if (service && service.isActive) {
+      relatedService = { _id: service._id, title: service.title };
+    }
+  }
+
+  return { ...item, mediaUrl: mediaUrl ?? item.mediaUrl, relatedService };
+}
 
 export const listMine = query({
   args: {},
@@ -20,12 +52,7 @@ export const listMine = query({
     return await Promise.all(
       items
         .sort((a, b) => a.sortOrder - b.sortOrder)
-        .map(async (item) => {
-          const mediaUrl = item.storageId
-            ? await ctx.storage.getUrl(item.storageId)
-            : item.mediaUrl;
-          return { ...item, mediaUrl };
-        }),
+        .map((item) => enrichPortfolioItem(ctx, item)),
     );
   },
 });
@@ -41,13 +68,17 @@ export const listByProfile = query({
     return await Promise.all(
       items
         .sort((a, b) => a.sortOrder - b.sortOrder)
-        .map(async (item) => {
-          const mediaUrl = item.storageId
-            ? await ctx.storage.getUrl(item.storageId)
-            : item.mediaUrl;
-          return { ...item, mediaUrl };
-        }),
+        .map((item) => enrichPortfolioItem(ctx, item)),
     );
+  },
+});
+
+export const getById = query({
+  args: { itemId: v.id('portfolio') },
+  handler: async (ctx, args) => {
+    const item = await ctx.db.get(args.itemId);
+    if (!item) return null;
+    return enrichPortfolioItem(ctx, item);
   },
 });
 
@@ -58,6 +89,7 @@ export const create = mutation({
     mediaType: v.union(v.literal('image'), v.literal('video'), v.literal('document')),
     storageId: v.optional(v.id('_storage')),
     mediaUrl: v.optional(v.string()),
+    serviceId: v.optional(v.id('services')),
   },
   handler: async (ctx, args) => {
     const { userId } = await requireRole(ctx, ['provider']);
@@ -66,6 +98,13 @@ export const create = mutation({
       .withIndex('by_user', (q) => q.eq('userId', userId))
       .first();
     if (!profile) throw new Error('Profil requis');
+
+    if (args.serviceId) {
+      const service = await ctx.db.get(args.serviceId);
+      if (!service || service.providerId !== userId) {
+        throw new Error('Service associé introuvable');
+      }
+    }
 
     const existing = await ctx.db
       .query('portfolio')
@@ -81,6 +120,7 @@ export const create = mutation({
       mediaType: args.mediaType,
       storageId: args.storageId,
       mediaUrl: args.mediaUrl,
+      serviceId: args.serviceId,
       sortOrder: existing.length,
       createdAt: timestamp,
       updatedAt: timestamp,
@@ -94,17 +134,31 @@ export const update = mutation({
     title: v.optional(v.string()),
     description: v.optional(v.string()),
     sortOrder: v.optional(v.number()),
+    serviceId: v.optional(v.union(v.id('services'), v.null())),
   },
   handler: async (ctx, args) => {
     const { userId } = await requireRole(ctx, ['provider']);
     const item = await ctx.db.get(args.itemId);
     if (!item || item.providerId !== userId) throw new Error('Élément introuvable');
 
-    const { itemId, ...updates } = args;
+    const { itemId, serviceId, ...rest } = args;
     const patch: Record<string, unknown> = { updatedAt: now() };
-    for (const [key, value] of Object.entries(updates)) {
+    for (const [key, value] of Object.entries(rest)) {
       if (value !== undefined) patch[key] = value;
     }
+
+    if (serviceId !== undefined) {
+      if (serviceId === null) {
+        patch.serviceId = undefined;
+      } else {
+        const service = await ctx.db.get(serviceId);
+        if (!service || service.providerId !== userId) {
+          throw new Error('Service associé introuvable');
+        }
+        patch.serviceId = serviceId;
+      }
+    }
+
     await ctx.db.patch(itemId, patch);
   },
 });

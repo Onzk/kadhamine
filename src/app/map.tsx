@@ -3,9 +3,13 @@ import {
   View,
   Text,
   Pressable,
+  BackHandler,
   Dimensions,
   type LayoutChangeEvent,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { useQuery } from 'convex/react';
 import {
@@ -15,6 +19,7 @@ import {
 } from 'phosphor-react-native';
 import { Gesture, GestureDetector, ScrollView } from 'react-native-gesture-handler';
 import Animated, {
+  runOnJS,
   useSharedValue,
   useAnimatedStyle,
   withSpring,
@@ -29,12 +34,23 @@ import { FlutterFab, FLUTTER_FAB } from '@/components/ui/FlutterFab';
 import { ServiceCard } from '@/components/cards/ServiceCard';
 import {
   LeafletMapView,
+  MAP_FALLBACK_RADIUS_KM,
+  MAP_FOCUS_ZOOM,
+  MAP_USER_ZOOM,
   type LeafletMapHandle,
   type LeafletMapTheme,
   type LeafletMarkerData,
 } from '@/components/map/LeafletMapView';
+import { getCategoryVisual } from '@/lib/categoryTheme';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { useLocation } from '@/hooks/useLocation';
+import {
+  getMapSession,
+  patchMapCamera,
+  patchMapSession,
+  type MapCamera,
+  type MapRadiusKm,
+} from '@/stores/mapSessionStore';
 import { Radius, Shadows, Spacing } from '@/theme/tokens';
 import { fontFamily, textStyle } from '@/theme/typography';
 import { formatPrice, formatRating } from '@/types';
@@ -46,9 +62,14 @@ const SHEET_MID = Math.round(SCREEN_H * 0.42);
 const SHEET_EXPANDED = Math.round(SCREEN_H * 0.72);
 const SNAP_POINTS = [SHEET_COLLAPSED, SHEET_MID, SHEET_EXPANDED];
 const PANEL_RADIUS = Radius.xl;
-/** Search bar + chips + in-map callout — leave room above pin. */
+/** Search bar + category chips — usable map top inset for focus centering. */
 const MAP_FOCUS_TOP_PAD = 160;
-const FOCUS_ZOOM = 15;
+const RADIUS_OPTIONS = [5, 15, 25, 50] as const;
+type RadiusKm = MapRadiusKm;
+
+function categoryAccent(icon?: string, label?: string) {
+  return getCategoryVisual({ icon, label }).pastel.fg;
+}
 
 function nearestSnap(value: number) {
   'worklet';
@@ -69,19 +90,73 @@ function clampSheet(value: number) {
   return Math.min(SHEET_EXPANDED, Math.max(SHEET_COLLAPSED, value));
 }
 
+function flushMapSession(partial: {
+  radiusKm: RadiusKm;
+  search: string;
+  selectedCategory: string | undefined;
+  selectedId: string | null;
+  showCallout: boolean;
+  sheetHeight: number;
+  listScrollY: number;
+  camera: MapCamera | null;
+}) {
+  patchMapSession(partial);
+}
+
 export default function MapScreen() {
+  const saved = getMapSession();
   const { colors } = useAppTheme();
   const router = useRouter();
-  const { latitude, longitude, loading: locLoading, refresh } = useLocation();
-  const [radiusKm, setRadiusKm] = useState(25);
-  const [search, setSearch] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string | undefined>();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const mapRef = useRef<LeafletMapHandle>(null);
-  const appliedLocKey = useRef<string | null>(null);
+  const { latitude, longitude, loading: locLoading, isFallback, refresh } = useLocation();
 
+  /** Default chip matches the ~25 km GPS-off overview. */
+  const [radiusKm, setRadiusKm] = useState<RadiusKm>(
+    saved.hasSession ? saved.radiusKm : 25,
+  );
+  const [search, setSearch] = useState(saved.hasSession ? saved.search : '');
+  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(
+    saved.hasSession ? saved.selectedCategory : undefined,
+  );
+  const [selectedId, setSelectedId] = useState<string | null>(
+    saved.hasSession ? saved.selectedId : null,
+  );
+  /** Callout card only after flyTo settles (not during the animation). */
+  const [showCallout, setShowCallout] = useState(
+    saved.hasSession ? saved.showCallout : false,
+  );
+
+  const mapRef = useRef<LeafletMapHandle>(null);
+  const listScrollRef = useRef<ScrollView>(null);
+  const rowOffsets = useRef<Record<string, number>>({});
+  const appliedLocKey = useRef<string | null>(null);
+  /** Latest focus target — ignore focusComplete from superseded flies. */
+  const pendingFocusId = useRef<string | null>(null);
+  /** Keep radius stable across rapid sheet / query re-renders. */
+  const radiusKmRef = useRef<RadiusKm>(saved.hasSession ? saved.radiusKm : 25);
+  const listScrollYRef = useRef(saved.hasSession ? saved.listScrollY : 0);
+  const cameraRef = useRef<MapCamera | null>(saved.hasSession ? saved.camera : null);
+  /**
+   * True while rehydrating from session after a remount.
+   * Skips GPS auto-center and flyTo spam; camera comes from saved / init props.
+   */
+  const restoringRef = useRef(saved.hasSession && !!saved.camera);
+  /** True until we apply saved listScrollY (avoids fighting scroll-to-selected). */
+  const pendingScrollRestoreRef = useRef(
+    saved.hasSession && saved.listScrollY > 0,
+  );
+
+  const sheetBg = colors.canvas;
   const panelBg = colors.surfaceCard;
   const orbitColor = colors.orbit;
+
+  const selectRadius = useCallback((r: RadiusKm) => {
+    radiusKmRef.current = r;
+    setRadiusKm(r);
+  }, []);
+
+  const persistSheetHeight = useCallback((h: number) => {
+    patchMapSession({ sheetHeight: h });
+  }, []);
 
   const mapTheme: LeafletMapTheme = useMemo(
     () => ({
@@ -107,18 +182,54 @@ export default function MapScreen() {
     [],
   );
 
-  // When GPS becomes available after the N'Djamena fallback, move the map once.
+  /** Captured once at mount — used for WebView init / remount rehydrate only. */
+  const restoreCameraRef = useRef<MapCamera | null>(
+    saved.hasSession ? saved.camera : null,
+  );
+  const mapCenter = restoreCameraRef.current
+    ? { lat: restoreCameraRef.current.lat, lng: restoreCameraRef.current.lng }
+    : { lat: latitude, lng: longitude };
+  const mapZoom = restoreCameraRef.current?.zoom ?? MAP_USER_ZOOM;
+  const mapFitRadiusKm = restoreCameraRef.current
+    ? undefined
+    : isFallback
+      ? MAP_FALLBACK_RADIUS_KM
+      : undefined;
+
+  // Persist filters / selection whenever they change.
+  useEffect(() => {
+    patchMapSession({
+      radiusKm,
+      search,
+      selectedCategory,
+      selectedId,
+      showCallout,
+    });
+  }, [radiusKm, search, selectedCategory, selectedId, showCallout]);
+
+  // GPS-off: ~25 km overview around N'Djamena. GPS-on: center on user.
+  // First settle with real GPS also centers (init may have used fallback overview).
+  // Skipped while restoring a saved camera so back-from-service keeps the view.
   useEffect(() => {
     if (locLoading) return;
-    const key = `${latitude},${longitude}`;
-    if (appliedLocKey.current === null) {
+    const key = `${latitude},${longitude}:${isFallback ? 'fb' : 'gps'}`;
+    if (appliedLocKey.current === key) return;
+
+    if (restoringRef.current) {
       appliedLocKey.current = key;
       return;
     }
-    if (appliedLocKey.current === key) return;
+
+    const isFirst = appliedLocKey.current === null;
     appliedLocKey.current = key;
-    mapRef.current?.setView(latitude, longitude, 12);
-  }, [latitude, longitude, locLoading]);
+    if (isFallback) {
+      if (!isFirst) {
+        mapRef.current?.fitRadiusKm(latitude, longitude, MAP_FALLBACK_RADIUS_KM);
+      }
+      return;
+    }
+    mapRef.current?.setView(latitude, longitude, MAP_USER_ZOOM);
+  }, [latitude, longitude, locLoading, isFallback]);
 
   const categories = useQuery(api.categories.list, { activeOnly: true });
   const talents = useQuery(api.services.listForMap, {
@@ -162,27 +273,35 @@ export default function MapScreen() {
           lng: t.longitude,
           selected,
           categoryIcon: t.categoryIcon,
+          categoryColor: categoryAccent(t.categoryIcon, t.categoryLabel),
           isPremium: t.isPremium,
-          tooltip: selected
-            ? {
-                title: t.title,
-                providerName: t.providerName,
-                photoUrl: t.photos[0],
-                priceLabel,
-                ratingLabel:
-                  (t.reviewCount ?? 0) > 0 ? formatRating(t.rating) : undefined,
-                categoryLabel: t.categoryLabel,
-                isPremium: t.isPremium,
-                isVerified: t.isVerified,
-              }
-            : undefined,
+          // Defer card until fly finishes — selected pin still highlights mid-flight.
+          // On session restore, showCallout is already true so the callout reappears without flyTo.
+          tooltip:
+            selected && showCallout
+              ? {
+                  title: t.title,
+                  providerName: t.providerName,
+                  photoUrl: t.photos[0],
+                  priceLabel,
+                  ratingLabel:
+                    (t.reviewCount ?? 0) > 0 ? formatRating(t.rating) : undefined,
+                  categoryLabel: t.categoryLabel,
+                  isPremium: t.isPremium,
+                  isVerified: t.isVerified,
+                }
+              : undefined,
         };
       }),
-    [filtered, selectedId],
+    [filtered, selectedId, showCallout],
   );
 
-  const sheetHeight = useSharedValue(SHEET_COLLAPSED);
-  const dragStart = useSharedValue(SHEET_COLLAPSED);
+  const sheetHeight = useSharedValue(
+    saved.hasSession ? saved.sheetHeight : SHEET_COLLAPSED,
+  );
+  const dragStart = useSharedValue(
+    saved.hasSession ? saved.sheetHeight : SHEET_COLLAPSED,
+  );
   const headerHeight = useSharedValue(72);
 
   const pan = Gesture.Pan()
@@ -194,10 +313,12 @@ export default function MapScreen() {
       sheetHeight.value = clampSheet(dragStart.value - e.translationY);
     })
     .onEnd(() => {
-      sheetHeight.value = withSpring(nearestSnap(sheetHeight.value), {
+      const snapped = nearestSnap(sheetHeight.value);
+      sheetHeight.value = withSpring(snapped, {
         damping: 20,
         stiffness: 200,
       });
+      runOnJS(persistSheetHeight)(snapped);
     });
 
   const sheetStyle = useAnimatedStyle(() => ({
@@ -212,6 +333,15 @@ export default function MapScreen() {
     bottom: sheetHeight.value + FLUTTER_FAB.edgeMargin,
   }));
 
+  /**
+   * Radius chips sit above the sheet but never climb past SHEET_MID —
+   * otherwise they slide under the category masonry (higher zIndex) and
+   * taps miss / look like the selected radius was lost.
+   */
+  const radiusBarStyle = useAnimatedStyle(() => ({
+    bottom: Math.min(sheetHeight.value, SHEET_MID) + FLUTTER_FAB.edgeMargin,
+  }));
+
   const onSheetHeaderLayout = useCallback(
     (e: LayoutChangeEvent) => {
       headerHeight.value = e.nativeEvent.layout.height;
@@ -219,27 +349,181 @@ export default function MapScreen() {
     [headerHeight],
   );
 
+  const scrollToSelected = useCallback((serviceId: string, animated = true) => {
+    const y = rowOffsets.current[serviceId];
+    if (y == null) return;
+    listScrollRef.current?.scrollTo({ y: Math.max(0, y - 8), animated });
+  }, []);
+
+  const restoreListScroll = useCallback(() => {
+    if (!pendingScrollRestoreRef.current) return;
+    const y = listScrollYRef.current;
+    if (y > 0) {
+      listScrollRef.current?.scrollTo({ y, animated: false });
+    }
+    pendingScrollRestoreRef.current = false;
+  }, []);
+
   const focusTalent = useCallback(
     (serviceId: string, lat: number, lng: number) => {
+      pendingFocusId.current = serviceId;
       setSelectedId(serviceId);
+      setShowCallout(false);
       mapRef.current?.setPadding(focusPadding);
-      mapRef.current?.flyTo(lat, lng, FOCUS_ZOOM);
+      mapRef.current?.flyTo(lat, lng, MAP_FOCUS_ZOOM, serviceId);
       sheetHeight.value = withSpring(SHEET_MID, { damping: 20, stiffness: 200 });
+      persistSheetHeight(SHEET_MID);
+      // Scroll after sheet spring starts + row layouts settle.
+      requestAnimationFrame(() => scrollToSelected(serviceId));
+      setTimeout(() => scrollToSelected(serviceId), 320);
     },
-    [sheetHeight, focusPadding],
+    [sheetHeight, focusPadding, scrollToSelected, persistSheetHeight],
   );
+
+  const onFocusComplete = useCallback(
+    (id: string) => {
+      if (pendingFocusId.current !== id) return;
+      setShowCallout(true);
+      scrollToSelected(id);
+    },
+    [scrollToSelected],
+  );
+
+  const onCameraChange = useCallback((cam: MapCamera) => {
+    cameraRef.current = cam;
+    patchMapCamera(cam);
+  }, []);
+
+  const onMapReady = useCallback(() => {
+    if (!restoringRef.current) return;
+    const cam = cameraRef.current;
+    mapRef.current?.setPadding(focusPadding);
+    if (cam) {
+      // Quiet rehydrate — no flyTo, so focusComplete / callout spam is avoided.
+      mapRef.current?.setView(cam.lat, cam.lng, cam.zoom);
+    }
+    requestAnimationFrame(() => restoreListScroll());
+    setTimeout(() => restoreListScroll(), 80);
+    restoringRef.current = false;
+  }, [focusPadding, restoreListScroll]);
+
+  // Offsets go stale when the list reshuffles — clear, then scroll after layout.
+  useEffect(() => {
+    rowOffsets.current = {};
+  }, [filtered]);
+
+  useEffect(() => {
+    if (!selectedId || !filtered?.length) return;
+    // Don't fight session scroll restore with select-into-view.
+    if (pendingScrollRestoreRef.current) {
+      restoreListScroll();
+      return;
+    }
+    const t = setTimeout(() => scrollToSelected(selectedId), 80);
+    return () => clearTimeout(t);
+  }, [selectedId, filtered, scrollToSelected, restoreListScroll]);
 
   const openService = useCallback(
     (id: string) => {
+      flushMapSession({
+        radiusKm: radiusKmRef.current,
+        search,
+        selectedCategory,
+        selectedId,
+        showCallout,
+        sheetHeight: sheetHeight.value,
+        listScrollY: listScrollYRef.current,
+        camera: cameraRef.current,
+      });
       router.push(`/service/${id}`);
     },
-    [router],
+    [router, search, selectedCategory, selectedId, showCallout, sheetHeight],
+  );
+
+  const deselectService = useCallback(() => {
+    pendingFocusId.current = null;
+    setSelectedId(null);
+    setShowCallout(false);
+    sheetHeight.value = withSpring(SHEET_COLLAPSED, { damping: 20, stiffness: 200 });
+    persistSheetHeight(SHEET_COLLAPSED);
+  }, [sheetHeight, persistSheetHeight]);
+
+  const handleBack = useCallback(() => {
+    if (selectedId) {
+      deselectService();
+      return;
+    }
+    flushMapSession({
+      radiusKm: radiusKmRef.current,
+      search,
+      selectedCategory,
+      selectedId: null,
+      showCallout: false,
+      sheetHeight: sheetHeight.value,
+      listScrollY: listScrollYRef.current,
+      camera: cameraRef.current,
+    });
+    router.back();
+  }, [
+    selectedId,
+    deselectService,
+    router,
+    search,
+    selectedCategory,
+    sheetHeight,
+  ]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const onHardwareBack = () => {
+        if (selectedId) {
+          deselectService();
+          return true;
+        }
+        return false;
+      };
+      const sub = BackHandler.addEventListener('hardwareBackPress', onHardwareBack);
+      return () => sub.remove();
+    }, [selectedId, deselectService]),
+  );
+
+  // When returning from service while still mounted, re-apply sheet + list scroll
+  // in case native detach briefly reset layout (backup for WebView remount).
+  useFocusEffect(
+    useCallback(() => {
+      const session = getMapSession();
+      if (!session.hasSession) return;
+      sheetHeight.value = session.sheetHeight;
+      listScrollYRef.current = session.listScrollY;
+      if (session.camera) {
+        cameraRef.current = session.camera;
+      }
+      requestAnimationFrame(() => {
+        if (session.listScrollY > 0) {
+          listScrollRef.current?.scrollTo({
+            y: session.listScrollY,
+            animated: false,
+          });
+        }
+      });
+    }, [sheetHeight]),
   );
 
   const recenter = useCallback(() => {
+    restoringRef.current = false;
     refresh();
-    mapRef.current?.setView(latitude, longitude, 12);
-  }, [refresh, latitude, longitude]);
+    if (isFallback) {
+      mapRef.current?.fitRadiusKm(latitude, longitude, MAP_FALLBACK_RADIUS_KM);
+    } else {
+      mapRef.current?.setView(latitude, longitude, MAP_USER_ZOOM);
+    }
+  }, [refresh, latitude, longitude, isFallback]);
+
+  const onListScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const y = e.nativeEvent.contentOffset.y;
+    listScrollYRef.current = y;
+    patchMapSession({ listScrollY: y });
+  }, []);
 
   const count = filtered?.length ?? 0;
 
@@ -248,19 +532,28 @@ export default function MapScreen() {
       <LeafletMapView
         ref={mapRef}
         style={{ flex: 1 }}
-        center={{ lat: latitude, lng: longitude }}
-        zoom={12}
+        center={mapCenter}
+        zoom={mapZoom}
+        fitRadiusKm={mapFitRadiusKm}
         markers={leafletMarkers}
         userLocation={{ lat: latitude, lng: longitude }}
         orbitColor={orbitColor}
         theme={mapTheme}
         focusPadding={focusPadding}
         onTooltipPress={openService}
+        onFocusComplete={onFocusComplete}
+        onCameraChange={onCameraChange}
+        onReady={onMapReady}
         onMarkerPress={(id) => {
           const t = filtered?.find((x) => x.serviceId === id);
           if (!t) return;
-          if (selectedId === id) {
+          // Second tap only opens detail once the callout is visible.
+          if (selectedId === id && showCallout) {
             openService(id);
+            return;
+          }
+          if (selectedId === id && !showCallout) {
+            // Same pin mid-flight — ignore (wait for focusComplete).
             return;
           }
           focusTalent(t.serviceId, t.latitude, t.longitude);
@@ -279,7 +572,7 @@ export default function MapScreen() {
           gap: Spacing.two,
         }}
       >
-        <Pressable onPress={() => router.back()} style={{ width: 44, height: 44 }}>
+        <Pressable onPress={handleBack} style={{ width: 44, height: 44 }}>
           <View
             style={{
               width: 44,
@@ -316,45 +609,61 @@ export default function MapScreen() {
       />
 
       <Animated.View
-        style={[
-          {
-            position: 'absolute',
-            left: Spacing.four,
-            flexDirection: 'row',
-            backgroundColor: panelBg,
-            borderRadius: Radius.pill,
-            padding: 4,
-            gap: 2,
-            zIndex: 20,
-            ...Shadows.nav,
-          },
-          recenterStyle,
-        ]}
+        pointerEvents="box-none"
+        style={[{ position: 'absolute', left: Spacing.four, zIndex: 25 }, radiusBarStyle]}
       >
-        {[5, 15, 25, 50].map((r) => (
-          <Pressable key={r} onPress={() => setRadiusKm(r)}>
-            <View
-              style={{
-                paddingHorizontal: 10,
-                paddingVertical: 6,
-                borderRadius: Radius.pill,
-                backgroundColor: radiusKm === r ? colors.orbit : 'transparent',
-              }}
-            >
-              <Text
-                style={[
-                  textStyle('micro'),
-                  {
-                    fontFamily: fontFamily('body', 'medium'),
-                    color: radiusKm === r ? colors.onOrbit : colors.ink,
-                  },
-                ]}
-              >
-                {r} km
-              </Text>
-            </View>
-          </Pressable>
-        ))}
+        <View style={Shadows.nav}>
+          <View
+            style={{
+              flexDirection: 'row',
+              backgroundColor: panelBg,
+              borderRadius: Radius.pill,
+              overflow: 'hidden',
+              padding: 4,
+              gap: 2,
+            }}
+          >
+            {RADIUS_OPTIONS.map((r) => {
+              const selected = radiusKm === r;
+              return (
+                <Pressable
+                  key={r}
+                  onPress={() => selectRadius(r)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected }}
+                  accessibilityLabel={`${r} kilomètres`}
+                  hitSlop={6}
+                  style={({ pressed }) => [{ minWidth: 44, height: 32 }, { opacity: pressed ? 0.9 : 1 }]}
+                >
+                  <View
+                    style={{
+                      minWidth: 44,
+                      height: 32,
+                      paddingHorizontal: 10,
+                      borderRadius: Radius.pill,
+                      overflow: 'hidden',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: selected ? colors.orbit : 'transparent',
+                    }}
+                  >
+                    <Text
+                      style={[
+                        textStyle('micro'),
+                        {
+                          fontFamily: fontFamily('body', 'medium'),
+                          color: selected ? colors.onOrbit : colors.ink,
+                        },
+                      ]}
+                    >
+                      {r} km
+                    </Text>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
       </Animated.View>
 
       <Animated.View
@@ -379,7 +688,7 @@ export default function MapScreen() {
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: panelBg,
+            backgroundColor: sheetBg,
             borderTopLeftRadius: PANEL_RADIUS,
             borderTopRightRadius: PANEL_RADIUS,
             overflow: 'hidden',
@@ -435,11 +744,14 @@ export default function MapScreen() {
 
         <Animated.View style={listWrapStyle}>
           <ScrollView
+            ref={listScrollRef}
             style={{ flex: 1 }}
             nestedScrollEnabled
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
             bounces
+            onScroll={onListScroll}
+            scrollEventThrottle={16}
             contentContainerStyle={{
               paddingHorizontal: PAGE_H_PAD,
               paddingBottom: Spacing.eight,
@@ -463,22 +775,32 @@ export default function MapScreen() {
                 }
                 actions={
                   radiusKm < 50
-                    ? [{ label: 'Élargir à 50 km', onPress: () => setRadiusKm(50), variant: 'outline' }]
+                    ? [{ label: 'Élargir à 50 km', onPress: () => selectRadius(50), variant: 'outline' }]
                     : undefined
                 }
               />
             ) : (
               filtered.map((t) => {
                 const isSelected = selectedId === t.serviceId;
+                const ringColor = categoryAccent(t.categoryIcon, t.categoryLabel);
                 return (
                   <View
                     key={t.serviceId}
+                    onLayout={(e) => {
+                      const y = e.nativeEvent.layout.y;
+                      const hadOffset = rowOffsets.current[t.serviceId] != null;
+                      rowOffsets.current[t.serviceId] = y;
+                      // First layout after selection — scroll once offsets exist.
+                      if (isSelected && !hadOffset && !pendingScrollRestoreRef.current) {
+                        scrollToSelected(t.serviceId);
+                      }
+                    }}
                     style={
                       isSelected
                         ? {
                             borderRadius: Radius.md,
-                            borderWidth: 0.1,
-                            borderColor: colors.orbit,
+                            borderWidth: 2,
+                            borderColor: ringColor,
                           }
                         : undefined
                     }
@@ -500,10 +822,11 @@ export default function MapScreen() {
                       categoryLabel={t.categoryLabel}
                       layout={t.isPremium ? 'card' : 'list'}
                       onPress={() => {
-                        if (isSelected) {
+                        if (isSelected && showCallout) {
                           openService(t.serviceId);
                           return;
                         }
+                        if (isSelected && !showCallout) return;
                         focusTalent(t.serviceId, t.latitude, t.longitude);
                       }}
                     />

@@ -16,6 +16,7 @@ import {
   AuthPrimaryButton,
   AuthGhostButton,
   AuthDivider,
+  AuthSocialRow,
   SocialAuthButton,
   GoogleIcon,
   AppleIcon,
@@ -112,10 +113,10 @@ export default function LoginScreen() {
         subtitle={t('auth.loginSubtitle')}
         onBack={onBack}
       >
-        <View style={styles.socialRow}>
+        <AuthSocialRow style={{ marginTop: Spacing.six }}>
           <SocialAuthButton label="Google" icon={<GoogleIcon />} onPress={() => handleSocial('Google')} />
           <SocialAuthButton label="Apple" icon={<AppleIcon />} onPress={() => handleSocial('Apple')} />
-        </View>
+        </AuthSocialRow>
 
         <AuthDivider label={t('common.or')} />
 
@@ -241,14 +242,6 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  socialRow: {
-    flexDirection: 'row',
-    alignSelf: 'stretch',
-    width: '100%',
-    alignItems: 'stretch',
-    gap: Spacing.three,
-    marginTop: Spacing.six,
-  },
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',

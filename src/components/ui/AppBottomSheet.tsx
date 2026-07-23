@@ -1,39 +1,47 @@
+import { X } from 'phosphor-react-native';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View,
-  Modal,
-  Pressable,
-  ScrollView,
-  KeyboardAvoidingView,
   Keyboard,
-  Platform,
-  useWindowDimensions,
+  KeyboardAvoidingView,
+  Modal,
   PanResponder,
+  Platform,
+  Pressable,
   StyleSheet,
+  useWindowDimensions,
+  View,
+  type LayoutChangeEvent,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
 import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
   Easing,
+  Extrapolation,
+  interpolate,
   runOnJS,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+  type SharedValue,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { X } from 'phosphor-react-native';
 
-import { SheetHeader } from '@/components/ui/PageHeader';
+import { PAGE_H_PAD, SheetHeader } from '@/components/ui/PageHeader';
+import { Text } from '@/components/ui/ThemedText';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { Radius, Spacing } from '@/theme/tokens';
+import { textStyle } from '@/theme/typography';
 
 const DISMISS_DRAG = 80;
-/** Black scrim — same in light and dark mode. */
 const BACKDROP_COLOR = '#000000';
 const BACKDROP_OPACITY = 0.5;
 const OPEN_MS = 180;
 const CLOSE_MS = 160;
+const HANDLE_FADE_MS = 160;
 const EASE = Easing.out(Easing.cubic);
+const STICKY_THRESHOLD = 56;
+const HANDLE_BLOCK_H = 36;
 
 export interface AppBottomSheetProps {
   visible: boolean;
@@ -41,17 +49,117 @@ export interface AppBottomSheetProps {
   title: string;
   subtitle?: string;
   children: React.ReactNode;
-  /** Show the drag handle pill at the top. Default true. */
   showHandle?: boolean;
-  /** Fixed sheet height in px. Otherwise sizes to content up to maxHeightRatio. */
   snapHeight?: number;
-  /** Max height as a fraction of the screen (0–1). Default 0.92. */
   maxHeightRatio?: number;
-  /** Wrap children in a ScrollView. Default true. */
   scrollable?: boolean;
-  /** Optional close button in the header row. Default true. */
   showClose?: boolean;
+  stickyHeader?: boolean;
   contentContainerStyle?: StyleProp<ViewStyle>;
+}
+
+function SheetCloseButton({ onPress }: { onPress: () => void }) {
+  const { colors } = useAppTheme();
+
+  return (
+    <Pressable
+      onPress={onPress}
+      hitSlop={8}
+      accessibilityRole="button"
+      accessibilityLabel="Fermer"
+      style={({ pressed }) => ({
+        width: 44,
+        height: 44,
+        opacity: pressed ? 0.8 : 1,
+      })}
+    >
+      <View
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: 22,
+          backgroundColor: colors.surfaceCard,
+          borderWidth: 0.1,
+          borderColor: colors.border,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <X size={20} color={colors.ink} weight="bold" />
+      </View>
+    </Pressable>
+  );
+}
+
+interface SheetStickyBarProps {
+  title: string;
+  progress: SharedValue<number>;
+  active: boolean;
+  showClose: boolean;
+  onClose: () => void;
+}
+
+function SheetStickyBar({
+  title,
+  progress,
+  active,
+  showClose,
+  onClose,
+}: SheetStickyBarProps) {
+  const { colors } = useAppTheme();
+
+  const style = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      progress.value,
+      [STICKY_THRESHOLD - 24, STICKY_THRESHOLD + 12],
+      [0, 1],
+      Extrapolation.CLAMP,
+    ),
+    transform: [
+      {
+        translateY: interpolate(
+          progress.value,
+          [STICKY_THRESHOLD - 24, STICKY_THRESHOLD + 12],
+          [-8, 0],
+          Extrapolation.CLAMP,
+        ),
+      },
+    ],
+  }));
+
+  return (
+    <Animated.View
+      pointerEvents={active ? 'auto' : 'none'}
+      style={[
+        {
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 20,
+          backgroundColor: colors.canvas,
+          paddingTop: Spacing.three,
+          paddingBottom: Spacing.three,
+          paddingHorizontal: PAGE_H_PAD,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: Spacing.three,
+        },
+        style,
+      ]}
+    >
+      <Text
+        numberOfLines={1}
+        style={[
+          textStyle('featureHeading'),
+          { color: colors.ink, flex: 1, fontSize: 18, lineHeight: 22 },
+        ]}
+      >
+        {title}
+      </Text>
+      {showClose ? <SheetCloseButton onPress={onClose} /> : null}
+    </Animated.View>
+  );
 }
 
 export function AppBottomSheet({
@@ -65,19 +173,39 @@ export function AppBottomSheet({
   maxHeightRatio = 0.92,
   scrollable = true,
   showClose = true,
+  stickyHeader = true,
   contentContainerStyle,
 }: AppBottomSheetProps) {
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
-  const maxSheetHeight = Math.round(windowHeight * maxHeightRatio);
+  /** Zone status bar / notch — la sheet ne doit jamais y entrer. */
+  const topClearance = Math.max(insets.top, Spacing.three);
+  const maxSheetHeight = Math.round(
+    Math.min(windowHeight * maxHeightRatio, windowHeight - topClearance),
+  );
 
   const translateY = useSharedValue(windowHeight);
   const backdropOpacity = useSharedValue(0);
   const dragOffset = useSharedValue(0);
+  const scrollY = useSharedValue(0);
+  const handleOpacity = useSharedValue(1);
+
   const [mounted, setMounted] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [stickyActive, setStickyActive] = useState(false);
   const closingRef = useRef(false);
+  const sheetRef = useRef<Animated.View>(null);
+  const effectiveMaxHeightRef = useRef(maxSheetHeight);
+  const topClearanceRef = useRef(topClearance);
+
+  const keyboardOpen = keyboardHeight > 0;
+  const effectiveMaxHeight = keyboardOpen
+    ? Math.min(maxSheetHeight, windowHeight - keyboardHeight - topClearance)
+    : maxSheetHeight;
+
+  effectiveMaxHeightRef.current = effectiveMaxHeight;
+  topClearanceRef.current = topClearance;
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -93,6 +221,32 @@ export function AppBottomSheet({
       onHide.remove();
     };
   }, []);
+
+  const syncHandleVisibility = useCallback(
+    (sheetTopY: number, sheetHeight: number) => {
+      const atFullHeight =
+        sheetTopY <= topClearanceRef.current + 8 ||
+        sheetHeight >= effectiveMaxHeightRef.current - 4;
+      handleOpacity.value = withTiming(atFullHeight ? 0 : 1, {
+        duration: HANDLE_FADE_MS,
+        easing: EASE,
+      });
+    },
+    [handleOpacity],
+  );
+
+  const measureSheet = useCallback(() => {
+    sheetRef.current?.measureInWindow((_x, y, _w, h) => {
+      syncHandleVisibility(y, h);
+    });
+  }, [syncHandleVisibility]);
+
+  const onSheetLayout = useCallback(
+    (_e: LayoutChangeEvent) => {
+      measureSheet();
+    },
+    [measureSheet],
+  );
 
   const animateOpen = useCallback(() => {
     translateY.value = withTiming(0, { duration: OPEN_MS, easing: EASE });
@@ -116,11 +270,15 @@ export function AppBottomSheet({
     if (visible) {
       closingRef.current = false;
       setMounted(true);
+      scrollY.value = 0;
+      setStickyActive(false);
       translateY.value = windowHeight;
       backdropOpacity.value = 0;
       dragOffset.value = 0;
+      handleOpacity.value = 1;
       requestAnimationFrame(() => {
         animateOpen();
+        requestAnimationFrame(measureSheet);
       });
       return;
     }
@@ -137,11 +295,20 @@ export function AppBottomSheet({
     animateOpen,
     backdropOpacity,
     dragOffset,
+    handleOpacity,
+    measureSheet,
     mounted,
+    scrollY,
     translateY,
     visible,
     windowHeight,
   ]);
+
+  useEffect(() => {
+    if (!mounted) return;
+    const id = requestAnimationFrame(measureSheet);
+    return () => cancelAnimationFrame(id);
+  }, [effectiveMaxHeight, keyboardHeight, measureSheet, mounted]);
 
   const requestClose = useCallback(() => {
     if (!mounted || closingRef.current) return;
@@ -154,7 +321,6 @@ export function AppBottomSheet({
     });
   }, [animateClose, mounted, onClose]);
 
-  /** Drag only from the handle zone so ScrollView content stays independent. */
   const handlePanResponder = useMemo(
     () =>
       PanResponder.create({
@@ -184,6 +350,15 @@ export function AppBottomSheet({
     [dragOffset, requestClose],
   );
 
+  const onScroll = useAnimatedScrollHandler({
+    onScroll: (e) => {
+      scrollY.value = e.contentOffset.y;
+      if (stickyHeader && scrollable) {
+        runOnJS(setStickyActive)(e.contentOffset.y > STICKY_THRESHOLD - 8);
+      }
+    },
+  });
+
   const backdropStyle = useAnimatedStyle(() => ({
     opacity: backdropOpacity.value,
   }));
@@ -192,18 +367,28 @@ export function AppBottomSheet({
     transform: [{ translateY: translateY.value + dragOffset.value }],
   }));
 
+  const handlePillStyle = useAnimatedStyle(() => ({
+    opacity: handleOpacity.value,
+  }));
+
   const sheetHeightStyle = snapHeight
-    ? { height: Math.min(snapHeight, maxSheetHeight) }
-    : { maxHeight: maxSheetHeight };
+    ? { height: Math.min(snapHeight, effectiveMaxHeight) }
+    : { maxHeight: effectiveMaxHeight };
+
+  const handleBlockHeight = showHandle ? HANDLE_BLOCK_H : 0;
+  const scrollMaxHeight = Math.max(effectiveMaxHeight - handleBlockHeight, 120);
 
   const bottomSafe = Math.max(insets.bottom, Spacing.four);
-  /** Keep sheet above the system nav bar; when keyboard is open, pad by keyboard height. */
-  const sheetBottomPad = keyboardHeight > 0 ? Spacing.four : bottomSafe;
+  const sheetBottomPad = keyboardOpen ? Spacing.four : bottomSafe;
+  const useSticky = scrollable && stickyHeader;
+  const sheetBg = colors.canvas;
 
   const body = (
     <View
       style={[
         {
+          alignSelf: 'stretch',
+          width: '100%',
           paddingHorizontal: Spacing.six,
           paddingBottom: sheetBottomPad,
         },
@@ -211,6 +396,25 @@ export function AppBottomSheet({
       ]}
     >
       {children}
+    </View>
+  );
+
+  const staticHeader = (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+      }}
+    >
+      <View style={{ flex: 1 }}>
+        <SheetHeader title={title} subtitle={subtitle} />
+      </View>
+      {showClose ? (
+        <View style={{ marginTop: Spacing.five, marginRight: Spacing.six }}>
+          <SheetCloseButton onPress={requestClose} />
+        </View>
+      ) : null}
     </View>
   );
 
@@ -232,113 +436,116 @@ export function AppBottomSheet({
         >
           <Animated.View
             pointerEvents="none"
-            style={[
-              StyleSheet.absoluteFill,
-              { backgroundColor: BACKDROP_COLOR },
-              backdropStyle,
-            ]}
+            style={[StyleSheet.absoluteFill, { backgroundColor: BACKDROP_COLOR }, backdropStyle]}
           />
         </Pressable>
 
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={0}
-          style={{ width: '100%' }}
+          style={{
+            width: '100%',
+            zIndex: 2,
+            elevation: 8,
+            ...(keyboardOpen && scrollable ? { flex: 1 } : null),
+          }}
         >
           <Animated.View
+            ref={sheetRef}
+            onLayout={onSheetLayout}
             style={[
               {
-                backgroundColor: colors.canvas,
+                width: '100%',
+                backgroundColor: sheetBg,
+                overflow: 'hidden',
+                marginBottom: keyboardHeight,
                 borderTopLeftRadius: Radius.xl,
                 borderTopRightRadius: Radius.xl,
-                overflow: 'hidden',
-                // Lift above system gesture / nav bar when keyboard is closed.
-                marginBottom: keyboardHeight > 0 ? keyboardHeight : 0,
-                paddingBottom: keyboardHeight > 0 ? 0 : 0,
+                ...(keyboardOpen && scrollable ? { flex: 1, maxHeight: effectiveMaxHeight } : null),
               },
               sheetHeightStyle,
               sheetStyle,
             ]}
           >
-            {/* Drag handle — exclusive pan target */}
             {showHandle ? (
               <View
                 {...handlePanResponder.panHandlers}
                 style={{
                   alignItems: 'center',
+                  justifyContent: 'center',
                   paddingTop: Spacing.three,
                   paddingBottom: Spacing.two,
-                  minHeight: 36,
+                  minHeight: HANDLE_BLOCK_H,
                 }}
                 accessibilityRole="adjustable"
                 accessibilityLabel="Faire glisser pour fermer"
               >
-                <View
-                  style={{
-                    width: 44,
-                    height: 5,
-                    borderRadius: 3,
-                    backgroundColor: colors.borderStrong,
-                  }}
+                <Animated.View
+                  style={[
+                    {
+                      width: 44,
+                      height: 5,
+                      borderRadius: 3,
+                      backgroundColor: colors.borderStrong,
+                    },
+                    handlePillStyle,
+                  ]}
                 />
               </View>
             ) : null}
 
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'flex-start',
-                justifyContent: 'space-between',
-              }}
-            >
-              <View style={{ flex: 1 }}>
-                <SheetHeader title={title} subtitle={subtitle} />
-              </View>
-              {showClose ? (
-                <View style={{ marginTop: Spacing.five, marginRight: Spacing.six }}>
-                  <Pressable
-                    onPress={requestClose}
-                    hitSlop={8}
-                    accessibilityRole="button"
-                    accessibilityLabel="Fermer"
-                    style={({ pressed }) => ({
-                      width: 44,
-                      height: 44,
-                      opacity: pressed ? 0.8 : 1,
-                    })}
-                  >
-                    <View
-                      style={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: 22,
-                        backgroundColor: colors.surfaceCard,
-                        borderWidth: 0.1,
-                        borderColor: colors.border,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <X size={20} color={colors.ink} weight="bold" />
-                    </View>
-                  </Pressable>
-                </View>
-              ) : null}
-            </View>
-
             {scrollable ? (
-              <ScrollView
-                keyboardShouldPersistTaps="handled"
-                keyboardDismissMode="none"
-                showsVerticalScrollIndicator={false}
-                bounces
-                nestedScrollEnabled
-                contentContainerStyle={{ flexGrow: 1 }}
-              >
-                {body}
-              </ScrollView>
+              <View style={{ width: '100%', backgroundColor: sheetBg }}>
+                {useSticky ? (
+                  <SheetStickyBar
+                    title={title}
+                    progress={scrollY}
+                    active={stickyActive}
+                    showClose={showClose}
+                    onClose={requestClose}
+                  />
+                ) : null}
+
+                {showClose && (!useSticky || !stickyActive) ? (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      top: showHandle ? Spacing.two : Spacing.five,
+                      right: Spacing.six,
+                      zIndex: 10,
+                    }}
+                  >
+                    <SheetCloseButton onPress={requestClose} />
+                  </View>
+                ) : null}
+
+                <Animated.ScrollView
+                  onScroll={onScroll}
+                  scrollEventThrottle={16}
+                  keyboardShouldPersistTaps="handled"
+                  keyboardDismissMode="none"
+                  showsVerticalScrollIndicator={false}
+                  bounces
+                  nestedScrollEnabled
+                  style={{ backgroundColor: sheetBg, maxHeight: scrollMaxHeight }}
+                  contentContainerStyle={{ flexGrow: 1 }}
+                >
+                  <SheetHeader
+                    title={title}
+                    subtitle={subtitle}
+                    style={{
+                      paddingTop: useSticky ? Spacing.three : Spacing.two,
+                      ...(showClose ? { paddingRight: 56 } : null),
+                    }}
+                  />
+                  {body}
+                </Animated.ScrollView>
+              </View>
             ) : (
-              body
+              <>
+                {staticHeader}
+                {body}
+              </>
             )}
           </Animated.View>
         </KeyboardAvoidingView>

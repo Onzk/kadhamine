@@ -8,6 +8,58 @@ import { useAppTheme } from '@/providers/ThemeProvider';
 import { fontFamily, textStyle } from '@/theme/typography';
 import { Radius, Shadows, Spacing } from '@/theme/tokens';
 
+export const AUTH_NAV_SIZE = 44;
+
+/** Bouton retour auth — même taille que le logo header. */
+export function AuthBackButton({ onPress }: { onPress: () => void }) {
+  const { colors } = useAppTheme();
+
+  return (
+    <Pressable
+      onPress={onPress}
+      hitSlop={8}
+      accessibilityRole="button"
+      accessibilityLabel="Retour"
+      style={({ pressed }) => ({
+        width: AUTH_NAV_SIZE,
+        height: AUTH_NAV_SIZE,
+        opacity: pressed ? 0.85 : 1,
+      })}
+    >
+      <View
+        style={{
+          width: AUTH_NAV_SIZE,
+          height: AUTH_NAV_SIZE,
+          borderRadius: AUTH_NAV_SIZE / 2,
+          backgroundColor: colors.iconWash,
+          borderWidth: 0.1,
+          borderColor: colors.borderStrong,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <CaretLeft size={20} color={colors.ink} weight="bold" />
+      </View>
+    </Pressable>
+  );
+}
+
+/** Logo header — emprise identique au bouton retour. */
+export function AuthHeaderLogo() {
+  return (
+    <View
+      style={{
+        width: AUTH_NAV_SIZE,
+        height: AUTH_NAV_SIZE,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <Logo size={32} />
+    </View>
+  );
+}
+
 type Role = 'client' | 'provider';
 
 interface RolePickerProps {
@@ -15,14 +67,35 @@ interface RolePickerProps {
   onChange: (role: Role) => void;
 }
 
-/** Sélecteur Client / Prestataire — 50/50, card sélectionnée brand blue. */
+/** Sélecteur Client / Prestataire — 50/50, couleurs distinctes par rôle. */
 export function RolePicker({ value, onChange }: RolePickerProps) {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
 
-  const options: Array<{ role: Role; Icon: typeof UsersThree; desc: string }> = [
-    { role: 'client', Icon: UsersThree, desc: t('auth.clientDesc') },
-    { role: 'provider', Icon: Briefcase, desc: t('auth.providerDesc') },
+  const options: Array<{
+    role: Role;
+    Icon: typeof UsersThree;
+    desc: string;
+    accent: string;
+    wash: string;
+    onAccent: string;
+  }> = [
+    {
+      role: 'client',
+      Icon: UsersThree,
+      desc: t('auth.clientDesc'),
+      accent: colors.orbit,
+      wash: colors.orbitWash,
+      onAccent: colors.onOrbit,
+    },
+    {
+      role: 'provider',
+      Icon: Briefcase,
+      desc: t('auth.providerDesc'),
+      accent: colors.clay,
+      wash: colors.orbitWash,
+      onAccent: colors.onOrbit,
+    },
   ];
 
   return (
@@ -35,17 +108,24 @@ export function RolePicker({ value, onChange }: RolePickerProps) {
         marginBottom: Spacing.six,
       }}
     >
-      {options.map(({ role, Icon, desc }) => {
+      {options.map(({ role, Icon, desc, accent, wash, onAccent }) => {
         const selected = value === role;
+        const cardBg = selected
+          ? role === 'provider'
+            ? accent + '12'
+            : wash
+          : colors.iconWash;
         return (
           <Pressable
             key={role}
             onPress={() => onChange(role)}
+            accessibilityRole="button"
+            accessibilityState={{ selected }}
             style={({ pressed }) => ({
               flex: 1,
               flexBasis: 0,
               minWidth: 0,
-              minHeight: 132,
+              minHeight: 128,
               opacity: pressed ? 0.92 : 1,
               transform: [{ scale: pressed ? 0.98 : 1 }],
             })}
@@ -53,15 +133,14 @@ export function RolePicker({ value, onChange }: RolePickerProps) {
             <View
               style={{
                 flex: 1,
-                minHeight: 132,
+                minHeight: 128,
                 paddingVertical: Spacing.four,
                 paddingHorizontal: Spacing.two,
                 borderRadius: Radius.lg,
-                borderWidth: 0.1,
-                borderColor: selected ? colors.orbit : colors.border,
-                backgroundColor: selected ? colors.orbit + '14' : colors.surfaceCard,
+                borderWidth: selected ? 1.5 : 0.1,
+                borderColor: selected ? accent : colors.borderStrong,
+                backgroundColor: cardBg,
                 alignItems: 'center',
-                ...Shadows.nav,
               }}
             >
               <View
@@ -69,18 +148,25 @@ export function RolePicker({ value, onChange }: RolePickerProps) {
                   width: 44,
                   height: 44,
                   borderRadius: 22,
-                  backgroundColor: selected ? colors.orbit : colors.iconWash,
+                  backgroundColor: selected ? accent : colors.surfaceCard,
+                  borderWidth: selected ? 0 : 0.1,
+                  borderColor: colors.borderStrong,
                   alignItems: 'center',
                   justifyContent: 'center',
                   marginBottom: Spacing.two,
                 }}
               >
-                <Icon size={22} color={selected ? colors.onOrbit : colors.ink} weight="bold" />
+                <Icon size={22} color={selected ? onAccent : colors.ink} weight="bold" />
               </View>
               <Text
                 style={[
                   textStyle('button'),
-                  { color: colors.ink, marginBottom: 4, textAlign: 'center' },
+                  {
+                    color: selected ? colors.ink : colors.body,
+                    marginBottom: 4,
+                    textAlign: 'center',
+                    fontFamily: fontFamily('body', 'medium'),
+                  },
                 ]}
               >
                 {t(`auth.${role}`)}
@@ -89,7 +175,7 @@ export function RolePicker({ value, onChange }: RolePickerProps) {
                 style={[
                   textStyle('micro'),
                   {
-                    color: colors.muted,
+                    color: selected ? colors.slate : colors.muted,
                     textAlign: 'center',
                     lineHeight: 16,
                     flexShrink: 1,
@@ -357,35 +443,12 @@ export function AuthHeader({ title, subtitle, onBack, showLogo = true }: AuthHea
         }}
       >
         {onBack ? (
-          <Pressable
-            onPress={onBack}
-            hitSlop={8}
-            style={({ pressed }) => ({
-              width: 44,
-              height: 44,
-              opacity: pressed ? 0.85 : 1,
-            })}
-          >
-            <View
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 22,
-                backgroundColor: colors.surfaceCard,
-                borderWidth: 0.1,
-                borderColor: colors.border,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <CaretLeft size={20} color={colors.ink} weight="bold" />
-            </View>
-          </Pressable>
+          <AuthBackButton onPress={onBack} />
         ) : (
-          <View style={{ width: 44 }} />
+          <View style={{ width: AUTH_NAV_SIZE }} />
         )}
 
-        {showLogo ? <Logo size={28} /> : <View style={{ width: 44 }} />}
+        {showLogo ? <AuthHeaderLogo /> : <View style={{ width: AUTH_NAV_SIZE }} />}
       </View>
 
       <Text

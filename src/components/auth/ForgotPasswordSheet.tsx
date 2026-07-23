@@ -2,15 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { View, Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useAuthActions } from '@convex-dev/auth/react';
-import { Envelope, CheckCircle, WarningCircle } from 'phosphor-react-native';
+import { Envelope, WarningCircle } from 'phosphor-react-native';
 
+import { AlertBottomSheet } from '@/components/ui/AlertBottomSheet';
 import { AppBottomSheet } from '@/components/ui/AppBottomSheet';
 import {
   AuthField,
   AuthPrimaryButton,
-  AuthGhostButton,
   isValidEmail,
 } from '@/components/auth/AuthField';
+import { SheetActionsFooter, SheetSingleAction } from '@/components/ui/SheetActions';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { Radius, Spacing } from '@/theme/tokens';
 import { textStyle } from '@/theme/typography';
@@ -70,37 +71,21 @@ export function ForgotPasswordSheet({ visible, onClose, initialEmail = '' }: For
     onClose();
   };
 
+  const handleSuccessClose = () => {
+    setSent(false);
+    onClose();
+  };
+
   return (
-    <AppBottomSheet
-      visible={visible}
-      onClose={handleClose}
-      title={t('auth.forgotPasswordTitle')}
-      subtitle={sent ? undefined : t('auth.forgotPasswordSubtitle')}
-      showClose={!loading}
-    >
-      {sent ? (
-        <View style={{ gap: Spacing.four, paddingBottom: Spacing.two }}>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'flex-start',
-              gap: Spacing.three,
-              backgroundColor: colors.success + '12',
-              borderRadius: Radius.lg,
-              padding: Spacing.four,
-              borderWidth: 0.1,
-              borderColor: colors.success + '30',
-            }}
-          >
-            <CheckCircle size={22} color={colors.success} weight="fill" />
-            <Text style={[textStyle('body'), { color: colors.ink, flex: 1, lineHeight: 24 }]}>
-              {t('auth.forgotPasswordSuccess', { email: email.trim() })}
-            </Text>
-          </View>
-          <AuthPrimaryButton title={t('common.done')} onPress={handleClose} />
-        </View>
-      ) : (
-        <View style={{ gap: Spacing.one, paddingBottom: Spacing.two }}>
+    <>
+      <AppBottomSheet
+        visible={visible && !sent}
+        onClose={handleClose}
+        title={t('auth.forgotPasswordTitle')}
+        subtitle={t('auth.forgotPasswordSubtitle')}
+        showClose={!loading}
+      >
+        <View style={{ alignSelf: 'stretch', width: '100%', gap: Spacing.one, paddingBottom: Spacing.four }}>
           {error ? (
             <View
               accessibilityRole="alert"
@@ -139,17 +124,37 @@ export function ForgotPasswordSheet({ visible, onClose, initialEmail = '' }: For
             onSubmitEditing={handleSendReset}
           />
 
-          <View style={{ gap: Spacing.three, marginTop: Spacing.one }}>
-            <AuthPrimaryButton
-              title={t('auth.forgotPasswordSend')}
-              onPress={handleSendReset}
-              loading={loading}
-              disabled={!canSubmit}
-            />
-            <AuthGhostButton title={t('common.cancel')} onPress={handleClose} />
-          </View>
+          <SheetActionsFooter style={{ marginTop: Spacing.one }}>
+            <SheetSingleAction>
+              <AuthPrimaryButton
+                title={t('auth.forgotPasswordSend')}
+                onPress={handleSendReset}
+                loading={loading}
+                disabled={!canSubmit}
+                tone="ink"
+                flat
+              />
+            </SheetSingleAction>
+            <SheetSingleAction>
+              <AuthPrimaryButton
+                title={t('common.cancel')}
+                onPress={handleClose}
+                disabled={loading}
+                tone="outline"
+                flat
+              />
+            </SheetSingleAction>
+          </SheetActionsFooter>
         </View>
-      )}
-    </AppBottomSheet>
+      </AppBottomSheet>
+
+      <AlertBottomSheet
+        visible={visible && sent}
+        onClose={handleSuccessClose}
+        title={t('auth.forgotPasswordTitle')}
+        message={t('auth.forgotPasswordSuccess', { email: email.trim() })}
+        buttonLabel={t('common.done')}
+      />
+    </>
   );
 }

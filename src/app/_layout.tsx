@@ -3,7 +3,7 @@ import { ConvexAuthProvider } from '@convex-dev/auth/react';
 import { ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { PortalHost } from '@rn-primitives/portal';
 import { ConvexReactClient } from 'convex/react';
-import { Slot } from 'expo-router';
+import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -37,7 +37,7 @@ function ThemedGestureRoot({ children }: { children: React.ReactNode }) {
 }
 
 function RootContent() {
-  const { isDark } = useAppTheme();
+  const { isDark, colors } = useAppTheme();
   const navTheme = isDark ? NAV_THEME.dark : NAV_THEME.light;
 
   return (
@@ -48,7 +48,27 @@ function RootContent() {
         <AppDialogProvider>
           {/* No bottom edge: canvas must paint under the system nav; tabs pad themselves. */}
           <AppSafeArea edges={['top', 'left', 'right']}>
-            <Slot />
+            {/*
+              Stack (not Slot) so map → service/[id] is a real push: previous screen
+              stays mounted in the React tree. freezeOnBlur:false avoids freezing the
+              Leaflet WebView while service detail is on top. Session store covers remounts.
+            */}
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                animation: 'slide_from_right',
+                contentStyle: { backgroundColor: colors.canvas },
+                freezeOnBlur: false,
+              }}
+            >
+              <Stack.Screen name="index" options={{ animation: 'none' }} />
+              <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
+              <Stack.Screen name="(auth)" options={{ animation: 'slide_from_right' }} />
+              <Stack.Screen name="map" options={{ animation: 'slide_from_right' }} />
+              <Stack.Screen name="talents" options={{ animation: 'slide_from_right' }} />
+              <Stack.Screen name="service/[id]" options={{ animation: 'slide_from_right' }} />
+              <Stack.Screen name="provider/[id]" options={{ animation: 'slide_from_right' }} />
+            </Stack>
           </AppSafeArea>
         </AppDialogProvider>
       </AuthProvider>

@@ -1,20 +1,20 @@
-import React, { useRef, useState } from 'react';
-import { View, Text, Pressable, type ViewStyle, type StyleProp } from 'react-native';
-import { CaretLeft } from 'phosphor-react-native';
 import { useRouter } from 'expo-router';
+import { CaretLeft } from 'phosphor-react-native';
+import React, { useRef, useState } from 'react';
+import { Pressable, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, {
-  useSharedValue,
+  Extrapolation,
+  interpolate,
+  runOnJS,
   useAnimatedScrollHandler,
   useAnimatedStyle,
-  interpolate,
-  Extrapolation,
-  runOnJS,
+  useSharedValue,
   type SharedValue,
 } from 'react-native-reanimated';
 
 import { useAppTheme } from '@/providers/ThemeProvider';
-import { textStyle } from '@/theme/typography';
 import { Spacing } from '@/theme/tokens';
+import { textStyle } from '@/theme/typography';
 
 /** Marge horizontale standard des pages (24px). */
 export const PAGE_H_PAD = Spacing.six;

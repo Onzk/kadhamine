@@ -4,6 +4,13 @@ import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 
 import { LEAFLET_HTML } from '@/components/map/leafletHtml';
 
+/** Aggressive pin focus zoom (usable map area above bottom sheet). */
+export const MAP_FOCUS_ZOOM = 17;
+/** Default zoom when device GPS is available. */
+export const MAP_USER_ZOOM = 12;
+/** Overview radius (km) when GPS is off / denied (N'Djamena fallback). */
+export const MAP_FALLBACK_RADIUS_KM = 25;
+
 export type LeafletMarkerTooltip = {
   title: string;
   providerName?: string;
@@ -21,8 +28,10 @@ export type LeafletMarkerData = {
   lng: number;
   selected?: boolean;
   categoryIcon?: string;
+  /** Saturated category accent for pin bubble / tip / selected halo. */
+  categoryColor?: string;
   isPremium?: boolean;
-  /** Compact callout rendered above the pin when selected. */
+  /** Compact callout rendered above the pin when selected (omit until fly completes). */
   tooltip?: LeafletMarkerTooltip;
 };
 
@@ -46,14 +55,21 @@ export type LeafletMapTheme = {
 };
 
 export type LeafletMapHandle = {
-  flyTo: (lat: number, lng: number, zoom?: number) => void;
+  flyTo: (lat: number, lng: number, zoom?: number, focusId?: string) => void;
   setView: (lat: number, lng: number, zoom?: number) => void;
+  /** Fit map to a bbox of ±km around lat/lng (GPS-off overview). */
+  fitRadiusKm: (lat: number, lng: number, km?: number) => void;
   setPadding: (padding: LeafletMapPadding) => void;
 };
 
 type Props = {
   center: { lat: number; lng: number };
   zoom?: number;
+  /**
+   * When set, initial view uses fitBounds for this radius (km) instead of `zoom`.
+   * Used for GPS-off overview (~25 km around N'Djamena).
+   */
+  fitRadiusKm?: number;
   markers: LeafletMarkerData[];
   userLocation?: { lat: number; lng: number } | null;
   orbitColor?: string;
@@ -63,6 +79,10 @@ type Props = {
   onMarkerPress?: (id: string) => void;
   /** Tap on the in-map callout card. */
   onTooltipPress?: (id: string) => void;
+  /** Fired after a focus flyTo animation settles (may be superseded mid-flight). */
+  onFocusComplete?: (id: string) => void;
+  /** Fired on Leaflet moveend/zoomend (and once after ready). */
+  onCameraChange?: (camera: { lat: number; lng: number; zoom: number }) => void;
   onReady?: () => void;
   style?: StyleProp<ViewStyle>;
 };
@@ -85,7 +105,8 @@ function postToWeb(ref: React.RefObject<WebView | null>, msg: object) {
 export const LeafletMapView = forwardRef<LeafletMapHandle, Props>(function LeafletMapView(
   {
     center,
-    zoom = 12,
+    zoom = MAP_USER_ZOOM,
+    fitRadiusKm,
     markers,
     userLocation,
     orbitColor = '#0B3D91',
@@ -93,6 +114,8 @@ export const LeafletMapView = forwardRef<LeafletMapHandle, Props>(function Leafl
     focusPadding,
     onMarkerPress,
     onTooltipPress,
+    onFocusComplete,
+    onCameraChange,
     onReady,
     style,
   },
@@ -100,6 +123,8 @@ export const LeafletMapView = forwardRef<LeafletMapHandle, Props>(function Leafl
 ) {
   const webRef = useRef<WebView>(null);
   const readyRef = useRef(false);
+  const onCameraChangeRef = useRef(onCameraChange);
+  onCameraChangeRef.current = onCameraChange;
 
   const send = useCallback((msg: object) => {
     postToWeb(webRef, msg);
@@ -108,8 +133,11 @@ export const LeafletMapView = forwardRef<LeafletMapHandle, Props>(function Leafl
   useImperativeHandle(
     ref,
     () => ({
-      flyTo: (lat, lng, z = 15) => send({ type: 'flyTo', lat, lng, zoom: z }),
-      setView: (lat, lng, z = 12) => send({ type: 'setView', lat, lng, zoom: z }),
+      flyTo: (lat, lng, z = MAP_FOCUS_ZOOM, focusId) =>
+        send({ type: 'flyTo', lat, lng, zoom: z, focusId }),
+      setView: (lat, lng, z = MAP_USER_ZOOM) => send({ type: 'setView', lat, lng, zoom: z }),
+      fitRadiusKm: (lat, lng, km = MAP_FALLBACK_RADIUS_KM) =>
+        send({ type: 'fitRadiusKm', lat, lng, km }),
       setPadding: (padding) =>
         send({
           type: 'setPadding',
@@ -152,7 +180,10 @@ export const LeafletMapView = forwardRef<LeafletMapHandle, Props>(function Leafl
     (e: WebViewMessageEvent) => {
       let msg: {
         type?: string;
-        id?: string;
+        id?: string | null;
+        lat?: number;
+        lng?: number;
+        zoom?: number;
       };
       try {
         msg = JSON.parse(e.nativeEvent.data);
@@ -165,6 +196,7 @@ export const LeafletMapView = forwardRef<LeafletMapHandle, Props>(function Leafl
           type: 'init',
           center,
           zoom,
+          fitRadiusKm: fitRadiusKm ?? undefined,
           markers,
           orbitColor,
           theme,
@@ -174,17 +206,31 @@ export const LeafletMapView = forwardRef<LeafletMapHandle, Props>(function Leafl
         onReady?.();
         return;
       }
+      if (
+        msg.type === 'camera' &&
+        typeof msg.lat === 'number' &&
+        typeof msg.lng === 'number' &&
+        typeof msg.zoom === 'number'
+      ) {
+        onCameraChangeRef.current?.({ lat: msg.lat, lng: msg.lng, zoom: msg.zoom });
+        return;
+      }
       if (msg.type === 'markerPress' && msg.id) {
         onMarkerPress?.(msg.id);
         return;
       }
       if (msg.type === 'tooltipPress' && msg.id) {
         onTooltipPress?.(msg.id);
+        return;
+      }
+      if (msg.type === 'focusComplete' && msg.id) {
+        onFocusComplete?.(msg.id);
       }
     },
     [
       center,
       zoom,
+      fitRadiusKm,
       markers,
       orbitColor,
       theme,
@@ -192,6 +238,7 @@ export const LeafletMapView = forwardRef<LeafletMapHandle, Props>(function Leafl
       userLocation,
       onMarkerPress,
       onTooltipPress,
+      onFocusComplete,
       onReady,
       send,
     ],

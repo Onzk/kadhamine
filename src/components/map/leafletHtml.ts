@@ -2,6 +2,7 @@
  * HTML Leaflet embarqué (CDN) — communication via postMessage / injectJavaScript.
  * Tuiles OpenStreetMap. Pas de clé API.
  * Callout talent ancré dans le DivIcon du pin sélectionné (centré + suit pan/zoom).
+ * Affiché seulement après flyTo (tooltip fourni par RN une fois focusComplete).
  */
 export const LEAFLET_HTML = `<!DOCTYPE html>
 <html>
@@ -116,8 +117,8 @@ export const LEAFLET_HTML = `<!DOCTYPE html>
     }
     .tt-pin.selected .bubble {
       width: 42px; height: 42px; border-radius: 21px;
-      border-width: 3px; background: #0B3D91;
-      box-shadow: 0 0 0 8px rgba(11,61,145,.2), 0 3px 8px rgba(0,0,0,.28);
+      border-width: 3px;
+      /* fill + halo set inline from categoryColor */
     }
     .tt-pin .tip {
       width: 0; height: 0;
@@ -126,10 +127,10 @@ export const LEAFLET_HTML = `<!DOCTYPE html>
       border-top: 10px solid #0B3D91;
       margin-top: -2px;
     }
-    .tt-pin .gold {
+    .tt-pin .premium {
       position: absolute; top: -3px; right: -3px;
       width: 14px; height: 14px; border-radius: 7px;
-      background: #F5C400; border: 1.5px solid #F3F0EE;
+      background: #E11D48; border: 1.5px solid #F3F0EE;
     }
     .tt-pin svg { width: 18px; height: 18px; fill: #fff; }
     .tt-pin.selected svg { width: 20px; height: 20px; }
@@ -237,6 +238,8 @@ export const LEAFLET_HTML = `<!DOCTYPE html>
       info: '#3860BE',
     };
     let viewPadding = { top: 0, right: 0, bottom: 0, left: 0 };
+    /** Monotonic token so superseded flyTo animations never emit focusComplete. */
+    let focusGen = 0;
 
     function applyTheme(t) {
       if (!t) return;
@@ -315,20 +318,22 @@ export const LEAFLET_HTML = `<!DOCTYPE html>
     function makeIcon(m) {
       const selected = !!m.selected;
       const svgPath = resolveIcon(m.categoryIcon);
-      const gold = m.isPremium ? '<div class="gold"></div>' : '';
+      const pinColor = m.categoryColor || orbitColor || '#0B3D91';
+      const premium = m.isPremium ? '<div class="premium"></div>' : '';
       const halo = selected
-        ? 'box-shadow:0 0 0 8px ' + hexToRgba(orbitColor, 0.2) + ',0 3px 8px rgba(0,0,0,.28);'
+        ? 'box-shadow:0 0 0 8px ' + hexToRgba(pinColor, 0.2) + ',0 3px 8px rgba(0,0,0,.28);'
         : '';
-      const callout = selected ? makeCallout(m) : '';
+      // Callout only when RN passes tooltip (after fly completes).
+      const callout = selected && m.tooltip ? makeCallout(m) : '';
       const html =
         '<div class="tt-anchor">' +
           callout +
           '<div class="tt-pin' + (selected ? ' selected' : '') + '">' +
-            '<div class="bubble" style="background:' + orbitColor + ';' + halo + '">' +
+            '<div class="bubble" style="background:' + pinColor + ';' + halo + '">' +
               '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' + svgPath + '</svg>' +
-              gold +
+              premium +
             '</div>' +
-            '<div class="tip" style="border-top-color:' + orbitColor + '"></div>' +
+            '<div class="tip" style="border-top-color:' + pinColor + '"></div>' +
           '</div>' +
         '</div>';
       return L.divIcon({
@@ -339,15 +344,15 @@ export const LEAFLET_HTML = `<!DOCTYPE html>
       });
     }
 
-    function flyToPadded(lat, lng, zoom) {
-      var z = zoom || map.getZoom();
+    function flyToPadded(lat, lng, zoom, focusId) {
+      var z = zoom == null ? map.getZoom() : zoom;
       var size = map.getSize();
       var pad = viewPadding;
       var usableW = Math.max(40, size.x - (pad.left || 0) - (pad.right || 0));
       var usableH = Math.max(40, size.y - (pad.top || 0) - (pad.bottom || 0));
-      // Pin in lower-middle of usable area (room for callout above, sheet below).
+      // True visual center of the usable map (above sheet, below search/chips).
       var desiredX = (pad.left || 0) + usableW / 2;
-      var desiredY = (pad.top || 0) + usableH * 0.62;
+      var desiredY = (pad.top || 0) + usableH / 2;
       var target = L.latLng(lat, lng);
       var projected = map.project(target, z);
       var centerPoint = L.point(
@@ -355,7 +360,41 @@ export const LEAFLET_HTML = `<!DOCTYPE html>
         projected.y - (desiredY - size.y / 2)
       );
       var center = map.unproject(centerPoint, z);
-      map.flyTo(center, z, { duration: 0.45 });
+      var gen = ++focusGen;
+      var duration = 0.55;
+      try { map.stop(); } catch (e) {}
+      map.flyTo(center, z, { duration: duration });
+      var settled = false;
+      function finish() {
+        if (settled || gen !== focusGen) return;
+        settled = true;
+        map.off('moveend', onMoveEnd);
+        post({ type: 'focusComplete', id: focusId || null, gen: gen });
+      }
+      function onMoveEnd() { finish(); }
+      map.once('moveend', onMoveEnd);
+      // Fallback if already at target (Leaflet may skip animation / moveend).
+      setTimeout(finish, Math.round(duration * 1000) + 120);
+    }
+
+    /** Fit map to a ~km radius bbox around center (GPS-off overview). */
+    function fitRadiusKm(lat, lng, km) {
+      var radius = km > 0 ? km : 100;
+      var dLat = radius / 111.32;
+      var cosLat = Math.cos(lat * Math.PI / 180);
+      var dLng = radius / (111.32 * Math.max(0.2, Math.abs(cosLat)));
+      var bounds = L.latLngBounds(
+        [lat - dLat, lng - dLng],
+        [lat + dLat, lng + dLng]
+      );
+      var pad = viewPadding;
+      try { map.stop(); } catch (e) {}
+      map.fitBounds(bounds, {
+        paddingTopLeft: L.point(pad.left || 0, pad.top || 0),
+        paddingBottomRight: L.point(pad.right || 0, pad.bottom || 0),
+        maxZoom: 12,
+        animate: false,
+      });
     }
 
     function setMarkers(list) {
@@ -402,7 +441,6 @@ export const LEAFLET_HTML = `<!DOCTYPE html>
       if (msg.theme) applyTheme(msg.theme);
       switch (msg.type) {
         case 'init':
-          if (msg.center) map.setView([msg.center.lat, msg.center.lng], msg.zoom || 12);
           if (msg.orbitColor) orbitColor = msg.orbitColor;
           if (msg.theme) applyTheme(msg.theme);
           if (msg.padding) {
@@ -413,6 +451,11 @@ export const LEAFLET_HTML = `<!DOCTYPE html>
               left: msg.padding.left || 0,
             };
           }
+          if (msg.center && msg.fitRadiusKm) {
+            fitRadiusKm(msg.center.lat, msg.center.lng, msg.fitRadiusKm);
+          } else if (msg.center) {
+            map.setView([msg.center.lat, msg.center.lng], msg.zoom || 12);
+          }
           if (msg.markers) setMarkers(msg.markers);
           if (msg.user) setUserLocation(msg.user.lat, msg.user.lng);
           break;
@@ -420,10 +463,15 @@ export const LEAFLET_HTML = `<!DOCTYPE html>
           setMarkers(msg.markers || []);
           break;
         case 'flyTo':
-          flyToPadded(msg.lat, msg.lng, msg.zoom || 15);
+          flyToPadded(msg.lat, msg.lng, msg.zoom != null ? msg.zoom : 17, msg.focusId);
           break;
         case 'setView':
           map.setView([msg.lat, msg.lng], msg.zoom || map.getZoom());
+          break;
+        case 'fitRadiusKm':
+          if (msg.lat != null && msg.lng != null) {
+            fitRadiusKm(msg.lat, msg.lng, msg.km);
+          }
           break;
         case 'setUserLocation':
           setUserLocation(msg.lat, msg.lng);
@@ -447,8 +495,24 @@ export const LEAFLET_HTML = `<!DOCTYPE html>
     document.addEventListener('message', function (e) { handleMessage(e.data); });
     window.addEventListener('message', function (e) { handleMessage(e.data); });
 
+    function postCamera() {
+      try {
+        var c = map.getCenter();
+        post({
+          type: 'camera',
+          lat: c.lat,
+          lng: c.lng,
+          zoom: map.getZoom(),
+        });
+      } catch (e) {}
+    }
+
+    map.on('moveend', postCamera);
+    map.on('zoomend', postCamera);
+
     map.whenReady(function () {
       post({ type: 'ready' });
+      postCamera();
     });
   </script>
 </body>

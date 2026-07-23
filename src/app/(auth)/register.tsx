@@ -5,7 +5,7 @@ import {
   Pressable,
   StyleSheet,
 } from 'react-native';
-import { Link, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { useMutation } from 'convex/react';
@@ -15,6 +15,7 @@ import {
   AuthField,
   AuthPrimaryButton,
   AuthDivider,
+  AuthSocialRow,
   SocialAuthButton,
   GoogleIcon,
   AppleIcon,
@@ -225,15 +226,15 @@ export default function RegisterScreen() {
             title="Continuer"
             onPress={goNext}
             disabled={!step1Valid}
-            icon={<ArrowRight size={18} color={colors.onOrbit} weight="bold" />}
+            icon={<ArrowRight size={18} weight="bold" />}
           />
 
           <AuthDivider label={t('common.or')} />
 
-          <View style={styles.socialRow}>
+          <AuthSocialRow>
             <SocialAuthButton label="Google" icon={<GoogleIcon />} onPress={() => handleSocial('Google')} />
             <SocialAuthButton label="Apple" icon={<AppleIcon />} onPress={() => handleSocial('Apple')} />
-          </View>
+          </AuthSocialRow>
         </>
       ) : (
         <>
@@ -321,31 +322,23 @@ export default function RegisterScreen() {
 
       <View style={styles.footer}>
         <Text style={[textStyle('body'), { color: colors.ink }]}>{t('auth.hasAccount')}</Text>
-        <Link href="/(auth)/login" asChild>
-          <Pressable
-            accessibilityRole="link"
-            accessibilityLabel={t('auth.signIn')}
-            hitSlop={8}
-            style={({ pressed }) => [{ minHeight: 44 }, { opacity: pressed ? 0.75 : 1 }]}
-          >
-            <View style={styles.footerLink}>
-              <Text style={[textStyle('button'), { color: colors.orbit }]}>{t('auth.signIn')}</Text>
-            </View>
-          </Pressable>
-        </Link>
+        <Pressable
+          accessibilityRole="link"
+          accessibilityLabel={t('auth.signIn')}
+          hitSlop={8}
+          onPress={() => router.replace('/(auth)/login')}
+          style={({ pressed }) => [{ minHeight: 44 }, { opacity: pressed ? 0.75 : 1 }]}
+        >
+          <View style={styles.footerLink}>
+            <Text style={[textStyle('button'), { color: colors.orbit }]}>{t('auth.signIn')}</Text>
+          </View>
+        </Pressable>
       </View>
     </AuthScaffold>
   );
 }
 
 const styles = StyleSheet.create({
-  socialRow: {
-    flexDirection: 'row',
-    alignSelf: 'stretch',
-    width: '100%',
-    alignItems: 'stretch',
-    gap: Spacing.three,
-  },
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',

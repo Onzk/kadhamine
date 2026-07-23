@@ -22,7 +22,25 @@ export function coordsForCity(city: string): { lat: number; lng: number; region:
   return { lat: fallback.lat, lng: fallback.lng, region: fallback.region };
 }
 
-/** Deterministic jitter so pins don’t stack (~±1–2 km scale). */
+/** Rough Chad bounding box — keep demo lat/lng realistic. */
+export const CHAD_BOUNDS = {
+  minLat: 7.5,
+  maxLat: 23.5,
+  minLng: 13.5,
+  maxLng: 24,
+} as const;
+
+export function clampChadCoords(
+  lat: number,
+  lng: number,
+): { latitude: number; longitude: number } {
+  return {
+    latitude: Math.min(CHAD_BOUNDS.maxLat, Math.max(CHAD_BOUNDS.minLat, lat)),
+    longitude: Math.min(CHAD_BOUNDS.maxLng, Math.max(CHAD_BOUNDS.minLng, lng)),
+  };
+}
+
+/** Deterministic jitter so pins don’t stack (~±1–2 km scale at default). */
 export function jitterCoords(
   lat: number,
   lng: number,
@@ -31,8 +49,5 @@ export function jitterCoords(
 ): { latitude: number; longitude: number } {
   const a = ((seed * 17) % 11) - 5;
   const b = ((seed * 29) % 11) - 5;
-  return {
-    latitude: lat + a * scale * 0.1,
-    longitude: lng + b * scale * 0.1,
-  };
+  return clampChadCoords(lat + a * scale * 0.1, lng + b * scale * 0.1);
 }

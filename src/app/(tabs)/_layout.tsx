@@ -10,6 +10,7 @@ import {
   User,
   type Icon as PhosphorIcon,
 } from 'phosphor-react-native';
+import { useTabsBackToHome } from '@/hooks/useTabsBackToHome';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { Spacing } from '@/theme/tokens';
 import { fontFamily, textStyle } from '@/theme/typography';
@@ -23,6 +24,8 @@ export default function TabsLayout() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
+
+  useTabsBackToHome();
 
   // Canvas fills the full tab bar (including under system nav).
   // paddingBottom pushes icons/labels above that inset zone.
@@ -57,6 +60,7 @@ export default function TabsLayout() {
   return (
     <Tabs
       initialRouteName="index"
+      backBehavior="initialRoute"
       screenOptions={{
         headerShown: false,
         sceneStyle: { backgroundColor: colors.canvas },

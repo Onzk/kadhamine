@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
 import { Image } from 'expo-image';
@@ -9,6 +10,10 @@ import { Plus, Trash, Image as ImageIcon } from 'phosphor-react-native';
 import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import {
+  PortfolioDetailSheet,
+  type PortfolioDetailItem,
+} from '@/components/portfolio/PortfolioDetailSheet';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { useAppDialog } from '@/providers/AppDialogProvider';
 import { useUpload } from '@/hooks/useUpload';
@@ -21,6 +26,7 @@ export default function PortfolioScreen() {
   const { colors } = useAppTheme();
   const { alert, confirm } = useAppDialog();
   const { uploadFromUri } = useUpload();
+  const router = useRouter();
 
   const items = useQuery(api.portfolio.listMine);
   const createItem = useMutation(api.portfolio.create);
@@ -29,6 +35,7 @@ export default function PortfolioScreen() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
+  const [selected, setSelected] = useState<PortfolioDetailItem | null>(null);
 
   const pickImage = async (useCamera: boolean) => {
     if (useCamera) {
@@ -97,14 +104,16 @@ export default function PortfolioScreen() {
       confirmLabel: 'Supprimer',
       cancelLabel: 'Annuler',
       destructive: true,
-      onConfirm: () => removeItem({ itemId }),
+      onConfirm: () => {
+        void removeItem({ itemId });
+      },
     });
   };
 
   return (
     <PageScaffold
       title={t('service.portfolio')}
-      subtitle="Montrez vos meilleures réalisations aux clients."
+      subtitle={t('portfolio.manageSubtitle')}
       showBack
     >
       <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
@@ -146,36 +155,80 @@ export default function PortfolioScreen() {
         </View>
 
         {items?.map((item) => (
-          <View
+          <Pressable
             key={item._id}
-            style={{
-              backgroundColor: colors.surfaceCard,
-              borderRadius: 20,
-              marginBottom: 12,
-              overflow: 'hidden',
-              borderWidth: 0.1,
-              borderColor: colors.border,
-            }}
+            onPress={() => setSelected(item)}
+            style={({ pressed }) => [{ width: '100%' }, { opacity: pressed ? 0.95 : 1 }]}
           >
-            {item.mediaUrl && item.mediaType === 'image' && (
-              <Image source={{ uri: item.mediaUrl }} style={{ width: '100%', height: 160 }} contentFit="cover" />
-            )}
-            <View style={{ padding: 14 }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={{ fontSize: 16, fontWeight: '600', color: colors.ink, flex: 1 }}>
-                  {item.title}
-                </Text>
-                <Pressable onPress={() => handleDelete(item._id)}>
-                  <Trash size={18} color={colors.error} />
-                </Pressable>
-              </View>
-              {item.description && (
-                <Text style={{ fontSize: 13, color: colors.body, marginTop: 4 }}>{item.description}</Text>
+            <View
+              style={{
+                backgroundColor: colors.surfaceCard,
+                borderRadius: 20,
+                marginBottom: 12,
+                overflow: 'hidden',
+                borderWidth: 0.1,
+                borderColor: colors.border,
+              }}
+            >
+              {item.mediaUrl && item.mediaType === 'image' && (
+                <Image
+                  source={{ uri: item.mediaUrl }}
+                  style={{ width: '100%', height: 160 }}
+                  contentFit="cover"
+                />
               )}
+              <View style={{ padding: 14 }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{ fontSize: 16, fontWeight: '600', color: colors.ink, flex: 1 }}>
+                    {item.title}
+                  </Text>
+                  <Pressable
+                    onPress={(e) => {
+                      e?.stopPropagation?.();
+                      handleDelete(item._id);
+                    }}
+                    hitSlop={8}
+                    style={({ pressed }) => ({
+                      width: 36,
+                      height: 36,
+                      opacity: pressed ? 0.8 : 1,
+                    })}
+                  >
+                    <View
+                      style={{
+                        width: 36,
+                        height: 36,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Trash size={18} color={colors.error} />
+                    </View>
+                  </Pressable>
+                </View>
+                {item.description ? (
+                  <Text style={{ fontSize: 13, color: colors.body, marginTop: 4 }}>
+                    {item.description}
+                  </Text>
+                ) : null}
+              </View>
             </View>
-          </View>
+          </Pressable>
         ))}
       </View>
+
+      <PortfolioDetailSheet
+        visible={!!selected}
+        onClose={() => setSelected(null)}
+        item={selected}
+        onOpenService={(serviceId) => router.push(`/service/${serviceId}`)}
+      />
     </PageScaffold>
   );
 }
