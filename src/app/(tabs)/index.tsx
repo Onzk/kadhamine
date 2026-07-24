@@ -188,7 +188,7 @@ export default function HomeScreen() {
               </Text>
             ) : null}
             <Text numberOfLines={1} style={{ color: colors.ink }} variant="featureHeading" display>
-              {isGuest ? 'TalentTchad' : firstName || 'TalentTchad'}
+              {isGuest ? 'Kadhamine' : firstName || 'Kadhamine'}
             </Text>
             <Text numberOfLines={2} style={{ color: colors.muted, marginTop: 2 }} variant="micro">
               {t('home.headerSubtitle')}

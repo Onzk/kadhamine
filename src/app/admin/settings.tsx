@@ -163,7 +163,7 @@ export default function AdminSettingsScreen() {
           label={t('admin.platformName')}
           value={name}
           onChangeText={setName}
-          placeholder="TalentTchad"
+          placeholder="Kadhamine"
           leftIcon={<Buildings size={20} />}
         />
         <AuthField

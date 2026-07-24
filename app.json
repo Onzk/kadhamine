@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "TalentTchad",
+    "name": "Kadhamine",
     "slug": "talenttchad",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -48,20 +48,20 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "TalentTchad utilise votre position pour trouver des talents proches."
+          "locationAlwaysAndWhenInUsePermission": "Kadhamine utilise votre position pour trouver des talents proches."
         }
       ],
       [
         "expo-camera",
         {
-          "cameraPermission": "TalentTchad utilise la caméra pour votre portfolio et la vérification d'identité."
+          "cameraPermission": "Kadhamine utilise la caméra pour votre portfolio et la vérification d'identité."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "TalentTchad accède à vos photos pour le portfolio.",
-          "cameraPermission": "TalentTchad utilise la caméra pour le portfolio."
+          "photosPermission": "Kadhamine accède à vos photos pour le portfolio.",
+          "cameraPermission": "Kadhamine utilise la caméra pour le portfolio."
         }
       ],
       [
@@ -76,13 +76,13 @@
       [
         "expo-av",
         {
-          "microphonePermission": "TalentTchad utilise le micro pour les messages vocaux."
+          "microphonePermission": "Kadhamine utilise le micro pour les messages vocaux."
         }
       ],
       [
         "expo-audio",
         {
-          "microphonePermission": "TalentTchad utilise le micro pour les messages vocaux."
+          "microphonePermission": "Kadhamine utilise le micro pour les messages vocaux."
         }
       ]
     ],

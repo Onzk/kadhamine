@@ -74,14 +74,14 @@ export function AuthBrandMark() {
         minWidth: 0,
       }}
       accessibilityRole="header"
-      accessibilityLabel="TalentTchad"
+      accessibilityLabel="Kadhamine"
     >
       <Logo size={32} />
       <Text
         numberOfLines={1}
         style={[textStyle('featureHeading'), { color: colors.ink, fontSize: 17, lineHeight: 22 }]}
       >
-        TalentTchad
+        Kadhamine
       </Text>
     </View>
   );

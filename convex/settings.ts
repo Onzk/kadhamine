@@ -42,7 +42,7 @@ export const getPlatform = query({
         typeof value.commissionRate === 'number'
           ? value.commissionRate
           : DEFAULT_COMMISSION_RATE,
-      name: typeof value.name === 'string' ? value.name : 'TalentTchad',
+      name: typeof value.name === 'string' ? value.name : 'Kadhamine',
       currency: typeof value.currency === 'string' ? value.currency : 'XAF',
       supportEmail:
         typeof value.supportEmail === 'string'
@@ -81,7 +81,7 @@ export const updateCommissionRate = mutation({
       await ctx.db.insert('settings', {
         key: PLATFORM_KEY,
         value: {
-          name: 'TalentTchad',
+          name: 'Kadhamine',
           commissionRate: args.rate,
           currency: 'XAF',
           supportEmail: 'support@talenttchad.com',
@@ -133,7 +133,7 @@ export const updatePlatform = mutation({
     }
 
     const next = {
-      name: 'TalentTchad',
+      name: 'Kadhamine',
       commissionRate: DEFAULT_COMMISSION_RATE,
       currency: 'XAF',
       supportEmail: 'support@talenttchad.com',

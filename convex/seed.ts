@@ -181,7 +181,7 @@ export const seedSettings = mutation({
     await ctx.db.insert('settings', {
       key: 'platform',
       value: {
-        name: 'TalentTchad',
+        name: 'Kadhamine',
         commissionRate: 0.1,
         currency: 'XAF',
         supportEmail: 'support@talenttchad.com',

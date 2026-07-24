@@ -1,5 +1,5 @@
 /**
- * Données de test TalentTchad (CDC §10).
+ * Données de test Kadhamine (CDC §10).
  * Images Unsplash vérifiées le 2026-07-19 (HEAD → 200, content-type image/*).
  */
 

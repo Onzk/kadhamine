@@ -312,7 +312,7 @@ export default function CheckoutScreen() {
       const result = await createFedapayTransaction({
         paymentId,
         amount,
-        description: order?.order.title ?? 'Commande TalentTchad',
+        description: order?.order.title ?? 'Commande Kadhamine',
         customerEmail: user?.email ?? undefined,
         customerName: user?.profile
           ? `${user.profile.firstName} ${user.profile.lastName}`

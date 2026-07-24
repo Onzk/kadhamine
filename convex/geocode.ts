@@ -1,7 +1,7 @@
 import { v } from 'convex/values';
 import { action } from './_generated/server';
 
-const USER_AGENT = 'TalentTchad/1.0 (https://talenttchad.com; contact@talenttchad.com)';
+const USER_AGENT = 'Kadhamine/1.0 (https://talenttchad.com; contact@talenttchad.com)';
 
 type NominatimAddress = {
   road?: string;

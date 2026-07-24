@@ -34,7 +34,7 @@ export default function AboutScreen() {
               { color: colors.ink, marginTop: Spacing.four },
             ]}
           >
-            TalentTchad
+            Kadhamine
           </Text>
           <Text style={[textStyle('caption'), { color: colors.muted, marginTop: Spacing.one }]}>
             {t('profile.version', { version: APP_VERSION })}

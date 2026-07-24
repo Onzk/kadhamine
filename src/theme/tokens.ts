@@ -1,5 +1,5 @@
 /**
- * Design tokens TalentTchad — source de vérité : DESIGN.md (Mastercard-inspired).
+ * Design tokens Kadhamine — source de vérité : DESIGN.md (Mastercard-inspired).
  * Logo blue is the primary brand accent; gold/crimson reserved for semantic badges.
  */
 

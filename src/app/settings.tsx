@@ -58,7 +58,7 @@ export default function SettingsScreen() {
   return (
     <PageScaffold
       title={t('profile.settings', { defaultValue: 'Paramètres' })}
-      subtitle="Personnalisez votre expérience TalentTchad."
+      subtitle="Personnalisez votre expérience Kadhamine."
       showBack
     >
       <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>

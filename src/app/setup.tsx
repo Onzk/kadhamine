@@ -14,7 +14,7 @@ export default function SetupScreen() {
   return (
     <PageScaffold
       title={t('setup.title')}
-      subtitle="Connectez Convex pour lancer TalentTchad."
+      subtitle="Connectez Convex pour lancer Kadhamine."
     >
       <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
         <View

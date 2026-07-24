@@ -41,7 +41,7 @@ async function createFedapayTransactionApi(args: {
 }): Promise<{ transactionId: number; reference: string; paymentUrl: string | null }> {
   const customer: Record<string, unknown> = {
     firstname: args.customerName?.split(' ')[0] ?? 'Client',
-    lastname: args.customerName?.split(' ').slice(1).join(' ') || 'TalentTchad',
+    lastname: args.customerName?.split(' ').slice(1).join(' ') || 'Kadhamine',
     email: args.customerEmail ?? 'client@talenttchad.com',
   };
 
@@ -234,7 +234,7 @@ export const createPremiumTransaction = action({
 
     const result = await createFedapayTransactionApi({
       amount: args.amount,
-      description: 'Abonnement TalentTchad Premium',
+      description: 'Abonnement Kadhamine Premium',
       phoneNumber: args.phoneNumber,
       customerEmail: args.customerEmail,
       customerName: args.customerName,

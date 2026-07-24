@@ -288,7 +288,7 @@ export interface PageScaffoldProps {
 }
 
 /**
- * Écran standard TalentTchad :
+ * Écran standard Kadhamine :
  * - titre productDisplay qui scrolle
  * - sticky sans bordure/ombre au scroll
  */

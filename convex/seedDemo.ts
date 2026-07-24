@@ -1,5 +1,5 @@
 /**
- * Seed massif TalentTchad — un seul fichier.
+ * Seed massif Kadhamine — un seul fichier.
  *
  * Usage :
  *   npx convex run seedDemo:seedAll
@@ -475,7 +475,7 @@ async function ensureSettings(ctx: MutationCtx) {
   await ctx.db.insert('settings', {
     key: 'platform',
     value: {
-      name: 'TalentTchad',
+      name: 'Kadhamine',
       commissionRate: COMMISSION,
       currency: 'XAF',
       supportEmail: 'support@talenttchad.com',
@@ -651,7 +651,7 @@ async function runSeed(ctx: MutationCtx, force: boolean) {
 
   // --- Admin ---
   const adminId = await ctx.db.insert('users', {
-    name: 'Admin TalentTchad',
+    name: 'Admin Kadhamine',
     email: `admin${DEMO_DOMAIN}`,
     phone: '+23566000001',
     role: 'admin',
@@ -664,7 +664,7 @@ async function runSeed(ctx: MutationCtx, force: boolean) {
   const adminProfileId = await ctx.db.insert('profiles', {
     userId: adminId,
     firstName: 'Admin',
-    lastName: 'TalentTchad',
+    lastName: 'Kadhamine',
     city: CITIES[0].city,
     region: CITIES[0].region,
     skills: ['Modération', 'Support'],
@@ -1137,7 +1137,7 @@ async function runSeed(ctx: MutationCtx, force: boolean) {
     { type: 'review', title: 'Nouvel avis', body: 'Vous avez reçu une note de 5/5.' },
     { type: 'validation', title: 'Profil validé', body: 'Félicitations, votre compte prestataire est actif.' },
     { type: 'subscription', title: 'Premium activé', body: 'Votre abonnement Premium est actif.' },
-    { type: 'system', title: 'Bienvenue', body: 'Bienvenue sur TalentTchad !' },
+    { type: 'system', title: 'Bienvenue', body: 'Bienvenue sur Kadhamine !' },
   ];
 
   for (let i = 0; i < providerRecords.length; i++) {
@@ -1230,7 +1230,7 @@ async function runSeed(ctx: MutationCtx, force: boolean) {
 
   return {
     seeded: true,
-    message: 'Base démo TalentTchad initialisée avec succès.',
+    message: 'Base démo Kadhamine initialisée avec succès.',
     counts,
     demoAccounts: {
       admin: `admin${DEMO_DOMAIN}`,

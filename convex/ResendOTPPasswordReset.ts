@@ -24,10 +24,10 @@ export const ResendOTPPasswordReset = Resend({
 
     const resend = new ResendAPI(apiKey);
     const { error } = await resend.emails.send({
-      from: 'TalentTchad <onboarding@resend.dev>',
+      from: 'Kadhamine <onboarding@resend.dev>',
       to: [email],
-      subject: 'Réinitialisez votre mot de passe TalentTchad',
-      text: `Votre code de réinitialisation TalentTchad est : ${token}\n\nEntrez ce code dans l'application pour choisir un nouveau mot de passe.`,
+      subject: 'Réinitialisez votre mot de passe Kadhamine',
+      text: `Votre code de réinitialisation Kadhamine est : ${token}\n\nEntrez ce code dans l'application pour choisir un nouveau mot de passe.`,
     });
 
     if (error) {

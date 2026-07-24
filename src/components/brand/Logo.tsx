@@ -7,14 +7,14 @@ type LogoProps = {
   imageStyle?: StyleProp<ImageStyle>;
 };
 
-/** Logo TalentTchad — asset PNG officiel. */
+/** Logo Kadhamine — asset PNG officiel. */
 export function Logo({ size = 64, style, imageStyle }: LogoProps) {
   return (
     <View style={[{ width: size, height: size }, style]}>
       <Image
         source={require('@/assets/images/logo.png')}
         style={[{ width: size, height: size, resizeMode: 'contain' }, imageStyle]}
-        accessibilityLabel="TalentTchad"
+        accessibilityLabel="Kadhamine"
       />
     </View>
   );

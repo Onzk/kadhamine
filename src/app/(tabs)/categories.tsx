@@ -48,7 +48,7 @@ export default function CategoriesScreen() {
     <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <PageScaffold
         title="Catégories"
-        subtitle="Explorez les métiers et talents disponibles sur TalentTchad."
+        subtitle="Explorez les métiers et talents disponibles sur Kadhamine."
         bottomInset={false}
         contentContainerStyle={{ paddingBottom: 100 }}
         headerActions={
