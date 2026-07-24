@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Pressable } from 'react-native';
-import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import {
   Briefcase,
@@ -13,6 +12,8 @@ import {
 } from 'phosphor-react-native';
 import type { Id } from '../../../convex/_generated/dataModel';
 
+import { SafeImage } from '@/components/errors/SafeImage';
+import { Enter } from '@/components/ui/Enter';
 import { Text } from '@/components/ui/ThemedText';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { BorderWidth, Radius, Spacing } from '@/theme/tokens';
@@ -133,7 +134,7 @@ export function PortfolioCard({
           : null;
 
     return (
-      <View style={{ width: '100%', position: 'relative' }}>
+      <Enter variant="card" index={enterIndex} style={{ width: '100%', position: 'relative' }}>
         <Pressable
           onPress={onPress}
           style={({ pressed }) => [{ width: '100%' }, { opacity: pressed ? 0.92 : 1 }]}
@@ -149,10 +150,11 @@ export function PortfolioCard({
           >
             <View style={{ width: '100%', aspectRatio: 4 / 3 }}>
               {imageUri ? (
-                <Image
+                <SafeImage
                   source={{ uri: imageUri }}
                   style={{ width: '100%', height: '100%' }}
                   contentFit="cover"
+                  fallback={<MediaPlaceholder mediaType={item.mediaType} size="compact" />}
                 />
               ) : (
                 <MediaPlaceholder mediaType={item.mediaType} size="compact" />
@@ -309,12 +311,12 @@ export function PortfolioCard({
             ) : null}
           </View>
         ) : null}
-      </View>
+      </Enter>
     );
   }
 
   return (
-    <View style={{ width: '100%', marginBottom: Spacing.three }}>
+    <Enter variant="card" index={enterIndex} style={{ width: '100%', marginBottom: Spacing.three }}>
       <View
         style={{
           padding: Spacing.four,
@@ -493,6 +495,6 @@ export function PortfolioCard({
           </View>
         ) : null}
       </View>
-    </View>
+    </Enter>
   );
 }

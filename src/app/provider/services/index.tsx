@@ -16,6 +16,7 @@ import type { Id } from '../../../../convex/_generated/dataModel';
 
 import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { Enter } from '@/components/ui/Enter';
 import { Badge } from '@/components/ui/Badge';
 import { SearchBar } from '@/components/ui/SearchBar';
 import { FlutterFab } from '@/components/ui/FlutterFab';
@@ -117,9 +118,9 @@ export default function ProviderServicesScreen() {
               actionVariant="outline"
             />
           ) : (
-            filtered?.map((item) => (
+            filtered?.map((item, index) => (
+              <Enter key={item.service._id} variant="card" index={index} style={{ width: '100%' }}>
               <Pressable
-                key={item.service._id}
                 onPress={() =>
                   router.push({
                     pathname: '/provider/services/[id]',
@@ -293,6 +294,7 @@ export default function ProviderServicesScreen() {
                   </View>
                 </View>
               </Pressable>
+              </Enter>
             ))
           )}
         </View>

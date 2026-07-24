@@ -5,11 +5,13 @@ import { PortalHost } from '@rn-primitives/portal';
 import { ConvexReactClient } from 'convex/react';
 import { Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AppSafeArea } from '@/components/AppSafeArea';
-import { ConvexErrorBoundary } from '@/components/ConvexErrorBoundary';
+import { AppErrorBoundary } from '@/components/errors/AppErrorBoundary';
+import { FatalRecoveryHost } from '@/components/errors/FatalRecoveryHost';
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 // Side-effect: paints native root with default canvas before theme hydrates.
 import '@/hooks/useSystemChrome';
@@ -25,8 +27,11 @@ import { BrandColors } from '@/theme/tokens';
 
 installErrorGuards();
 
+/** Expo Router — isole les crashes de route (écran de récupération). */
+export { ExpoRouteErrorBoundary as ErrorBoundary } from '@/components/errors/ExpoRouteErrorBoundary';
+
 const convexUrl = process.env.EXPO_PUBLIC_CONVEX_URL || '';
-const convex = new ConvexReactClient(convexUrl, {
+const convex = new ConvexReactClient(convexUrl || 'https://placeholder.convex.cloud', {
   unsavedChangesWarning: false,
 });
 
@@ -54,64 +59,72 @@ function RootContent() {
     : (['top', 'left', 'right'] as const);
 
   return (
-    <NavigationThemeProvider value={navTheme}>
-      <StatusBar style={isDark ? 'light' : 'dark'} />
-      <AuthProvider>
-        <AnimatedSplashOverlay />
-        <AppDialogProvider>
-          {/* No bottom edge: canvas must paint under the system nav; tabs pad themselves. */}
-          <AppSafeArea edges={[...safeEdges]}>
-            {/*
-              Stack (not Slot) so map → service/[id] is a real push: previous screen
-              stays mounted in the React tree. freezeOnBlur:false avoids freezing the
-              Leaflet WebView while service detail is on top. Session store covers remounts.
-            */}
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                animation: 'slide_from_right',
-                contentStyle: { backgroundColor: colors.canvas },
-                freezeOnBlur: false,
-              }}
-            >
-              <Stack.Screen name="index" options={{ animation: 'none' }} />
-              <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
-              <Stack.Screen name="(auth)" options={{ animation: 'slide_from_right' }} />
-              <Stack.Screen name="map" options={{ animation: 'slide_from_right' }} />
-              <Stack.Screen name="talents" options={{ animation: 'slide_from_right' }} />
-              <Stack.Screen name="service/[id]" options={{ animation: 'slide_from_right' }} />
-              <Stack.Screen name="provider/[id]" options={{ animation: 'slide_from_right' }} />
-              <Stack.Screen name="payment/callback" options={{ animation: 'fade' }} />
-              <Stack.Screen name="order/create" options={{ animation: 'slide_from_right' }} />
-              <Stack.Screen name="order/[id]" options={{ animation: 'slide_from_right' }} />
-              <Stack.Screen name="checkout/[orderId]" options={{ animation: 'slide_from_right' }} />
-              <Stack.Screen name="review/[orderId]" options={{ animation: 'slide_from_right' }} />
-              <Stack.Screen name="review/client/[orderId]" options={{ animation: 'slide_from_right' }} />
-            </Stack>
-          </AppSafeArea>
-        </AppDialogProvider>
-      </AuthProvider>
-      <PortalHost />
-    </NavigationThemeProvider>
+    <View style={{ flex: 1 }}>
+      <NavigationThemeProvider value={navTheme}>
+        <StatusBar style={isDark ? 'light' : 'dark'} />
+        <AuthProvider>
+          <AnimatedSplashOverlay />
+          <AppDialogProvider>
+            {/* No bottom edge: canvas must paint under the system nav; tabs pad themselves. */}
+            <AppSafeArea edges={[...safeEdges]}>
+              {/*
+                Stack (not Slot) so map → service/[id] is a real push: previous screen
+                stays mounted in the React tree. freezeOnBlur:false avoids freezing the
+                Leaflet WebView while service detail is on top. Session store covers remounts.
+              */}
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  animation: 'slide_from_right',
+                  contentStyle: { backgroundColor: colors.canvas },
+                  freezeOnBlur: false,
+                }}
+              >
+                <Stack.Screen name="index" options={{ animation: 'none' }} />
+                <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
+                <Stack.Screen name="(auth)" options={{ animation: 'slide_from_right' }} />
+                <Stack.Screen name="map" options={{ animation: 'slide_from_right' }} />
+                <Stack.Screen name="talents" options={{ animation: 'slide_from_right' }} />
+                <Stack.Screen name="service/[id]" options={{ animation: 'slide_from_right' }} />
+                <Stack.Screen name="provider/[id]" options={{ animation: 'slide_from_right' }} />
+                <Stack.Screen name="payment/callback" options={{ animation: 'fade' }} />
+                <Stack.Screen name="order/create" options={{ animation: 'slide_from_right' }} />
+                <Stack.Screen name="order/[id]" options={{ animation: 'slide_from_right' }} />
+                <Stack.Screen name="checkout/[orderId]" options={{ animation: 'slide_from_right' }} />
+                <Stack.Screen name="review/[orderId]" options={{ animation: 'slide_from_right' }} />
+                <Stack.Screen name="review/client/[orderId]" options={{ animation: 'slide_from_right' }} />
+                <Stack.Screen name="+not-found" />
+              </Stack>
+            </AppSafeArea>
+          </AppDialogProvider>
+        </AuthProvider>
+        <PortalHost />
+        <FatalRecoveryHost />
+      </NavigationThemeProvider>
+    </View>
   );
 }
 
 export default function RootLayout() {
   return (
     <SafeAreaProvider style={{ flex: 1, backgroundColor: BrandColors.canvas }}>
-      <ConvexAuthProvider client={convex} storage={convexAuthStorage}>
-        <ThemeProvider>
-          <ThemedGestureRoot>
-            <FontProvider>
-              <I18nProvider>
-                <ConvexErrorBoundary>
-                  <RootContent />
-                </ConvexErrorBoundary>
-              </I18nProvider>
-            </FontProvider>
-          </ThemedGestureRoot>
-        </ThemeProvider>
-      </ConvexAuthProvider>
+      {/* Outer: survit même si Theme / Convex / i18n plantent. */}
+      <AppErrorBoundary bootSafe>
+        <ConvexAuthProvider client={convex} storage={convexAuthStorage}>
+          <ThemeProvider>
+            <ThemedGestureRoot>
+              <FontProvider>
+                <I18nProvider>
+                  {/* Inner: fallback thématisé + i18n. */}
+                  <AppErrorBoundary>
+                    <RootContent />
+                  </AppErrorBoundary>
+                </I18nProvider>
+              </FontProvider>
+            </ThemedGestureRoot>
+          </ThemeProvider>
+        </ConvexAuthProvider>
+      </AppErrorBoundary>
     </SafeAreaProvider>
   );
 }

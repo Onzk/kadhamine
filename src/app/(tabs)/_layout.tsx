@@ -19,6 +19,8 @@ import { Spacing } from '@/theme/tokens';
 import { fontFamily, textStyle } from '@/theme/typography';
 import { api } from '../../../convex/_generated/api';
 
+export { ExpoRouteErrorBoundary as ErrorBoundary } from '@/components/errors/ExpoRouteErrorBoundary';
+
 /** Icon + label row height (above the system-nav inset). */
 const TAB_CONTENT_HEIGHT = 52;
 /** Extra lift so tab items sit clearly above the system gesture/nav zone. */

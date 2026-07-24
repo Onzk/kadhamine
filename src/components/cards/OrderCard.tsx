@@ -10,6 +10,7 @@ import {
 
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { Enter } from '@/components/ui/Enter';
 import { Text } from '@/components/ui/ThemedText';
 import { OrderStatusBadge, orderDisplayStatus } from '@/components/orders/OrderStatusBadge';
 import { useAppTheme } from '@/providers/ThemeProvider';
@@ -76,6 +77,8 @@ export type OrderCardProps = {
   showPay?: boolean;
   onPay?: () => void;
   onPress?: () => void;
+  /** Index for staggered enter animation. */
+  enterIndex?: number;
 };
 
 /**
@@ -97,6 +100,7 @@ export function OrderCard({
   showPay,
   onPay,
   onPress,
+  enterIndex = 0,
 }: OrderCardProps) {
   const { colors } = useAppTheme();
   const { t, i18n } = useTranslation();
@@ -297,22 +301,24 @@ export function OrderCard({
   } as const;
 
   return (
-    <View style={[cardStyle, { width: '100%' }]}>
-      {onPress ? (
-        <Pressable
-          onPress={onPress}
-          style={({ pressed }) => [{ opacity: pressed ? 0.96 : 1 }]}
-        >
+    <Enter variant="card" index={enterIndex} style={{ width: '100%' }}>
+      <View style={[cardStyle, { width: '100%' }]}>
+        {onPress ? (
+          <Pressable
+            onPress={onPress}
+            style={({ pressed }) => [{ opacity: pressed ? 0.96 : 1 }]}
+          >
+            <View style={{ gap: Spacing.three }}>{body}</View>
+          </Pressable>
+        ) : (
           <View style={{ gap: Spacing.three }}>{body}</View>
-        </Pressable>
-      ) : (
-        <View style={{ gap: Spacing.three }}>{body}</View>
-      )}
+        )}
 
-      {showPay && onPay ? (
-        <Button title={t('payment.pay')} onPress={onPay} fullWidth />
-      ) : null}
-    </View>
+        {showPay && onPay ? (
+          <Button title={t('payment.pay')} onPress={onPay} fullWidth />
+        ) : null}
+      </View>
+    </Enter>
   );
 }
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Text, View } from 'react-native';
 
+import { Enter } from '@/components/ui/Enter';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { Radius, Spacing } from '@/theme/tokens';
 import { textStyle } from '@/theme/typography';
@@ -10,13 +11,24 @@ interface SettingsSectionProps {
   children: React.ReactNode;
   /** Extra margin above the section. Default true. */
   spaced?: boolean;
+  /** Stagger index for enter animation. */
+  enterIndex?: number;
 }
 
-export function SettingsSection({ title, children, spaced = true }: SettingsSectionProps) {
+export function SettingsSection({
+  title,
+  children,
+  spaced = true,
+  enterIndex = 0,
+}: SettingsSectionProps) {
   const { colors } = useAppTheme();
 
   return (
-    <View style={{ marginTop: spaced ? Spacing.six : 0, marginBottom: Spacing.three }}>
+    <Enter
+      variant="section"
+      index={enterIndex}
+      style={{ marginTop: spaced ? Spacing.six : 0, marginBottom: Spacing.three }}
+    >
       {title ? (
         <Text
           style={[
@@ -58,6 +70,6 @@ export function SettingsSection({ title, children, spaced = true }: SettingsSect
           </React.Fragment>
         ))}
       </View>
-    </View>
+    </Enter>
   );
 }

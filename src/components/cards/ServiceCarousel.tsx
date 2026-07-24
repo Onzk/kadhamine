@@ -59,9 +59,11 @@ interface ServiceCarouselProps {
 function ServiceCardFromItem({
   item,
   onPress,
+  enterIndex = 0,
 }: {
   item: ServiceCarouselItem;
   onPress: () => void;
+  enterIndex?: number;
 }) {
   return (
     <ServiceCard
@@ -82,6 +84,7 @@ function ServiceCardFromItem({
       categoryIcon={item.category?.icon}
       categoryLabel={item.category?.nameFr}
       onPress={onPress}
+      enterIndex={enterIndex}
     />
   );
 }
@@ -153,10 +156,11 @@ export function ServiceCarousel({
         />
       ) : isVertical ? (
         <View style={{ paddingHorizontal: PAGE_H_PAD, gap: GAP }}>
-          {items.map((item) => (
+          {items.map((item, index) => (
             <ServiceCardFromItem
               key={item.service._id}
               item={item}
+              enterIndex={index}
               onPress={() => onPressItem(item.service._id)}
             />
           ))}
@@ -170,9 +174,13 @@ export function ServiceCarousel({
           snapToAlignment="start"
           contentContainerStyle={{ paddingHorizontal: PAGE_H_PAD, gap: GAP }}
         >
-          {items.map((item) => (
+          {items.map((item, index) => (
             <View key={item.service._id} style={{ width: CAROUSEL_CARD_WIDTH }}>
-              <ServiceCardFromItem item={item} onPress={() => onPressItem(item.service._id)} />
+              <ServiceCardFromItem
+                item={item}
+                enterIndex={index}
+                onPress={() => onPressItem(item.service._id)}
+              />
             </View>
           ))}
         </ScrollView>

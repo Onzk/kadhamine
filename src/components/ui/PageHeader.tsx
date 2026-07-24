@@ -23,6 +23,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Enter } from '@/components/ui/Enter';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { Spacing } from '@/theme/tokens';
 import { textStyle } from '@/theme/typography';
@@ -378,15 +379,17 @@ export function PageScaffold({
           { paddingBottom },
         ]}
       >
-        <PageHeader
-          title={title}
-          subtitle={subtitle}
-          showBack={showBack}
-          onBack={onBack}
-          rightAction={rightAction}
-          actions={headerActions}
-        />
-        {children}
+        <Enter variant="page">
+          <PageHeader
+            title={title}
+            subtitle={subtitle}
+            showBack={showBack}
+            onBack={onBack}
+            rightAction={rightAction}
+            actions={headerActions}
+          />
+          {children}
+        </Enter>
         {keyboardHeight > 0 ? <View style={{ height: keyboardHeight }} /> : null}
       </Animated.ScrollView>
     </View>

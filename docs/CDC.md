@@ -100,7 +100,7 @@ Un seul opérateur au démarrage (compte seed).
 | Domaine | Contenu |
 |---------|---------|
 | Auth | Inscription / connexion email + mot de passe ; reset email si disponible, sinon contact support |
-| Profils | Client & prestataire ; ville parmi 10 villes ; **compétences** (page `/skills` pour prestataire) ; bio ; photo |
+| Profils | Client & prestataire ; ville parmi 10 villes ; **compétences** (`/skills`) ; **profil public = gestion** (`/provider/profile` : bio, dispo, tarif, expérience, ville/géo, téléphone) ; aperçu vitrine `/provider/[id]` ; photo |
 | Services | CRUD prestataire ; recherche / filtres ; détail ; position géo (propre ou héritée du profil) |
 | Portfolio | Images uniquement |
 | Commandes | Cycle V1 + stepper création (sans indicateur) + métadonnées optionnelles + fiche détail selon rôle (voir §4.5) |
@@ -192,6 +192,8 @@ Après inscription : redirection vers complétion de profil (ville, téléphone 
 | Tarif horaire indicatif | — | Optionnel |
 | Disponibilité | — | `available` \| `busy` \| `unavailable` |
 | Badges | — | `verified`, `premium` (+ scores dérivés si utiles) |
+
+**Gestion prestataire** : la ligne « Profil public » (Paramètres → espace prestataire) ouvre `/provider/profile` pour **éditer** bio, disponibilité, tarif horaire, expérience, ville/région, position carte et téléphone (non affiché sur la vitrine). La vitrine client reste `/provider/[id]`, accessible via « Voir comme les clients ».
 
 **Vérification d’identité** (prestataire, depuis Paramètres) :
 

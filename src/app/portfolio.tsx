@@ -244,10 +244,11 @@ export default function PortfolioScreen() {
             />
           ) : (
             <View style={{ gap: 0 }}>
-              {filtered?.map((item) => (
+              {filtered?.map((item, index) => (
                 <PortfolioCard
                   key={item._id}
                   item={item}
+                  enterIndex={index}
                   onPress={() => setSelected(item)}
                   onEdit={() =>
                     openEdit({

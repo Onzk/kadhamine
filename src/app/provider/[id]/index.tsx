@@ -27,6 +27,7 @@ import {
   MapPin,
   Package,
   Briefcase,
+  CurrencyCircleDollar,
   Star,
   ShareNetwork,
   Wrench,
@@ -34,6 +35,7 @@ import {
 import type { Id } from '../../../../convex/_generated/dataModel';
 
 import { Badge } from '@/components/ui/Badge';
+import { formatPrice } from '@/types';
 import { AuthPrimaryButton } from '@/components/auth/AuthField';
 import { SheetActionRow, SheetActionSlot } from '@/components/ui/SheetActions';
 import { StarRating } from '@/components/ui/StarRating';
@@ -726,6 +728,12 @@ export default function ProviderDetailScreen() {
               <MetaChip
                 icon={<Briefcase size={13} color={colors.ink} weight="bold" />}
                 label={t('service.experienceYears', { count: profile.experienceYears })}
+              />
+            ) : null}
+            {profile.hourlyRate != null && profile.hourlyRate > 0 ? (
+              <MetaChip
+                icon={<CurrencyCircleDollar size={13} color={colors.ink} weight="bold" />}
+                label={t('service.hourlyRate', { price: formatPrice(profile.hourlyRate) })}
               />
             ) : null}
             {profile.completedOrders > 0 ? (

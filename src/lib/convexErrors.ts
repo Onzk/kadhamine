@@ -1,5 +1,7 @@
 import { ConvexError } from 'convex/values';
 
+import { reportError } from '@/lib/reportError';
+
 /** Message utilisateur à partir d’une erreur Convex / JS. */
 export function getConvexErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof ConvexError) {
@@ -36,8 +38,7 @@ export function isConvexError(error: unknown): boolean {
 
 /** Log structuré — ne relance jamais. */
 export function reportConvexError(error: unknown, context?: string): void {
-  const prefix = context ? `[Convex:${context}]` : '[Convex]';
-  console.error(prefix, error);
+  reportError(error, { context: context ? `Convex:${context}` : 'Convex' });
 }
 
 /**

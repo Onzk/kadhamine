@@ -10,6 +10,7 @@ import { AuthField, AuthPrimaryButton } from '@/components/auth/AuthField';
 import { AppBottomSheet } from '@/components/ui/AppBottomSheet';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { Enter } from '@/components/ui/Enter';
 import { FlutterFab } from '@/components/ui/FlutterFab';
 import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { useAuth } from '@/providers/AuthProvider';
@@ -254,9 +255,11 @@ export default function SkillsScreen() {
                 {t('skills.countHint', { count: skills.length, max: MAX_SKILLS })}
               </Text>
               <View style={{ gap: Spacing.two }}>
-                {skills.map((skill) => (
-                  <View
+                {skills.map((skill, index) => (
+                  <Enter
                     key={skill}
+                    variant="item"
+                    index={index}
                     style={{
                       flexDirection: 'row',
                       alignItems: 'center',
@@ -317,7 +320,7 @@ export default function SkillsScreen() {
                         <Trash size={18} color={colors.error} weight="bold" />
                       </View>
                     </Pressable>
-                  </View>
+                  </Enter>
                 ))}
               </View>
             </>

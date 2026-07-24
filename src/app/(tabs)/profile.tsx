@@ -155,6 +155,20 @@ export default function ProfileScreen() {
     ? { label: t('profile.badgePremiumActive'), tone: 'orbit' as const }
     : { label: t('profile.badgeGoPremium'), tone: 'amber' as const };
 
+  const publicProfileIncomplete =
+    !(profile?.bio?.trim()) || !(profile?.phone?.trim() || user?.phone?.trim());
+  const publicProfileAvailabilityKey =
+    profile?.availability === 'busy'
+      ? 'common.busy'
+      : profile?.availability === 'unavailable'
+        ? 'common.unavailable'
+        : 'common.available';
+  const publicProfileBadge = profile
+    ? publicProfileIncomplete
+      ? { label: t('profile.badgeToComplete'), tone: 'amber' as const }
+      : { label: t(publicProfileAvailabilityKey), tone: 'orbit' as const }
+    : undefined;
+
   const displayName = profile
     ? `${profile.firstName} ${profile.lastName}`.trim()
     : user?.name ?? t('profile.defaultName');
@@ -481,7 +495,7 @@ export default function ProfileScreen() {
 
         {isProvider ? (
           <>
-            <SettingsSection title={t('profile.stats')} spaced={false}>
+            <SettingsSection title={t('profile.stats')} spaced={false} enterIndex={0}>
               <ProviderStatsGrid
                 viewCount={profile?.viewCount ?? 0}
                 completedOrders={profile?.completedOrders ?? 0}
@@ -490,7 +504,7 @@ export default function ProfileScreen() {
               />
             </SettingsSection>
 
-            <SettingsSection title={t('profile.sectionProvider')}>
+            <SettingsSection title={t('profile.sectionProvider')} enterIndex={1}>
               <SettingsRow
                 icon={Wrench}
                 title={t('profile.myServices')}
@@ -516,10 +530,9 @@ export default function ProfileScreen() {
                 <SettingsRow
                   icon={UserFocus}
                   title={t('profile.publicProfile')}
-                  description={t('profile.publicProfileDesc')}
-                  onPress={() =>
-                    router.push({ pathname: '/provider/[id]', params: { id: profile._id } })
-                  }
+                  badge={publicProfileBadge}
+                  description={t('profile.publicProfileManageDesc')}
+                  onPress={() => router.push('/provider/profile')}
                 />
               ) : null}
               <SettingsRow
@@ -540,7 +553,11 @@ export default function ProfileScreen() {
           </>
         ) : null}
 
-        <SettingsSection title={t('profile.sectionAccount')} spaced={isProvider}>
+        <SettingsSection
+          title={t('profile.sectionAccount')}
+          spaced={isProvider}
+          enterIndex={isProvider ? 2 : 0}
+        >
           <SettingsRow
             icon={User}
             title={t('profile.personalInfo')}
@@ -589,7 +606,10 @@ export default function ProfileScreen() {
           />
         </SettingsSection>
 
-        <SettingsSection title={t('profile.sectionPreferences')}>
+        <SettingsSection
+          title={t('profile.sectionPreferences')}
+          enterIndex={isProvider ? 3 : 1}
+        >
           <SettingsRow
             icon={Globe}
             title={t('profile.language')}
@@ -605,7 +625,10 @@ export default function ProfileScreen() {
           />
         </SettingsSection>
 
-        <SettingsSection title={t('profile.sectionSupport')}>
+        <SettingsSection
+          title={t('profile.sectionSupport')}
+          enterIndex={isProvider ? 4 : 2}
+        >
           <SettingsRow
             icon={Headset}
             title={t('profile.helpSupport')}
@@ -632,7 +655,10 @@ export default function ProfileScreen() {
           />
         </SettingsSection>
 
-        <SettingsSection title={t('profile.sectionSession')}>
+        <SettingsSection
+          title={t('profile.sectionSession')}
+          enterIndex={isProvider ? 5 : 3}
+        >
           <SettingsRow
             icon={SignOut}
             title={t('auth.logout')}

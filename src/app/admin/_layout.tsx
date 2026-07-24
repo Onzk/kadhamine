@@ -3,6 +3,8 @@ import { useAuth } from '@/providers/AuthProvider';
 import { View, ActivityIndicator } from 'react-native';
 import { useAppTheme } from '@/providers/ThemeProvider';
 
+export { ExpoRouteErrorBoundary as ErrorBoundary } from '@/components/errors/ExpoRouteErrorBoundary';
+
 export default function AdminLayout() {
   const { user, isLoading } = useAuth();
   const { colors } = useAppTheme();

@@ -1,3 +1,4 @@
+import { Enter } from '@/components/ui/Enter';
 import { Text } from '@/components/ui/ThemedText';
 import { CategoryIcon } from '@/lib/categoryIcons';
 import { useAppTheme } from '@/providers/ThemeProvider';
@@ -35,6 +36,8 @@ interface ServiceCardProps {
   layout?: 'card' | 'list';
   /** Chevron à droite (tooltip carte / incitation au clic). */
   showChevron?: boolean;
+  /** Index for staggered enter animation. */
+  enterIndex?: number;
 }
 
 /**
@@ -58,6 +61,7 @@ export function ServiceCard({
   onPress,
   layout = 'card',
   showChevron = false,
+  enterIndex = 0,
 }: ServiceCardProps) {
   const { colors } = useAppTheme();
   const { t } = useTranslation();
@@ -72,6 +76,7 @@ export function ServiceCard({
 
   if (layout === 'list') {
     return (
+      <Enter variant="card" index={enterIndex} style={{ width: '100%' }}>
       <Pressable onPress={onPress} style={{ width: '100%' }}>
         {({ pressed }) => (
           <View
@@ -227,10 +232,12 @@ export function ServiceCard({
           </View>
         )}
       </Pressable>
+      </Enter>
     );
   }
 
   return (
+    <Enter variant="card" index={enterIndex} style={{ width: '100%' }}>
     <Pressable onPress={onPress} style={{ width: '100%' }}>
       {({ pressed }) => (
         <View
@@ -431,5 +438,6 @@ export function ServiceCard({
         </View>
       )}
     </Pressable>
+    </Enter>
   );
 }

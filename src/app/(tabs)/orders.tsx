@@ -149,7 +149,7 @@ export default function OrdersScreen() {
             />
           ) : (
             filtered?.map(
-              ({ order, service, payment, counterpartyName, counterpartyAvatar }) => {
+              ({ order, service, payment, counterpartyName, counterpartyAvatar }, index) => {
                 const showPay =
                   listRole === 'client' &&
                   orderNeedsPayment({
@@ -175,6 +175,7 @@ export default function OrdersScreen() {
                     paymentStatus={payment?.status}
                     isOffPlatform={order.isOffPlatformPayment}
                     showPay={showPay}
+                    enterIndex={index}
                     onPay={
                       showPay ? () => router.push(`/checkout/${order._id}`) : undefined
                     }

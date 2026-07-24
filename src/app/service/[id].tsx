@@ -44,6 +44,7 @@ import {
   Star,
   Briefcase,
   CalendarBlank,
+  CurrencyCircleDollar,
 } from 'phosphor-react-native';
 import type { Id } from '../../../convex/_generated/dataModel';
 
@@ -1201,6 +1202,14 @@ export default function ServiceDetailScreen() {
                     icon={<Briefcase size={13} color={colors.ink} weight="bold" />}
                     label={t('service.experienceYears', {
                       count: profile.experienceYears,
+                    })}
+                  />
+                ) : null}
+                {profile.hourlyRate != null && profile.hourlyRate > 0 ? (
+                  <MetaChip
+                    icon={<CurrencyCircleDollar size={13} color={colors.ink} weight="bold" />}
+                    label={t('service.hourlyRate', {
+                      price: formatPrice(profile.hourlyRate),
                     })}
                   />
                 ) : null}

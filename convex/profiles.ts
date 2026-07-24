@@ -267,6 +267,7 @@ export const getPublicProvider = query({
         avatarUrl: profile.avatarUrl,
         skills: profile.skills,
         experienceYears: profile.experienceYears,
+        hourlyRate: profile.hourlyRate,
         availability: profile.availability,
         isVerified: profile.isVerified,
         isPremium: profile.isPremium,
@@ -374,8 +375,26 @@ export const update = mutation({
     for (const [key, value] of Object.entries(args)) {
       if (value !== undefined) updates[key] = value;
     }
+    // Trim text fields; keep "" so clearable optionals actually overwrite previous values.
+    if (typeof args.phone === 'string') {
+      updates.phone = args.phone.trim();
+    }
+    if (typeof args.bio === 'string') {
+      updates.bio = args.bio.trim();
+    }
+    if (typeof args.address === 'string') {
+      updates.address = args.address.trim();
+    }
 
     await ctx.db.patch(profile._id, updates);
+
+    if (args.phone !== undefined) {
+      await ctx.db.patch(userId, {
+        phone: String(updates.phone ?? '').trim(),
+        updatedAt: now(),
+      });
+    }
+
     return profile._id;
   },
 });

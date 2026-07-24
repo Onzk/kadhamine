@@ -8,6 +8,7 @@ import type { Id } from '../../../convex/_generated/dataModel';
 
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { Enter } from '@/components/ui/Enter';
 import { PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StarRating } from '@/components/ui/StarRating';
@@ -99,11 +100,13 @@ function ProviderTile({
   tall,
   width = TILE_W,
   onPress,
+  enterIndex = 0,
 }: {
   item: HomeProviderItem;
   tall: boolean;
   width?: number;
   onPress: () => void;
+  enterIndex?: number;
 }) {
   const { t, i18n } = useTranslation();
   const { colors } = useAppTheme();
@@ -241,48 +244,50 @@ function ProviderTile({
   );
 
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => ({
-        width,
-        opacity: pressed ? 0.92 : 1,
-        transform: [{ scale: pressed ? 0.98 : 1 }],
-      })}
-    >
-      {isPremium ? (
-        <LinearGradient
-          colors={[BrandColors.gold, colors.orbit, colors.clay]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{
-            borderRadius: Radius.lg,
-            padding: 1.5,
-          }}
-        >
+    <Enter variant="card" index={enterIndex}>
+      <Pressable
+        onPress={onPress}
+        style={({ pressed }) => ({
+          width,
+          opacity: pressed ? 0.92 : 1,
+          transform: [{ scale: pressed ? 0.98 : 1 }],
+        })}
+      >
+        {isPremium ? (
+          <LinearGradient
+            colors={[BrandColors.gold, colors.orbit, colors.clay]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{
+              borderRadius: Radius.lg,
+              padding: 1.5,
+            }}
+          >
+            <View
+              style={{
+                borderRadius: Radius.lg - 1,
+                backgroundColor: colors.surfaceCard,
+                overflow: 'hidden',
+              }}
+            >
+              {cardBody}
+            </View>
+          </LinearGradient>
+        ) : (
           <View
             style={{
-              borderRadius: Radius.lg - 1,
+              borderRadius: Radius.lg,
               backgroundColor: colors.surfaceCard,
+              borderWidth: BorderWidth.default,
+              borderColor: colors.borderStrong,
               overflow: 'hidden',
             }}
           >
             {cardBody}
           </View>
-        </LinearGradient>
-      ) : (
-        <View
-          style={{
-            borderRadius: Radius.lg,
-            backgroundColor: colors.surfaceCard,
-            borderWidth: BorderWidth.default,
-            borderColor: colors.borderStrong,
-            overflow: 'hidden',
-          }}
-        >
-          {cardBody}
-        </View>
-      )}
-    </Pressable>
+        )}
+      </Pressable>
+    </Enter>
   );
 }
 
@@ -414,12 +419,13 @@ export function ProviderGrid({
                 key={rowIndex}
                 style={{ flexDirection: 'row', gap: COL_GAP, alignItems: 'flex-start' }}
               >
-                {row.map((tile) => (
+                {row.map((tile, colIndex) => (
                   <ProviderTile
                     key={tile.item.profile._id}
                     item={tile.item}
                     tall={tile.tall}
                     width={tile.width}
+                    enterIndex={rowIndex * 4 + colIndex}
                     onPress={() => onPressProvider(tile.item.profile._id)}
                   />
                 ))}
@@ -459,12 +465,13 @@ export function ProviderGrid({
                   width={LIST_TILE_W}
                 />
               ))
-            : items.map((item) => (
+            : items.map((item, index) => (
                 <ProviderTile
                   key={item.profile._id}
                   item={item}
                   tall={false}
                   width={LIST_TILE_W}
+                  enterIndex={index}
                   onPress={() => onPressProvider(item.profile._id)}
                 />
               ))}
@@ -493,11 +500,12 @@ export function ProviderGrid({
               key={rowIndex}
               style={{ flexDirection: 'row', gap: COL_GAP, alignItems: 'flex-start' }}
             >
-              {pair.map((item) => (
+              {pair.map((item, colIndex) => (
                 <ProviderTile
                   key={item.profile._id}
                   item={item}
                   tall={false}
+                  enterIndex={rowIndex * 2 + colIndex}
                   onPress={() => onPressProvider(item.profile._id)}
                 />
               ))}
