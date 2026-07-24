@@ -390,8 +390,9 @@ interface AuthStepperProps {
   total: number;
 }
 
-/** Indicateur d’étapes segmenté (register multi-étapes). */
+/** Indicateur d’étapes segmenté (register / formulaires multi-étapes). */
 export function AuthStepper({ step, total }: AuthStepperProps) {
+  const { t } = useTranslation();
   const { colors } = useAppTheme();
 
   return (
@@ -415,7 +416,7 @@ export function AuthStepper({ step, total }: AuthStepperProps) {
           { color: colors.muted, fontFamily: fontFamily('body', 'medium') },
         ]}
       >
-        Étape {step} sur {total}
+        {t('common.stepOf', { step, total })}
       </Text>
     </View>
   );

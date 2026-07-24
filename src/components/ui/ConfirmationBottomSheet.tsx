@@ -58,6 +58,7 @@ export function ConfirmationBottomSheet({
         style={{
           alignSelf: 'stretch',
           width: '100%',
+          minHeight: 140,
           alignItems: 'center',
           paddingTop: Spacing.five,
         }}

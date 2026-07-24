@@ -1,7 +1,59 @@
 import { v } from 'convex/values';
 import { mutation, query } from './_generated/server';
+import type { Doc, Id } from './_generated/dataModel';
+import type { QueryCtx } from './_generated/server';
 import { requireAuth, createNotification, now } from './lib';
 import { internal } from './_generated/api';
+
+async function resolvePeer(
+  ctx: QueryCtx,
+  userId: Id<'users'>,
+  participantIds: Id<'users'>[],
+) {
+  const peerId = participantIds.find((id) => id !== userId) ?? participantIds[0];
+  const peerUser = await ctx.db.get(peerId);
+  const peerProfile = await ctx.db
+    .query('profiles')
+    .withIndex('by_user', (q) => q.eq('userId', peerId))
+    .first();
+
+  let avatarUrl = peerProfile?.avatarUrl ?? peerUser?.image ?? undefined;
+  if (!avatarUrl && peerProfile?.avatarStorageId) {
+    avatarUrl = (await ctx.storage.getUrl(peerProfile.avatarStorageId)) ?? undefined;
+  }
+
+  const name = peerProfile
+    ? `${peerProfile.firstName} ${peerProfile.lastName}`.trim()
+    : (peerUser?.name ?? null);
+
+  return {
+    _id: peerId,
+    name,
+    avatarUrl,
+  };
+}
+
+async function unreadCountFor(
+  ctx: QueryCtx,
+  conversationId: Id<'conversations'>,
+  userId: Id<'users'>,
+) {
+  const messages = await ctx.db
+    .query('messages')
+    .withIndex('by_conversation', (q) => q.eq('conversationId', conversationId))
+    .collect();
+
+  return messages.filter(
+    (m) => m.senderId !== userId && !m.readBy.includes(userId),
+  ).length;
+}
+
+function sortConversations(conversations: Doc<'conversations'>[]) {
+  return [...conversations].sort(
+    (a, b) =>
+      (b.lastMessageAt ?? b.updatedAt) - (a.lastMessageAt ?? a.updatedAt),
+  );
+}
 
 export const list = query({
   args: {},
@@ -13,7 +65,31 @@ export const list = query({
       .order('desc')
       .collect();
 
-    return conversations.filter((c) => c.participantIds.includes(userId));
+    const mine = sortConversations(
+      conversations.filter((c) => c.participantIds.includes(userId)),
+    );
+
+    return await Promise.all(
+      mine.map(async (conv) => {
+        const peer = await resolvePeer(ctx, userId, conv.participantIds);
+        const unreadCount = await unreadCountFor(ctx, conv._id, userId);
+        return { ...conv, peer, unreadCount };
+      }),
+    );
+  },
+});
+
+export const getConversation = query({
+  args: { conversationId: v.id('conversations') },
+  handler: async (ctx, args) => {
+    const { userId } = await requireAuth(ctx);
+    const conversation = await ctx.db.get(args.conversationId);
+    if (!conversation || !conversation.participantIds.includes(userId)) {
+      return null;
+    }
+
+    const peer = await resolvePeer(ctx, userId, conversation.participantIds);
+    return { ...conversation, peer };
   },
 });
 

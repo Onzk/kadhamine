@@ -1,7 +1,10 @@
 import { useRouter } from 'expo-router';
 import { CaretLeft } from 'phosphor-react-native';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -74,6 +77,8 @@ export interface PageHeaderProps {
   /** Description sous le titre — obligatoire sur toutes les pages. */
   subtitle: string;
   showBack?: boolean;
+  /** Remplace `router.back()` (ex. retour d’étape dans un stepper). */
+  onBack?: () => void;
   rightAction?: React.ReactNode;
   /** Contenu sous le titre (search, chips…) — espacé de ~24px. */
   actions?: React.ReactNode;
@@ -88,6 +93,7 @@ export function PageHeader({
   title,
   subtitle,
   showBack,
+  onBack,
   rightAction,
   actions,
   style,
@@ -117,7 +123,7 @@ export function PageHeader({
         >
           {showBack ? (
             <Pressable
-              onPress={() => router.back()}
+              onPress={() => (onBack ? onBack() : router.back())}
               hitSlop={8}
               style={({ pressed }) => ({
                 width: 44,
@@ -170,12 +176,13 @@ export function PageHeader({
 interface StickyBarProps {
   title: string;
   showBack?: boolean;
+  onBack?: () => void;
   rightAction?: React.ReactNode;
   progress: SharedValue<number>;
   active: boolean;
 }
 
-function StickyBar({ title, showBack, rightAction, progress, active }: StickyBarProps) {
+function StickyBar({ title, showBack, onBack, rightAction, progress, active }: StickyBarProps) {
   const { colors } = useAppTheme();
   const router = useRouter();
 
@@ -220,7 +227,7 @@ function StickyBar({ title, showBack, rightAction, progress, active }: StickyBar
     >
       {showBack ? (
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => (onBack ? onBack() : router.back())}
           hitSlop={8}
           style={({ pressed }) => ({
             width: 40,
@@ -263,6 +270,8 @@ export interface PageScaffoldProps {
   /** Description sous le titre — obligatoire sur toutes les pages. */
   subtitle: string;
   showBack?: boolean;
+  /** Remplace `router.back()` (ex. retour d’étape dans un stepper). */
+  onBack?: () => void;
   rightAction?: React.ReactNode;
   headerActions?: React.ReactNode;
   children: React.ReactNode;
@@ -287,6 +296,7 @@ export function PageScaffold({
   title,
   subtitle,
   showBack,
+  onBack,
   rightAction,
   headerActions,
   children,
@@ -299,8 +309,26 @@ export function PageScaffold({
   const insets = useSafeAreaInsets();
   const scrollY = useSharedValue(0);
   const [stickyActive, setStickyActive] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const onScrollYChangeRef = useRef(onScrollYChange);
   onScrollYChangeRef.current = onScrollYChange;
+
+  useEffect(() => {
+    const applyShow = (e: { endCoordinates: { height: number } }) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    };
+    const applyHide = () => setKeyboardHeight(0);
+    // Listen to both will/did so Android + iOS both update reliably.
+    const subs = [
+      Keyboard.addListener('keyboardWillShow', applyShow),
+      Keyboard.addListener('keyboardDidShow', applyShow),
+      Keyboard.addListener('keyboardWillHide', applyHide),
+      Keyboard.addListener('keyboardDidHide', applyHide),
+    ];
+    return () => {
+      subs.forEach((s) => s.remove());
+    };
+  }, []);
 
   const notifyScrollY = (y: number) => {
     onScrollYChangeRef.current?.(y);
@@ -315,6 +343,8 @@ export function PageScaffold({
   });
 
   // Preserve caller paddingBottom (ex. FAB clearance) and still add safe-area when enabled.
+  // Keyboard clearance is a trailing spacer (not paddingBottom) so Reanimated ScrollView
+  // reliably relayouts when the keyboard opens — padding alone was flaky on some screens.
   const flatContent = StyleSheet.flatten(contentContainerStyle) as ViewStyle | undefined;
   const basePad =
     typeof flatContent?.paddingBottom === 'number'
@@ -322,12 +352,13 @@ export function PageScaffold({
       : Spacing.eight;
   const paddingBottom = basePad + (bottomInset ? insets.bottom : 0);
 
-  return (
+  const body = (
     <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       {stickyEnabled ? (
         <StickyBar
           title={title}
           showBack={showBack}
+          onBack={onBack}
           rightAction={rightAction}
           progress={scrollY}
           active={stickyActive}
@@ -339,6 +370,8 @@ export function PageScaffold({
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="none"
+        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
         contentContainerStyle={[
           { flexGrow: 1 },
           contentContainerStyle,
@@ -349,11 +382,28 @@ export function PageScaffold({
           title={title}
           subtitle={subtitle}
           showBack={showBack}
+          onBack={onBack}
           rightAction={rightAction}
           actions={headerActions}
         />
         {children}
+        {keyboardHeight > 0 ? <View style={{ height: keyboardHeight }} /> : null}
       </Animated.ScrollView>
     </View>
   );
+
+  // iOS: KAV + spacer. Android: window resize (app.json) + spacer only — avoid nested KAV.
+  if (Platform.OS === 'ios') {
+    return (
+      <KeyboardAvoidingView
+        style={{ flex: 1, backgroundColor: colors.canvas }}
+        behavior="padding"
+        keyboardVerticalOffset={0}
+      >
+        {body}
+      </KeyboardAvoidingView>
+    );
+  }
+
+  return body;
 }

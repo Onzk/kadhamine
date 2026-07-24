@@ -9,6 +9,8 @@ import {
   Lock,
   Globe,
   Moon,
+  Sun,
+  Desktop,
   Info,
   ShieldCheck,
   FileText,
@@ -45,6 +47,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useAppLanguage } from '@/providers/I18nProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { useAppDialog } from '@/providers/AppDialogProvider';
+import { clearOnboardingSeen } from '@/services/onboardingStorage';
 import { SUPPORTED_LANGUAGES } from '@/constants/chad';
 import { useUpload } from '@/hooks/useUpload';
 import { Radius, Shadows, Spacing } from '@/theme/tokens';
@@ -73,7 +76,6 @@ export default function ProfileScreen() {
   const [personalSheet, setPersonalSheet] = useState(false);
   const [passwordSheet, setPasswordSheet] = useState(false);
   const [languageSheet, setLanguageSheet] = useState(false);
-  const [appearanceSheet, setAppearanceSheet] = useState(false);
   const [avatarSheet, setAvatarSheet] = useState(false);
 
   const [firstName, setFirstName] = useState('');
@@ -123,6 +125,8 @@ export default function ProfileScreen() {
     if (mode === 'dark') return t('profile.themeDark');
     return t('profile.themeSystem');
   }, [mode, t]);
+
+  const appearanceIcon = mode === 'light' ? Sun : mode === 'dark' ? Moon : Desktop;
 
   const currentLanguageLabel =
     SUPPORTED_LANGUAGES.find((l) => l.code === language)?.nativeLabel ?? language;
@@ -212,7 +216,11 @@ export default function ProfileScreen() {
       message: t('profile.logoutConfirm'),
       confirmLabel: t('auth.logout'),
       destructive: true,
-      onConfirm: () => signOut(),
+      onConfirm: async () => {
+        await clearOnboardingSeen();
+        await signOut();
+        router.replace('/(auth)/onboarding');
+      },
     });
   };
 
@@ -306,10 +314,11 @@ export default function ProfileScreen() {
                 onPress={() => setLanguageSheet(true)}
               />
               <SettingsRow
-                icon={Moon}
+                icon={appearanceIcon}
                 title={t('profile.appearance')}
                 description={themeLabel}
-                onPress={() => setAppearanceSheet(true)}
+                onPress={cycleTheme}
+                showChevron={false}
               />
             </SettingsSection>
 
@@ -338,13 +347,8 @@ export default function ProfileScreen() {
           <GuestSheets
             languageSheet={languageSheet}
             setLanguageSheet={setLanguageSheet}
-            appearanceSheet={appearanceSheet}
-            setAppearanceSheet={setAppearanceSheet}
             language={language}
-            mode={mode}
-            themeLabel={themeLabel}
             onLanguageSelect={handleLanguageSelect}
-            onThemeSelect={setMode}
           />
         </PageScaffold>
 
@@ -526,10 +530,11 @@ export default function ProfileScreen() {
             onPress={() => setLanguageSheet(true)}
           />
           <SettingsRow
-            icon={Moon}
+            icon={appearanceIcon}
             title={t('profile.appearance')}
             description={themeLabel}
-            onPress={() => setAppearanceSheet(true)}
+            onPress={cycleTheme}
+            showChevron={false}
           />
         </SettingsSection>
 
@@ -695,14 +700,8 @@ export default function ProfileScreen() {
       <GuestSheets
         languageSheet={languageSheet}
         setLanguageSheet={setLanguageSheet}
-        appearanceSheet={appearanceSheet}
-        setAppearanceSheet={setAppearanceSheet}
         language={language}
-        mode={mode}
-        themeLabel={themeLabel}
         onLanguageSelect={handleLanguageSelect}
-        onThemeSelect={setMode}
-        onAppearanceCycle={cycleTheme}
       />
     </PageScaffold>
   );
@@ -711,14 +710,8 @@ export default function ProfileScreen() {
 interface GuestSheetsProps {
   languageSheet: boolean;
   setLanguageSheet: (v: boolean) => void;
-  appearanceSheet: boolean;
-  setAppearanceSheet: (v: boolean) => void;
   language: string;
-  mode: ThemeMode;
-  themeLabel: string;
   onLanguageSelect: (code: (typeof SUPPORTED_LANGUAGES)[number]['code']) => void;
-  onThemeSelect: (mode: ThemeMode) => void;
-  onAppearanceCycle?: () => void;
 }
 
 function ProviderStatsGrid({
@@ -843,110 +836,48 @@ function ProviderStatsGrid({
 function GuestSheets({
   languageSheet,
   setLanguageSheet,
-  appearanceSheet,
-  setAppearanceSheet,
   language,
-  mode,
   onLanguageSelect,
-  onThemeSelect,
-  onAppearanceCycle,
 }: GuestSheetsProps) {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
 
-  const themeOptions: { value: ThemeMode; labelKey: string }[] = [
-    { value: 'light', labelKey: 'profile.themeLight' },
-    { value: 'dark', labelKey: 'profile.themeDark' },
-    { value: 'system', labelKey: 'profile.themeSystem' },
-  ];
-
   return (
-    <>
-      <AppBottomSheet
-        visible={languageSheet}
-        onClose={() => setLanguageSheet(false)}
-        title={t('profile.language')}
-        subtitle={t('profile.languageSheetSubtitle')}
-      >
-        {SUPPORTED_LANGUAGES.map((lang) => (
-          <Pressable
-            key={lang.code}
-            onPress={() => onLanguageSelect(lang.code)}
-            style={({ pressed }) => ({
-              opacity: pressed ? 0.9 : 1,
-            })}
-          >
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                paddingVertical: Spacing.three,
-                paddingHorizontal: Spacing.two,
-                borderRadius: 12,
-                backgroundColor: language === lang.code ? colors.orbitWash : 'transparent',
-                marginBottom: Spacing.one,
-              }}
-            >
-              <Text style={[textStyle('body'), { color: colors.ink, fontWeight: '600' }]}>
-                {lang.nativeLabel}
-              </Text>
-              {language === lang.code ? (
-                <Text style={[textStyle('caption'), { color: colors.orbit }]}>✓</Text>
-              ) : null}
-            </View>
-          </Pressable>
-        ))}
-      </AppBottomSheet>
-
-      <AppBottomSheet
-        visible={appearanceSheet}
-        onClose={() => setAppearanceSheet(false)}
-        title={t('profile.appearance')}
-        subtitle={t('profile.appearanceSheetSubtitle')}
-      >
-        {themeOptions.map((opt) => (
-          <Pressable
-            key={opt.value}
-            onPress={() => {
-              onThemeSelect(opt.value);
-              setAppearanceSheet(false);
+    <AppBottomSheet
+      visible={languageSheet}
+      onClose={() => setLanguageSheet(false)}
+      title={t('profile.language')}
+      subtitle={t('profile.languageSheetSubtitle')}
+    >
+      {SUPPORTED_LANGUAGES.map((lang) => (
+        <Pressable
+          key={lang.code}
+          onPress={() => onLanguageSelect(lang.code)}
+          style={({ pressed }) => ({
+            opacity: pressed ? 0.9 : 1,
+          })}
+        >
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingVertical: Spacing.three,
+              paddingHorizontal: Spacing.two,
+              borderRadius: 12,
+              backgroundColor: language === lang.code ? colors.orbitWash : 'transparent',
+              marginBottom: Spacing.one,
             }}
-            style={({ pressed }) => ({
-              opacity: pressed ? 0.9 : 1,
-            })}
           >
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                paddingVertical: Spacing.three,
-                paddingHorizontal: Spacing.two,
-                borderRadius: 12,
-                backgroundColor: mode === opt.value ? colors.orbitWash : 'transparent',
-                marginBottom: Spacing.one,
-              }}
-            >
-              <Text style={[textStyle('body'), { color: colors.ink, fontWeight: '600' }]}>
-                {t(opt.labelKey)}
-              </Text>
-              {mode === opt.value ? (
-                <Text style={[textStyle('caption'), { color: colors.orbit }]}>✓</Text>
-              ) : null}
-            </View>
-          </Pressable>
-        ))}
-        {onAppearanceCycle ? (
-          <View style={{ marginTop: Spacing.three }}>
-            <Pressable onPress={onAppearanceCycle}>
-              <Text style={[textStyle('caption'), { color: colors.link, textAlign: 'center' }]}>
-                {t('profile.appearanceCycleHint')}
-              </Text>
-            </Pressable>
+            <Text style={[textStyle('body'), { color: colors.ink, fontWeight: '600' }]}>
+              {lang.nativeLabel}
+            </Text>
+            {language === lang.code ? (
+              <Text style={[textStyle('caption'), { color: colors.orbit }]}>✓</Text>
+            ) : null}
           </View>
-        ) : null}
-      </AppBottomSheet>
-    </>
+        </Pressable>
+      ))}
+    </AppBottomSheet>
   );
 }

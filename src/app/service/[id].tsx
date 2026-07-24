@@ -391,7 +391,6 @@ export default function ServiceDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [contactLoading, setContactLoading] = useState(false);
-  const [orderLoading, setOrderLoading] = useState(false);
   const [photoIndex, setPhotoIndex] = useState(0);
   const [stickyActive, setStickyActive] = useState(false);
   const [trustSheetOpen, setTrustSheetOpen] = useState(false);
@@ -412,7 +411,6 @@ export default function ServiceDetailScreen() {
     data?.profile?._id ? { profileId: data.profile._id } : 'skip',
   );
   const incrementView = useMutation(api.services.incrementView);
-  const createOrder = useMutation(api.orders.create);
   const getOrCreateConversation = useMutation(api.messages.getOrCreate);
 
   const photoCount = data?.service?.photos?.length ?? 0;
@@ -565,7 +563,7 @@ export default function ServiceDetailScreen() {
 
   const trustFabBottom = footerBlockH + FLUTTER_FAB.edgeMargin;
 
-  const handleOrder = async () => {
+  const handleOrder = () => {
     if (user?._id && service.providerId === user._id) {
       setOwnAccountSheet(true);
       return;
@@ -574,20 +572,7 @@ export default function ServiceDetailScreen() {
       requireLogin(t('service.order'));
       return;
     }
-    setOrderLoading(true);
-    try {
-      const orderId = await createOrder({ serviceId: service._id });
-      router.push(`/checkout/${orderId}`);
-    } catch (e) {
-      const message = e instanceof Error ? e.message : t('common.error');
-      if (/non authentifié/i.test(message)) {
-        requireLogin(t('service.order'));
-      } else {
-        alert({ title: t('common.error'), message });
-      }
-    } finally {
-      setOrderLoading(false);
-    }
+    router.push(`/order/create?serviceId=${service._id}`);
   };
 
   const handleContact = async () => {
@@ -1450,7 +1435,6 @@ export default function ServiceDetailScreen() {
             <AuthPrimaryButton
               title={t('service.order')}
               onPress={handleOrder}
-              loading={orderLoading}
               tone="ink"
               backgroundColor={isDark ? '#FFFFFF' : undefined}
               textColor={isDark ? BrandColors.ink : undefined}

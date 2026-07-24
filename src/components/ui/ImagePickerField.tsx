@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { Camera, Image as ImageIcon, Plus, X } from 'phosphor-react-native';
+import { Camera, Image as ImageIcon, Plus, WarningCircle, X } from 'phosphor-react-native';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -11,7 +11,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 
-import { AppBottomSheet } from '@/components/ui/AppBottomSheet';
+import { AppBottomSheet, CLOSE_MS } from '@/components/ui/AppBottomSheet';
 import { SettingsRow } from '@/components/ui/SettingsRow';
 import {
   useImagePicker,
@@ -46,6 +46,15 @@ export type ImagePickerFieldProps = {
 
 const THUMB = 72;
 
+/** Wait for AppBottomSheet / prior Modal close animation before opening another Modal. */
+function waitForModalClose() {
+  return new Promise<void>((resolve) => {
+    setTimeout(() => {
+      requestAnimationFrame(() => resolve());
+    }, CLOSE_MS);
+  });
+}
+
 export function ImagePickerField({
   value,
   onChange,
@@ -70,18 +79,38 @@ export function ImagePickerField({
 
   const canAdd = value.length < maxCount;
 
-  const handlePermissionError = (err: unknown) => {
+  const showAlert = async (options: Parameters<typeof alert>[0]) => {
+    await waitForModalClose();
+    alert(options);
+  };
+
+  const handlePermissionError = async (err: unknown) => {
     if (err instanceof Error) {
       if (err.message === 'PERMISSION_CAMERA') {
-        alert({ title: t('profile.cameraPermission') });
+        await showAlert({
+          title: t('common.error'),
+          message: t('profile.cameraPermission'),
+          icon: <WarningCircle size={40} color={colors.error} weight="fill" />,
+          iconTone: 'error',
+        });
         return;
       }
       if (err.message === 'PERMISSION_GALLERY') {
-        alert({ title: t('profile.galleryPermission') });
+        await showAlert({
+          title: t('common.error'),
+          message: t('profile.galleryPermission'),
+          icon: <WarningCircle size={40} color={colors.error} weight="fill" />,
+          iconTone: 'error',
+        });
         return;
       }
     }
-    alert({ title: t('common.error'), message: t('profile.avatarUploadError') });
+    await showAlert({
+      title: t('common.error'),
+      message: t('profile.avatarUploadError'),
+      icon: <WarningCircle size={40} color={colors.error} weight="fill" />,
+      iconTone: 'error',
+    });
   };
 
   const ingestAssets = async (assets: PickedAsset[]) => {
@@ -103,31 +132,43 @@ export function ImagePickerField({
       onChange(maxCount === 1 ? uploaded : [...value, ...uploaded]);
     } catch (err) {
       console.error(err);
-      alert({ title: t('common.error'), message: t('profile.avatarUploadError') });
+      await showAlert({
+        title: t('common.error'),
+        message: t('profile.avatarUploadError'),
+        icon: <WarningCircle size={40} color={colors.error} weight="fill" />,
+        iconTone: 'error',
+      });
     } finally {
       setUploading(false);
     }
   };
 
-  const pickCamera = async () => {
+  /** Close the picker sheet (if open) and wait for its Modal to unmount before continuing. */
+  const closeSheetThen = async () => {
+    if (!sheetOpen) return;
     setSheetOpen(false);
+    await waitForModalClose();
+  };
+
+  const pickCamera = async () => {
+    await closeSheetThen();
     try {
       const asset = await pickFromCamera();
       if (!asset) return;
       await ingestAssets([asset]);
     } catch (err) {
-      handlePermissionError(err);
+      await handlePermissionError(err);
     }
   };
 
   const pickGallery = async () => {
-    setSheetOpen(false);
+    await closeSheetThen();
     try {
       const assets = await pickFromLibrary();
       if (!assets?.length) return;
       await ingestAssets(assets);
     } catch (err) {
-      handlePermissionError(err);
+      await handlePermissionError(err);
     }
   };
 

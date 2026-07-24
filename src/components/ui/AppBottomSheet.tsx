@@ -37,7 +37,8 @@ const DISMISS_DRAG = 80;
 const BACKDROP_COLOR = '#000000';
 const BACKDROP_OPACITY = 0.5;
 const OPEN_MS = 180;
-const CLOSE_MS = 160;
+/** Close animation duration — wait this long before opening another Modal. */
+export const CLOSE_MS = 160;
 const HANDLE_FADE_MS = 160;
 const EASE = Easing.out(Easing.cubic);
 const STICKY_THRESHOLD = 56;
@@ -99,6 +100,9 @@ function SheetCloseButton({ onPress }: { onPress: () => void }) {
 
 interface SheetStickyBarProps {
   title: string;
+  subtitle?: string;
+  /** `full` = titre + description (sans clavier) ; `compact` = titre seul (clavier). */
+  mode: 'full' | 'compact';
   progress: SharedValue<number>;
   active: boolean;
   showClose: boolean;
@@ -107,12 +111,15 @@ interface SheetStickyBarProps {
 
 function SheetStickyBar({
   title,
+  subtitle,
+  mode,
   progress,
   active,
   showClose,
   onClose,
 }: SheetStickyBarProps) {
   const { colors } = useAppTheme();
+  const compact = mode === 'compact';
 
   const style = useAnimatedStyle(() => ({
     opacity: interpolate(
@@ -144,25 +151,40 @@ function SheetStickyBar({
           right: 0,
           zIndex: 20,
           backgroundColor: colors.canvas,
-          paddingTop: Spacing.three,
-          paddingBottom: Spacing.three,
+          paddingTop: compact ? Spacing.three : Spacing.five,
+          paddingBottom: compact ? Spacing.three : Spacing.two,
           paddingHorizontal: PAGE_H_PAD,
           flexDirection: 'row',
-          alignItems: 'center',
+          alignItems: compact ? 'center' : 'flex-start',
           gap: Spacing.three,
         },
         style,
       ]}
     >
-      <Text
-        numberOfLines={1}
-        style={[
-          textStyle('featureHeading'),
-          { color: colors.ink, flex: 1, fontSize: 18, lineHeight: 22 },
-        ]}
-      >
-        {title}
-      </Text>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text
+          numberOfLines={compact ? 1 : 2}
+          style={[
+            compact ? textStyle('featureHeading') : textStyle('productDisplay'),
+            {
+              color: colors.ink,
+              ...(compact
+                ? { fontSize: 18, lineHeight: 22 }
+                : { marginBottom: subtitle ? Spacing.two : 0 }),
+            },
+          ]}
+        >
+          {title}
+        </Text>
+        {!compact && subtitle ? (
+          <Text
+            style={[textStyle('body'), { color: colors.muted, lineHeight: 24 }]}
+            numberOfLines={2}
+          >
+            {subtitle}
+          </Text>
+        ) : null}
+      </View>
       {showClose ? <SheetCloseButton onPress={onClose} /> : null}
     </Animated.View>
   );
@@ -224,12 +246,14 @@ export function AppBottomSheet({
     });
     const onHide = Keyboard.addListener(hideEvent, () => {
       setKeyboardHeight(0);
+      // Garde le sticky si on a déjà scrollé — repasse juste en mode titre+description.
+      setStickyActive(scrollY.value > STICKY_THRESHOLD - 8);
     });
     return () => {
       onShow.remove();
       onHide.remove();
     };
-  }, []);
+  }, [scrollY]);
 
   const syncHandleVisibility = useCallback(
     (sheetTopY: number, sheetHeight: number) => {
@@ -391,6 +415,7 @@ export function AppBottomSheet({
   /** Padding bas interne : safe area + marge pour l’action. */
   const sheetBottomPad = systemBottom + Spacing.twelve;
   const useSticky = scrollable && stickyHeader && !hideHeader;
+  const stickyMode = keyboardOpen ? 'compact' : 'full';
   const sheetBg = colors.canvas;
 
   const body = (
@@ -523,6 +548,8 @@ export function AppBottomSheet({
                 {useSticky ? (
                   <SheetStickyBar
                     title={title}
+                    subtitle={subtitle}
+                    mode={stickyMode}
                     progress={scrollY}
                     active={stickyActive}
                     showClose={showClose}
@@ -557,10 +584,12 @@ export function AppBottomSheet({
                 </Animated.ScrollView>
               </View>
             ) : (
-              <>
+              // Wrap in a View (not Fragment) so Yoga sizes the sheet to content when
+              // hideHeader + scrollable=false — Fragment children can collapse to 0 height.
+              <View style={{ width: '100%', flexShrink: 0 }}>
                 {hideHeader ? floatingClose : staticHeader}
                 {body}
-              </>
+              </View>
             )}
           </Animated.View>
         </KeyboardAvoidingView>

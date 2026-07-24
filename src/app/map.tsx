@@ -334,12 +334,12 @@ export default function MapScreen() {
   }));
 
   /**
-   * Radius chips sit above the sheet but never climb past SHEET_MID —
-   * otherwise they slide under the category masonry (higher zIndex) and
-   * taps miss / look like the selected radius was lost.
+   * Radius chips follow the sheet height (collapsed → mid → expanded),
+   * same as the recenter FAB. zIndex above category masonry so taps still
+   * work if the bar rises into that band at max sheet height.
    */
   const radiusBarStyle = useAnimatedStyle(() => ({
-    bottom: Math.min(sheetHeight.value, SHEET_MID) + FLUTTER_FAB.edgeMargin,
+    bottom: sheetHeight.value + FLUTTER_FAB.edgeMargin,
   }));
 
   const onSheetHeaderLayout = useCallback(
@@ -610,7 +610,7 @@ export default function MapScreen() {
 
       <Animated.View
         pointerEvents="box-none"
-        style={[{ position: 'absolute', left: Spacing.four, zIndex: 25 }, radiusBarStyle]}
+        style={[{ position: 'absolute', left: Spacing.four, zIndex: 35 }, radiusBarStyle]}
       >
         <View style={Shadows.nav}>
           <View

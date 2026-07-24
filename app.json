@@ -72,6 +72,18 @@
           "imageWidth": 200,
           "resizeMode": "contain"
         }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "TalentTchad utilise le micro pour les messages vocaux de commande."
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "TalentTchad utilise le micro pour les messages vocaux de commande."
+        }
       ]
     ],
     "experiments": {

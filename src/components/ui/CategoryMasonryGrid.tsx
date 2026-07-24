@@ -97,15 +97,25 @@ function buildMasonry(items: CategoryCardData[]): {
   return { heroes, left, right };
 }
 
+export type CategoryMasonryVariant = 'browse' | 'picker';
+
 interface CategoryMasonryTileProps {
   item: CategoryCardData;
   size: MasonryTileSize;
   height: number;
   width: number;
   onPress: () => void;
+  variant?: CategoryMasonryVariant;
 }
 
-function CategoryMasonryTile({ item, size, height, width, onPress }: CategoryMasonryTileProps) {
+function CategoryMasonryTile({
+  item,
+  size,
+  height,
+  width,
+  onPress,
+  variant = 'browse',
+}: CategoryMasonryTileProps) {
   const visual = getCategoryVisual({
     icon: item.icon,
     slug: item.slug,
@@ -117,6 +127,7 @@ function CategoryMasonryTile({ item, size, height, width, onPress }: CategoryMas
     visualKey: visual.key,
   });
   const isEmpty = (item.serviceCount ?? 0) === 0;
+  const showEmptyHint = variant === 'browse' && isEmpty;
   const isHero = size === 'hero';
   const isTall = height >= 220 || size === 'tall';
   const titleSize = isHero ? 20 : isTall ? 16 : 14;
@@ -163,11 +174,11 @@ function CategoryMasonryTile({ item, size, height, width, onPress }: CategoryMas
 
         <LinearGradient
           colors={
-            isEmpty
+            showEmptyHint
               ? ['rgba(0,0,0,0.5)', 'rgba(0,0,0,0.85)']
               : ['rgba(0,0,0,0.08)', 'rgba(0,0,0,0.35)', 'rgba(0,0,0,0.8)']
           }
-          locations={isEmpty ? [0, 1] : [0, 0.5, 1]}
+          locations={showEmptyHint ? [0, 1] : [0, 0.5, 1]}
           style={{
             position: 'absolute',
             top: 0,
@@ -178,7 +189,7 @@ function CategoryMasonryTile({ item, size, height, width, onPress }: CategoryMas
           }}
         />
 
-        {isEmpty ? (
+        {showEmptyHint ? (
           <View
             style={{
               position: 'absolute',
@@ -221,7 +232,7 @@ function CategoryMasonryTile({ item, size, height, width, onPress }: CategoryMas
           </View>
         </View>
 
-        {isEmpty ? (
+        {showEmptyHint ? (
           <View
             style={{
               position: 'absolute',
@@ -271,7 +282,7 @@ function CategoryMasonryTile({ item, size, height, width, onPress }: CategoryMas
             style={[
               textStyle('micro'),
               {
-                color: isEmpty ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.82)',
+                color: showEmptyHint ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.82)',
               },
             ]}
           >
@@ -288,10 +299,12 @@ function Column({
   tiles,
   width,
   onPressCategory,
+  variant,
 }: {
   tiles: LaidOut[];
   width: number;
   onPressCategory: (id: string) => void;
+  variant: CategoryMasonryVariant;
 }) {
   return (
     <View style={{ width, gap: MASONRY_GAP }}>
@@ -303,6 +316,7 @@ function Column({
           height={tile.height}
           width={width}
           onPress={() => onPressCategory(tile.item.id)}
+          variant={variant}
         />
       ))}
     </View>
@@ -312,12 +326,15 @@ function Column({
 interface CategoryMasonryGridProps {
   categories: CategoryCardData[] | undefined;
   onPressCategory: (id: string) => void;
+  /** `browse` (default): empty categories show “Bientôt disponible”. `picker`: neutral tiles for providers. */
+  variant?: CategoryMasonryVariant;
 }
 
 /** Grille masonry 2 colonnes — hauteurs irrégulières, gap resserré. */
 export function CategoryMasonryGrid({
   categories,
   onPressCategory,
+  variant = 'browse',
 }: CategoryMasonryGridProps) {
   const [gridWidth, setGridWidth] = useState(0);
 
@@ -374,6 +391,7 @@ export function CategoryMasonryGrid({
                 height={tile.height}
                 width={gridWidth}
                 onPress={() => onPressCategory(tile.item.id)}
+                variant={variant}
               />
             ))}
 
@@ -385,8 +403,18 @@ export function CategoryMasonryGrid({
                 width: gridWidth,
               }}
             >
-              <Column tiles={layout.left} width={colWidth} onPressCategory={onPressCategory} />
-              <Column tiles={layout.right} width={colWidth} onPressCategory={onPressCategory} />
+              <Column
+                tiles={layout.left}
+                width={colWidth}
+                onPressCategory={onPressCategory}
+                variant={variant}
+              />
+              <Column
+                tiles={layout.right}
+                width={colWidth}
+                onPressCategory={onPressCategory}
+                variant={variant}
+              />
             </View>
           </View>
         ) : null}

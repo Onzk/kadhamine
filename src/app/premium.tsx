@@ -1,27 +1,40 @@
 import React, { useState } from 'react';
-import { View, Text } from 'react-native';
+import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useAction } from 'convex/react';
 import * as WebBrowser from 'expo-web-browser';
 import { Crown, Check, DeviceMobile } from 'phosphor-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
-import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Text } from '@/components/ui/ThemedText';
+import { AuthPrimaryButton } from '@/components/auth/AuthField';
 import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { useAppDialog } from '@/providers/AppDialogProvider';
 import { formatPrice } from '@/types';
-import { BrandColors, Spacing } from '@/theme/tokens';
+import { BorderWidth, BrandColors, Radius, Spacing } from '@/theme/tokens';
+import { fontFamily, textStyle } from '@/theme/typography';
 import { api } from '../../convex/_generated/api';
 
+/** Intentional high-contrast hero — ink surface with cream type (Commander-style). */
+const HERO_INK = BrandColors.ink;
+const HERO_CREAM = BrandColors.canvas;
+
 export default function PremiumScreen() {
-  const { t } = useTranslation();
-  const { colors } = useAppTheme();
+  const { t, i18n } = useTranslation();
+  const { colors, isDark } = useAppTheme();
   const { alert } = useAppDialog();
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
+
+  const heroBg = isDark ? colors.surfaceDark : HERO_INK;
+  const heroTitle = HERO_CREAM;
+  const heroBody = isDark ? 'rgba(243,240,238,0.72)' : BrandColors.dust;
+  const heroBorder = isDark ? colors.borderHairline : 'transparent';
 
   const plans = useQuery(api.subscriptions.getPlans);
   const active = useQuery(api.subscriptions.getActive, user?._id ? {} : 'skip');
@@ -36,8 +49,8 @@ export default function PremiumScreen() {
   const handleSubscribe = async () => {
     if (!phoneNumber.trim()) {
       alert({
-        title: 'Numéro requis',
-        message: 'Entrez votre numéro Mobile Money pour effectuer un paiement sécurisé.',
+        title: t('payment.phoneRequiredTitle'),
+        message: t('premium.phoneRequiredBody'),
       });
       return;
     }
@@ -59,19 +72,19 @@ export default function PremiumScreen() {
       if (result.paymentUrl) {
         await WebBrowser.openBrowserAsync(result.paymentUrl);
         alert({
-          title: 'Paiement en cours',
-          message: 'Confirmez le paiement. Votre Premium sera activé automatiquement.',
+          title: t('payment.inProgressTitle'),
+          message: t('premium.inProgressBody'),
         });
       } else if (result.sandbox) {
         alert({
-          title: 'Mode sandbox',
-          message: result.message ?? 'Premium activé en mode sandbox local.',
+          title: t('payment.sandboxTitle'),
+          message: result.message ?? t('premium.sandboxBody'),
         });
       }
     } catch (err) {
       alert({
-        title: 'Erreur',
-        message: err instanceof Error ? err.message : 'Échec abonnement',
+        title: t('common.error'),
+        message: err instanceof Error ? err.message : t('premium.errorBody'),
       });
     } finally {
       setLoading(false);
@@ -82,103 +95,180 @@ export default function PremiumScreen() {
   const [now] = React.useState(() => Date.now());
   const isActive = Boolean(active && active.endDate > now);
 
-  return (
-    <PageScaffold
-      title={t('profile.premium')}
-      subtitle="Débloquez plus de visibilité et d'avantages."
-      showBack
-    >
-      <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
-        <View
-          style={{
-            backgroundColor: BrandColors.ink,
-            borderRadius: 40,
-            padding: 32,
-            marginBottom: 24,
-            overflow: 'hidden',
-          }}
-        >
-          <Crown size={40} color={BrandColors.gold} weight="fill" />
-          <Text style={{ fontSize: 26, fontWeight: '500', color: '#F3F0EE', marginTop: 12, letterSpacing: -0.5 }}>
-            TalentTchad Premium
-          </Text>
-          <Text style={{ fontSize: 14, color: '#D1CDC7', marginTop: 8, lineHeight: 20 }}>
-            Boostez votre visibilité et attirez plus de clients
-          </Text>
-          {plan && (
-            <Text style={{ fontSize: 32, fontWeight: '700', color: BrandColors.gold, marginTop: 16 }}>
-              {formatPrice(plan.price)}
-              <Text style={{ fontSize: 14, fontWeight: '400' }}> / mois</Text>
-            </Text>
-          )}
-        </View>
+  const endDateLabel = active
+    ? new Date(active.endDate).toLocaleDateString(i18n.language === 'ar' ? 'ar' : 'fr-FR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      })
+    : '';
 
-        {isActive && active ? (
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
+      <PageScaffold
+        title={t('profile.premium')}
+        subtitle={t('premium.subtitle')}
+        showBack
+        contentContainerStyle={{
+          paddingBottom: Math.max(insets.bottom, Spacing.twelve),
+        }}
+      >
+        <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four, gap: Spacing.five }}>
+          {/* Hero */}
           <View
             style={{
-              backgroundColor: colors.success + '15',
-              borderRadius: 20,
-              padding: 14,
-              marginBottom: 20,
-              borderWidth: 0.1,
-              borderColor: colors.success + '40',
+              backgroundColor: heroBg,
+              borderRadius: Radius.lg,
+              padding: Spacing.six,
+              overflow: 'hidden',
+              borderWidth: isDark ? BorderWidth.default : BorderWidth.none,
+              borderColor: heroBorder,
+              gap: Spacing.three,
             }}
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Check size={18} color={colors.success} />
-              <Text style={{ color: colors.success, fontWeight: '600', flex: 1 }}>
-                Premium actif jusqu&apos;au {new Date(active.endDate).toLocaleDateString('fr-FR')}
-              </Text>
-            </View>
-          </View>
-        ) : null}
-
-        <Text style={{ fontSize: 17, fontWeight: '600', color: colors.ink, marginBottom: 16 }}>
-          Avantages inclus
-        </Text>
-
-        {plan?.benefits.map((benefit) => (
-          <View key={benefit} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 }}>
             <View
               style={{
-                width: 28,
-                height: 28,
-                borderRadius: 20,
-                backgroundColor: BrandColors.gold + '40',
+                width: 52,
+                height: 52,
+                borderRadius: Radius.sm,
+                backgroundColor: BrandColors.gold + '33',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <Check size={16} color={BrandColors.ink} weight="bold" />
+              <Crown size={28} color={BrandColors.gold} weight="fill" />
             </View>
-            <Text style={{ fontSize: 15, color: colors.body, flex: 1 }}>{benefit}</Text>
+            <Text
+              style={{
+                fontFamily: fontFamily('display', 'medium'),
+                fontSize: 26,
+                lineHeight: 30,
+                letterSpacing: -0.5,
+                color: heroTitle,
+              }}
+            >
+              {t('premium.heroTitle')}
+            </Text>
+            <Text style={[textStyle('caption'), { color: heroBody, lineHeight: 20 }]}>
+              {t('premium.heroBody')}
+            </Text>
+            {plan ? (
+              <Text
+                style={{
+                  fontFamily: fontFamily('display', 'medium'),
+                  fontSize: 32,
+                  lineHeight: 36,
+                  letterSpacing: -0.64,
+                  color: BrandColors.gold,
+                  marginTop: Spacing.one,
+                }}
+              >
+                {formatPrice(plan.price)}
+                <Text style={[textStyle('caption'), { color: heroBody }]}>
+                  {' '}
+                  {t('premium.perMonth')}
+                </Text>
+              </Text>
+            ) : null}
           </View>
-        ))}
 
-        {user?.role !== 'provider' ? (
-          <Text style={{ color: colors.muted, textAlign: 'center', marginTop: 24 }}>
-            Réservé aux prestataires
+          {isActive && active ? (
+            <View
+              style={{
+                backgroundColor: colors.success + '15',
+                borderRadius: Radius.lg,
+                padding: Spacing.four,
+                borderWidth: BorderWidth.default,
+                borderColor: colors.success + '40',
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.two }}>
+                <Check size={18} color={colors.success} weight="bold" />
+                <Text
+                  style={{
+                    fontFamily: fontFamily('body', 'medium'),
+                    fontSize: 14,
+                    color: colors.success,
+                    flex: 1,
+                  }}
+                >
+                  {t('premium.activeUntil', { date: endDateLabel })}
+                </Text>
+              </View>
+            </View>
+          ) : null}
+
+          <Text
+            style={{
+              fontFamily: fontFamily('body', 'medium'),
+              fontSize: 17,
+              color: colors.ink,
+            }}
+          >
+            {t('premium.benefitsTitle')}
           </Text>
-        ) : !isActive ? (
-          <View style={{ marginTop: 24 }}>
-            <Input
-              label="Numéro Mobile Money"
-              value={phoneNumber}
-              onChangeText={setPhoneNumber}
-              keyboardType="phone-pad"
-              placeholder="66 XX XX XX"
-              leftIcon={<DeviceMobile size={20} />}
-            />
-            <Button
-              title="S'abonner Premium"
-              variant="primary"
-              onPress={handleSubscribe}
-              loading={loading}
-              fullWidth
-            />
+
+          <View style={{ gap: Spacing.three }}>
+            {plan?.benefits.map((benefit) => (
+              <View
+                key={benefit}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: Spacing.three,
+                  backgroundColor: colors.surfaceCard,
+                  borderRadius: Radius.lg,
+                  padding: Spacing.four,
+                  borderWidth: BorderWidth.default,
+                  borderColor: colors.borderStrong,
+                }}
+              >
+                <View
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: Radius.sm,
+                    backgroundColor: BrandColors.gold + (isDark ? '33' : '40'),
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Check size={16} color={BrandColors.ink} weight="bold" />
+                </View>
+                <Text style={[textStyle('body'), { color: colors.body, flex: 1, fontSize: 15 }]}>
+                  {benefit}
+                </Text>
+              </View>
+            ))}
           </View>
-        ) : null}
-      </View>
-    </PageScaffold>
+
+          {user?.role !== 'provider' ? (
+            <Text style={[textStyle('caption'), { color: colors.muted, textAlign: 'center' }]}>
+              {t('premium.providersOnly')}
+            </Text>
+          ) : !isActive ? (
+            <View style={{ gap: Spacing.four, marginTop: Spacing.two }}>
+              <Input
+                label={t('payment.phoneLabel')}
+                value={phoneNumber}
+                onChangeText={setPhoneNumber}
+                keyboardType="phone-pad"
+                placeholder={t('payment.phonePlaceholder')}
+                leftIcon={<DeviceMobile size={20} />}
+              />
+              <AuthPrimaryButton
+                title={t('premium.subscribe')}
+                onPress={handleSubscribe}
+                loading={loading}
+                tone="ink"
+                backgroundColor={isDark ? '#FFFFFF' : undefined}
+                textColor={isDark ? BrandColors.ink : undefined}
+                flat
+              />
+            </View>
+          ) : null}
+        </View>
+      </PageScaffold>
+    </View>
   );
 }

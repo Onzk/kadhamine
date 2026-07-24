@@ -71,7 +71,7 @@ Jeune (cible 18–35 ans) proposant des services.
 
 - Rechercher par catégorie, ville, mot-clé, prix, note
 - Consulter profil, portfolio, avis
-- Commander et suivre le statut
+- Commander via un parcours en étapes (métadonnées optionnelles) et suivre le statut sur une fiche détail
 - Payer in-app (FedaPay) ou hors app
 - Noter **uniquement** après paiement in-app
 - Chatter (texte + images)
@@ -101,7 +101,7 @@ Un seul opérateur au démarrage (compte seed).
 | Profils | Client & prestataire ; ville parmi 10 villes ; compétences ; bio ; photo |
 | Services | CRUD prestataire ; recherche / filtres ; détail ; position géo (propre ou héritée du profil) |
 | Portfolio | Images uniquement |
-| Commandes | Statuts simplifiés (voir §5) |
+| Commandes | Cycle V1 + stepper création (sans indicateur) + métadonnées optionnelles + fiche détail selon rôle (voir §4.5) |
 | Messagerie | Temps réel Convex ; **texte + images** |
 | Notation | Note globale 1–5 + commentaire ; **seulement si paiement in-app** |
 | Paiement | Hors plateforme + **intégration FedaPay complète** (sandbox → prod) |
@@ -231,6 +231,43 @@ pending → cancelled
 
 Pas de statut `in_progress`, `rejected` ou `dispute` dans le parcours utilisateur V1 (le schéma technique peut conserver des littéraux inutilisés jusqu’à nettoyage).
 
+#### Parcours de création (demandeur / client)
+
+- Écran multi-étapes **style register** (Continuer / Retour) **sans indicateur de progression** (pas de dots / « étape X sur Y »).
+- Point d’entrée : action **Commander** depuis la fiche service (et équivalents).
+- Toutes les métadonnées ci-dessous sont **optionnelles** ; le client peut avancer / soumettre sans les remplir.
+
+| Étape (indicatif) | Contenu |
+|-------------------|---------|
+| Contexte | Récapitulatif du service commandé |
+| Description | Texte libre optionnel (besoin, précisions) |
+| Emplacement | Choix optionnel via **bottomsheet carte Leaflet** (tap / drag pin → lat/lng ; ville/région dérivées ou saisies) |
+| Médias | Jusqu’à **4 photos** + **message vocal** optionnel |
+| Confirmation | Revue + envoi de la commande (`pending`) |
+
+#### Métadonnées de commande
+
+Stockées sur `orders` (ou structure équivalente) et exposées en lecture sur la fiche détail :
+
+| Champ | Type | Contraintes |
+|-------|------|-------------|
+| `description` | texte | Optionnel |
+| `latitude` / `longitude` | nombres | Optionnels ; saisie via Leaflet uniquement (pas de saisie libre obligatoire) |
+| `city` / `region` | texte | Optionnels (cohérents avec l’emplacement choisi) |
+| `photoStorageIds` | storage Convex | Max **4** images |
+| `voiceStorageId` | storage Convex | Optionnel ; durée raisonnable (ex. ≤ 60 s) ; lecture sur la fiche détail |
+
+Upload via le flux fichiers existant (`generateUploadUrl` / `useUpload`).
+
+#### Fiche détail commande
+
+- Route dédiée (ex. `/order/[id]`), accessible depuis la liste des commandes (client et prestataire).
+- Affiche le **cycle de statut**, le service, les montants / paiement le cas échéant, et **toutes les métadonnées** fournies (description, carte ou coords, galerie photos, lecteur audio).
+- **Vue adaptée au profil** qui consulte :
+  - **Client (demandeur)** : sa demande, suivi, actions client (annuler si autorisé, payer / checkout si requis, noter si éligible).
+  - **Prestataire** : brief client (métadonnées), actions prestataire (accepter, terminer, annuler selon règles de statut).
+- UI/UX conforme au design system (thème clair / sombre).
+
 ### 4.6 Paiements
 
 #### Modes
@@ -326,7 +363,7 @@ Aligné sur le schéma Convex actuel (`convex/schema.ts`), à ajuster seulement 
 | `categories` / `skills` | Taxonomie services |
 | `services` | Offres publiées + géo (propre ou héritée du profil à la création) |
 | `portfolio` | Médias prestataire |
-| `orders` | Commandes + flags paiement / review |
+| `orders` | Commandes + flags paiement / review + métadonnées optionnelles (description, géo, photos ≤4, vocal) |
 | `payments` | Montants, commission, méthode, statut FedaPay |
 | `reviews` | Avis |
 | `conversations` / `messages` | Chat |
@@ -510,7 +547,7 @@ Tokens d'implémentation : `src/theme/tokens.ts`, `src/theme/typography.ts`, `sr
 
 ### 9.6 Écrans cibles (conformité CDC)
 
-Auth, complétion profil, tabs principales, recherche, détail service, portfolio, dashboard prestataire, commandes, checkout, chat, notifications, premium, vérification, paramètres, admin (*).
+Auth, complétion profil, tabs principales, recherche, détail service, portfolio, dashboard prestataire, **création commande (stepper sans indicateur)**, **détail commande (vue selon rôle)**, liste commandes, checkout, chat, notifications, premium, vérification, paramètres, admin (*).
 
 (*) Admin : même langage visuel, densité un peu plus élevée.
 
@@ -586,6 +623,8 @@ Le MVP est **conforme** si :
 1. Un client et un prestataire peuvent s’inscrire (email/mdp), compléter un profil (ville parmi les 10), et publier / commander un service.  
 2. Le chat texte + image fonctionne en temps réel.  
 3. Le cycle de commande V1 (`pending` → `accepted` → `completed` \| `cancelled`) fonctionne.  
+3bis. Le client peut créer une commande via un stepper **sans indicateur d’étape**, avec métadonnées optionnelles (description, Leaflet, ≤4 photos, vocal) ; la fiche détail affiche ces infos selon le rôle (client / prestataire).  
+
 4. Paiement hors plateforme : pas d’avis ; paiement FedaPay (sandbox ou live) : avis possible après complétion.  
 5. Commission paramétrable visible au checkout.  
 6. Prestataire peut uploader CNI/passeport + selfie ; admin peut approuver → badge vérifié.  
@@ -634,7 +673,8 @@ Le MVP est **conforme** si :
 | 1.0 | 2025 | DRAFT initial (Django/Flutter) |
 | 2.0 | 2026-07-19 | CDC aligné stack Expo+Convex + décisions produit/UI verrouillées |
 | 2.1 | 2026-07-22 | Bascule UI vers DESIGN.md (Mastercard cream/ink) — remplace design.png + palette logo UI |
+| 2.2 | 2026-07-24 | Commandes : stepper sans indicateur, métadonnées optionnelles (description, Leaflet, photos ≤4, vocal), fiche détail adaptée au rôle |
 
 ---
 
-**TalentTchad © 2026 — Document confidentiel — Version 2.0**
+**TalentTchad © 2026 — Document confidentiel — Version 2.2**

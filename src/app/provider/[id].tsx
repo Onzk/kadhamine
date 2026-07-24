@@ -112,7 +112,6 @@ export default function ProviderDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [contactLoading, setContactLoading] = useState(false);
-  const [orderLoading, setOrderLoading] = useState(false);
   const [ownAccountSheet, setOwnAccountSheet] = useState(false);
   const [selectedPortfolio, setSelectedPortfolio] = useState<PortfolioDetailItem | null>(null);
 
@@ -122,7 +121,6 @@ export default function ProviderDetailScreen() {
   );
   const incrementView = useMutation(api.profiles.incrementView);
   const getOrCreateConversation = useMutation(api.messages.getOrCreate);
-  const createOrder = useMutation(api.orders.create);
 
   useEffect(() => {
     if (id) incrementView({ profileId: id as Id<'profiles'> }).catch(() => {});
@@ -181,7 +179,7 @@ export default function ProviderDetailScreen() {
     }
   };
 
-  const handleOrder = async () => {
+  const handleOrder = () => {
     if (!data) return;
     if (user?._id && data.userId === user._id) {
       setOwnAccountSheet(true);
@@ -199,20 +197,7 @@ export default function ProviderDetailScreen() {
       });
       return;
     }
-    setOrderLoading(true);
-    try {
-      const orderId = await createOrder({ serviceId: firstService._id });
-      router.push(`/checkout/${orderId}`);
-    } catch (e) {
-      const message = e instanceof Error ? e.message : t('common.error');
-      if (/non authentifié/i.test(message)) {
-        requireLogin(t('service.order'));
-      } else {
-        alert({ title: t('common.error'), message });
-      }
-    } finally {
-      setOrderLoading(false);
-    }
+    router.push(`/order/create?serviceId=${firstService._id}`);
   };
 
   if (data === undefined) {
@@ -743,7 +728,6 @@ export default function ProviderDetailScreen() {
             <AuthPrimaryButton
               title={t('service.order')}
               onPress={handleOrder}
-              loading={orderLoading}
               tone="orbit"
               flat
               fill

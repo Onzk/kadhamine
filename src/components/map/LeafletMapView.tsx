@@ -10,6 +10,8 @@ export const MAP_FOCUS_ZOOM = 17;
 export const MAP_USER_ZOOM = 12;
 /** Overview radius (km) when GPS is off / denied (N'Djamena fallback). */
 export const MAP_FALLBACK_RADIUS_KM = 25;
+/** Zoom used in location-picker mode. */
+export const MAP_PICKER_ZOOM = 15;
 
 export type LeafletMarkerTooltip = {
   title: string;
@@ -76,6 +78,10 @@ type Props = {
   theme?: LeafletMapTheme;
   /** Insets used when flyTo-padding so the pin sits in the usable map area. */
   focusPadding?: LeafletMapPadding;
+  /**
+   * Location-picker mode: one draggable / tap-to-place marker, no service pins.
+   */
+  picker?: boolean;
   onMarkerPress?: (id: string) => void;
   /** Tap on the in-map callout card. */
   onTooltipPress?: (id: string) => void;
@@ -83,6 +89,8 @@ type Props = {
   onFocusComplete?: (id: string) => void;
   /** Fired on Leaflet moveend/zoomend (and once after ready). */
   onCameraChange?: (camera: { lat: number; lng: number; zoom: number }) => void;
+  /** Fired when the picker pin is placed / dragged. */
+  onPickerPosition?: (pos: { lat: number; lng: number }) => void;
   onReady?: () => void;
   style?: StyleProp<ViewStyle>;
 };
@@ -112,10 +120,12 @@ export const LeafletMapView = forwardRef<LeafletMapHandle, Props>(function Leafl
     orbitColor = '#0B3D91',
     theme,
     focusPadding,
+    picker = false,
     onMarkerPress,
     onTooltipPress,
     onFocusComplete,
     onCameraChange,
+    onPickerPosition,
     onReady,
     style,
   },
@@ -125,6 +135,10 @@ export const LeafletMapView = forwardRef<LeafletMapHandle, Props>(function Leafl
   const readyRef = useRef(false);
   const onCameraChangeRef = useRef(onCameraChange);
   onCameraChangeRef.current = onCameraChange;
+  const onPickerPositionRef = useRef(onPickerPosition);
+  onPickerPositionRef.current = onPickerPosition;
+  const pickerRef = useRef(picker);
+  pickerRef.current = picker;
 
   const send = useCallback((msg: object) => {
     postToWeb(webRef, msg);
@@ -151,14 +165,14 @@ export const LeafletMapView = forwardRef<LeafletMapHandle, Props>(function Leafl
   );
 
   useEffect(() => {
-    if (!readyRef.current) return;
+    if (!readyRef.current || picker) return;
     send({ type: 'setMarkers', markers, orbitColor, theme });
-  }, [markers, orbitColor, theme, send]);
+  }, [markers, orbitColor, theme, picker, send]);
 
   useEffect(() => {
-    if (!readyRef.current || !userLocation) return;
+    if (!readyRef.current || !userLocation || picker) return;
     send({ type: 'setUserLocation', lat: userLocation.lat, lng: userLocation.lng });
-  }, [userLocation, send]);
+  }, [userLocation, picker, send]);
 
   useEffect(() => {
     if (!readyRef.current || !focusPadding) return;
@@ -176,6 +190,18 @@ export const LeafletMapView = forwardRef<LeafletMapHandle, Props>(function Leafl
     send({ type: 'setTheme', theme, orbitColor });
   }, [theme, orbitColor, send]);
 
+  useEffect(() => {
+    if (!readyRef.current || !picker) return;
+    send({
+      type: 'enablePicker',
+      lat: center.lat,
+      lng: center.lng,
+      zoom: zoom || MAP_PICKER_ZOOM,
+      orbitColor,
+      theme,
+    });
+  }, [picker, center.lat, center.lng, zoom, orbitColor, theme, send]);
+
   const onMessage = useCallback(
     (e: WebViewMessageEvent) => {
       let msg: {
@@ -192,18 +218,30 @@ export const LeafletMapView = forwardRef<LeafletMapHandle, Props>(function Leafl
       }
       if (msg.type === 'ready') {
         readyRef.current = true;
+        const isPicker = pickerRef.current;
         send({
           type: 'init',
           center,
-          zoom,
-          fitRadiusKm: fitRadiusKm ?? undefined,
-          markers,
+          zoom: isPicker ? zoom || MAP_PICKER_ZOOM : zoom,
+          fitRadiusKm: isPicker ? undefined : fitRadiusKm ?? undefined,
+          markers: isPicker ? [] : markers,
           orbitColor,
           theme,
           padding: focusPadding,
-          user: userLocation ?? undefined,
+          user: isPicker ? undefined : userLocation ?? undefined,
+          picker: isPicker,
+          pickerLat: center.lat,
+          pickerLng: center.lng,
         });
         onReady?.();
+        return;
+      }
+      if (
+        msg.type === 'pickerPosition' &&
+        typeof msg.lat === 'number' &&
+        typeof msg.lng === 'number'
+      ) {
+        onPickerPositionRef.current?.({ lat: msg.lat, lng: msg.lng });
         return;
       }
       if (

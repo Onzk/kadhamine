@@ -5,6 +5,8 @@ import { AlertBottomSheet } from '@/components/ui/AlertBottomSheet';
 import { ConfirmationBottomSheet } from '@/components/ui/ConfirmationBottomSheet';
 import { getConvexErrorMessage, reportConvexError } from '@/lib/convexErrors';
 
+export type AppAlertIconTone = 'default' | 'error' | 'success';
+
 export type AppAlertOptions = {
   title: string;
   subtitle?: string;
@@ -13,6 +15,8 @@ export type AppAlertOptions = {
   buttonLabel?: string;
   onPress?: () => void;
   icon?: React.ReactNode;
+  /** Background wash behind the icon — use `error` for validation/permission failures. */
+  iconTone?: AppAlertIconTone;
 };
 
 export type AppConfirmOptions = {
@@ -90,6 +94,7 @@ export function AppDialogProvider({ children }: { children: React.ReactNode }) {
         buttonLabel={alertOptions?.buttonLabel ?? 'OK'}
         onDismiss={alertOptions?.onPress}
         icon={alertOptions?.icon}
+        iconTone={alertOptions?.iconTone}
       />
       <ConfirmationBottomSheet
         visible={confirmOptions != null}

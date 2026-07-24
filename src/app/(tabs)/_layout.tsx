@@ -2,6 +2,7 @@ import { Tabs } from 'expo-router';
 import { Text, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from 'convex/react';
 import {
   House,
   MagnifyingGlass,
@@ -10,10 +11,13 @@ import {
   User,
   type Icon as PhosphorIcon,
 } from 'phosphor-react-native';
+
 import { useTabsBackToHome } from '@/hooks/useTabsBackToHome';
+import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { Spacing } from '@/theme/tokens';
 import { fontFamily, textStyle } from '@/theme/typography';
+import { api } from '../../../convex/_generated/api';
 
 /** Icon + label row height (above the system-nav inset). */
 const TAB_CONTENT_HEIGHT = 52;
@@ -24,8 +28,21 @@ export default function TabsLayout() {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
+  const { user, isAuthenticated } = useAuth();
 
   useTabsBackToHome();
+
+  const isProvider = user?.role === 'provider';
+  const verificationStatus = useQuery(
+    api.verification.getStatus,
+    isAuthenticated && isProvider ? {} : 'skip',
+  );
+
+  /** Prestataire non vérifié qui n’a encore soumis aucune demande. */
+  const showVerificationBadge =
+    isProvider &&
+    !user?.profile?.isVerified &&
+    verificationStatus === null;
 
   // Canvas fills the full tab bar (including under system nav).
   // paddingBottom pushes icons/labels above that inset zone.
@@ -37,7 +54,7 @@ export default function TabsLayout() {
   const inactiveColor = colors.muted;
 
   const renderIcon =
-    (IconComponent: PhosphorIcon) =>
+    (IconComponent: PhosphorIcon, showBadge = false) =>
     ({ focused }: { focused: boolean }) => (
       <View
         style={{
@@ -54,6 +71,22 @@ export default function TabsLayout() {
           color={focused ? activeColor : inactiveColor}
           weight={focused ? 'fill' : 'regular'}
         />
+        {showBadge ? (
+          <View
+            accessibilityLabel={t('profile.verification')}
+            style={{
+              position: 'absolute',
+              top: 2,
+              right: 4,
+              width: 8,
+              height: 8,
+              borderRadius: 4,
+              backgroundColor: colors.signal,
+              borderWidth: 1.5,
+              borderColor: colors.canvas,
+            }}
+          />
+        ) : null}
       </View>
     );
 
@@ -131,7 +164,7 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: t('tabs.profile'),
-          tabBarIcon: renderIcon(User),
+          tabBarIcon: renderIcon(User, showVerificationBadge),
         }}
       />
       <Tabs.Screen

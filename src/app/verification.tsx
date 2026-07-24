@@ -12,8 +12,9 @@ import {
   ImagePickerField,
   type ImagePickerValueItem,
 } from '@/components/ui/ImagePickerField';
+import { CLOSE_MS } from '@/components/ui/AppBottomSheet';
 import { useAppTheme } from '@/providers/ThemeProvider';
-import { useAppDialog } from '@/providers/AppDialogProvider';
+import { useAppDialog, type AppAlertOptions } from '@/providers/AppDialogProvider';
 import { Radius, Spacing } from '@/theme/tokens';
 import { textStyle } from '@/theme/typography';
 import { api } from '../../convex/_generated/api';
@@ -39,13 +40,20 @@ export default function VerificationScreen() {
   const isApproved = status?.status === 'approved';
   const rejectionReason = status?.status === 'rejected' ? status.reviewNotes : undefined;
 
+  /** Defer so any prior Modal / OS dialog can finish before AlertBottomSheet presents. */
+  const showAlert = (options: AppAlertOptions) => {
+    setTimeout(() => alert(options), CLOSE_MS);
+  };
+
   const handleSubmit = async () => {
     const docId = document[0]?.storageId;
     const selfieId = selfie[0]?.storageId;
     if (!docId || !selfieId) {
-      alert({
+      showAlert({
         title: t('verification.docsRequiredTitle'),
         message: t('verification.docsRequiredBody'),
+        icon: <WarningCircle size={40} color={colors.error} weight="fill" />,
+        iconTone: 'error',
       });
       return;
     }
@@ -59,16 +67,18 @@ export default function VerificationScreen() {
       });
       setDocument([]);
       setSelfie([]);
-      alert({
+      showAlert({
         title: t('verification.submittedTitle'),
         message: t('verification.submittedBody'),
         icon: <CheckCircle size={40} color={colors.orbit} weight="fill" />,
       });
     } catch (err) {
-      alert({
+      showAlert({
         title: t('common.error'),
         message:
           err instanceof Error ? err.message : t('verification.submitError'),
+        icon: <WarningCircle size={40} color={colors.error} weight="fill" />,
+        iconTone: 'error',
       });
     } finally {
       setLoading(false);

@@ -18,10 +18,8 @@ import { ServiceCarousel } from '@/components/cards/ServiceCarousel';
 import { ProviderPodium } from '@/components/cards/ProviderPodium';
 import { Logo } from '@/components/brand/Logo';
 import { CategoryHorizontalMasonry } from '@/components/ui/CategoryHorizontalMasonry';
-import { PromoCarousel, type PromoSlideData } from '@/components/ui/PromoCarousel';
+import { PromoSearchHero, type PromoSlideData } from '@/components/ui/PromoCarousel';
 import { TrustStrip } from '@/components/ui/TrustStrip';
-import { PAGE_H_PAD } from '@/components/ui/PageHeader';
-import { SearchBar } from '@/components/ui/SearchBar';
 import { Text } from '@/components/ui/ThemedText';
 import { getWelcomeAlertOptions } from '@/lib/welcomeAlert';
 import { useAuth } from '@/providers/AuthProvider';
@@ -34,6 +32,48 @@ import { api } from '../../../convex/_generated/api';
 
 /** Espacement vertical unique entre les grandes sections. */
 const SECTION_GAP = Spacing.eight;
+
+/**
+ * Slides du carrousel promo (conservés).
+ * Accueil : seul le dernier est affiché via `PromoSearchHero`.
+ * Pour réactiver le carrousel : `import { PromoCarousel }` + `<PromoCarousel slides={promoSlides} />`.
+ */
+function useHomePromoSlides(): PromoSlideData[] {
+  const { t } = useTranslation();
+  const { colors } = useAppTheme();
+  const router = useRouter();
+
+  return [
+    {
+      id: 'premium',
+      eyebrow: t('common.premium'),
+      title: 'Gagnez en visibilité',
+      description: 'Badge Premium, priorité dans les recherches et profil mis en avant.',
+      icon: Crown,
+      variant: 'dark',
+      ctaLabel: 'Découvrir',
+      onPress: () => router.push('/premium'),
+    },
+    {
+      id: 'payment',
+      eyebrow: 'Paiement sécurisé',
+      title: 'Payez en toute confiance',
+      description: 'Règlement en ligne pour débloquer les avis officiels et sécuriser la prestation.',
+      icon: CreditCard,
+      variant: 'light',
+    },
+    {
+      id: 'nearby',
+      eyebrow: t('home.nearYou'),
+      title: 'Talents près de chez vous',
+      description: 'Repérez les prestataires disponibles autour de vous, en direct sur la carte.',
+      icon: MapPin,
+      variant: 'warm',
+      gradient: [...colors.orbitGradient],
+      onPress: () => router.push('/map' as never),
+    },
+  ];
+}
 
 export default function HomeScreen() {
   const { t } = useTranslation();
@@ -84,6 +124,9 @@ export default function HomeScreen() {
         : '/(tabs)/search',
     );
 
+  const promoSlides = useHomePromoSlides();
+  const featuredPromo = promoSlides[promoSlides.length - 1]!;
+
   const iconBtnSize = { width: 44, height: 44 };
   const iconBtnInner = {
     width: 44,
@@ -95,38 +138,6 @@ export default function HomeScreen() {
     borderWidth: 0.1,
     borderColor: colors.ink,
   };
-
-  const promoSlides: PromoSlideData[] = [
-    {
-      id: 'premium',
-      eyebrow: t('common.premium'),
-      title: 'Gagnez en visibilité',
-      description: 'Badge Premium, priorité dans les recherches et profil mis en avant.',
-      icon: Crown,
-      variant: 'dark',
-      ctaLabel: 'Découvrir',
-      onPress: () => router.push('/premium'),
-    },
-    {
-      id: 'payment',
-      eyebrow: 'Paiement sécurisé',
-      title: 'Payez en toute confiance',
-      description: 'Règlement en ligne pour débloquer les avis officiels et sécuriser la prestation.',
-      icon: CreditCard,
-      variant: 'light',
-    },
-    {
-      id: 'nearby',
-      eyebrow: t('home.nearYou'),
-      title: 'Talents près de chez vous',
-      description: 'Repérez les prestataires disponibles autour de vous, en direct sur la carte.',
-      icon: MapPin,
-      variant: 'warm',
-      gradient: [...colors.orbitGradient],
-      ctaLabel: 'Ouvrir la carte',
-      onPress: () => router.push('/map' as never),
-    },
-  ];
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.canvas }}>
@@ -173,7 +184,7 @@ export default function HomeScreen() {
               {isGuest ? 'TalentTchad' : firstName || 'TalentTchad'}
             </Text>
             <Text numberOfLines={2} style={{ color: colors.muted, marginTop: 2 }} variant="micro">
-              Découvrez les talents près de chez vous.
+              {t('home.headerSubtitle')}
             </Text>
           </View>
         </View>
@@ -205,34 +216,11 @@ export default function HomeScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: Spacing.eight }}>
-        {/* Hero éditorial */}
-        <View style={{ paddingHorizontal: PAGE_H_PAD, marginBottom: SECTION_GAP }}>
-          <Text style={[textStyle('heroDisplay'), { color: colors.ink }]}>
-            Le talent tchadien,{'\n'}
-            <Text style={[textStyle('heroDisplay'), { color: colors.orbit }]}>à portée de main.</Text>
-          </Text>
-
-          <View style={{ marginTop: Spacing.six }}>
-            <SearchBar
-              value=""
-              onChangeText={() => {}}
-              onPress={() => goToSearch()}
-              placeholder={t('home.searchPlaceholder')}
-            />
-          </View>
-        </View>
-
-        {/* Carrousel promo — puis mieux notés (horizontal) */}
-        <PromoCarousel slides={promoSlides} />
-
-        <ProviderPodium
-          title={t('home.topTalents')}
-          actionLabel={t('common.seeAll')}
-          onAction={() => router.push('/talents' as never)}
-          items={homeProviders}
-          onPressProvider={(profileId) =>
-            router.push({ pathname: '/provider/[id]', params: { id: profileId } })
-          }
+        {/* Dernier slide promo + recherche (carrousel conservé dans PromoCarousel) */}
+        <PromoSearchHero
+          slide={featuredPromo}
+          searchPlaceholder={t('home.searchPlaceholder')}
+          onSearchPress={() => goToSearch()}
         />
 
         <ServiceCarousel
@@ -242,6 +230,16 @@ export default function HomeScreen() {
           items={topRated}
           emptyMessage={'Aucun service noté pour le moment.'}
           onPressItem={(id) => router.push(`/service/${id}`)}
+        />
+
+        <ProviderPodium
+          title={t('home.topTalents')}
+          actionLabel={t('common.seeAll')}
+          onAction={() => router.push('/talents' as never)}
+          items={homeProviders}
+          onPressProvider={(profileId) =>
+            router.push({ pathname: '/provider/[id]', params: { id: profileId } })
+          }
         />
 
         {/* Catégories — masonry horizontal */}

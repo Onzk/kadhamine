@@ -21,6 +21,8 @@ export interface AlertBottomSheetProps {
   onDismiss?: () => void;
   /** Icône principale centrée au-dessus du titre. */
   icon?: React.ReactNode;
+  /** Wash behind the icon — `error` keeps error UI red-only (no orbit blue). */
+  iconTone?: 'default' | 'error' | 'success';
 }
 
 /**
@@ -37,8 +39,16 @@ export function AlertBottomSheet({
   buttonLabel = 'OK',
   onDismiss,
   icon,
+  iconTone = 'default',
 }: AlertBottomSheetProps) {
   const { colors } = useAppTheme();
+
+  const iconWash =
+    iconTone === 'error'
+      ? colors.error + '12'
+      : iconTone === 'success'
+        ? colors.success + '12'
+        : colors.orbitWash;
 
   const handlePress = () => {
     onDismiss?.();
@@ -63,6 +73,7 @@ export function AlertBottomSheet({
         style={{
           alignSelf: 'stretch',
           width: '100%',
+          minHeight: 160,
           alignItems: 'center',
           // Laisse de la place au X flottant quand il n’y a pas d’icône.
           paddingTop: icon ? Spacing.two : Spacing.eight,
@@ -75,7 +86,7 @@ export function AlertBottomSheet({
                 width: 72,
                 height: 72,
                 borderRadius: Radius.pill,
-                backgroundColor: colors.orbitWash,
+                backgroundColor: iconWash,
                 alignItems: 'center',
                 justifyContent: 'center',
               }}

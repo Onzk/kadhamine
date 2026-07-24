@@ -1,22 +1,30 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, Platform } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, Platform, Pressable, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Article,
   CurrencyCircleDollar,
   CalendarBlank,
   MapPin,
-  GlobeHemisphereWest,
   CheckCircle,
+  TextAlignLeft,
+  ArrowRight,
+  ArrowLeft,
+  WarningCircle,
 } from 'phosphor-react-native';
 import type { Id } from '../../../../convex/_generated/dataModel';
 
 import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { AuthField, AuthPrimaryButton } from '@/components/auth/AuthField';
-import { CityChips } from '@/components/auth/AuthExtras';
+import { AuthStepper, CityChips } from '@/components/auth/AuthExtras';
 import { CategoryPickerField } from '@/components/ui/CategoryPickerSheet';
+import {
+  LocationMapField,
+  LocationPickerSheet,
+} from '@/components/map/LocationPickerSheet';
 import { PillGroup } from '@/components/ui/PillGroup';
 import {
   ImagePickerField,
@@ -31,14 +39,16 @@ import {
   MVP_CITY_REGION,
   type MvpCity,
 } from '@/constants/chad';
-import { Spacing } from '@/theme/tokens';
+import { Radius, Spacing } from '@/theme/tokens';
 import { textStyle } from '@/theme/typography';
 import { api } from '../../../../convex/_generated/api';
 
 type PricingType = 'fixed' | 'negotiable';
 type Availability = 'available' | 'busy' | 'unavailable';
 type LocationMode = 'provider' | 'custom';
+type FormStep = 1 | 2 | 3 | 4;
 
+const TOTAL_STEPS = 4;
 const MAX_PHOTOS = 5;
 const COORD_EPS = 0.0001;
 
@@ -91,6 +101,7 @@ export default function ProviderServiceFormScreen() {
   const createService = useMutation(api.services.create);
   const updateService = useMutation(api.services.update);
 
+  const [step, setStep] = useState<FormStep>(1);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
@@ -103,9 +114,11 @@ export default function ProviderServiceFormScreen() {
   const [region, setRegion] = useState(MVP_CITY_REGION[MVP_CITIES[0]]);
   const [latitude, setLatitude] = useState(String(MVP_CITY_COORDS[MVP_CITIES[0]].lat));
   const [longitude, setLongitude] = useState(String(MVP_CITY_COORDS[MVP_CITIES[0]].lng));
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [photos, setPhotos] = useState<ImagePickerValueItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [hydrated, setHydrated] = useState(!isEditing);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (!isEditing || !existing?.service) return;
@@ -178,13 +191,75 @@ export default function ProviderServiceFormScreen() {
     parsedLat !== null &&
     parsedLng !== null;
 
-  const canSave =
+  const step1Valid =
     hydrated &&
     title.trim().length > 0 &&
     description.trim().length > 0 &&
-    !!categoryId &&
-    (pricingType === 'negotiable' || !!price.trim()) &&
-    (locationMode === 'provider' || customLocationValid);
+    !!categoryId;
+  const step2Valid =
+    hydrated && (pricingType === 'negotiable' || !!price.trim());
+  const step3Valid = hydrated;
+  const step4Valid =
+    hydrated && (locationMode === 'provider' || customLocationValid);
+
+  const canSave = step1Valid && step2Valid && step4Valid;
+
+  const stepMeta: Record<FormStep, { title: string; subtitle: string }> = {
+    1: {
+      title: t('services.stepInfosTitle'),
+      subtitle: t('services.stepInfosSubtitle'),
+    },
+    2: {
+      title: t('services.stepPricingTitle'),
+      subtitle: t('services.stepPricingSubtitle'),
+    },
+    3: {
+      title: t('services.stepMediaTitle'),
+      subtitle: t('services.stepMediaSubtitle'),
+    },
+    4: {
+      title: t('services.stepLocationTitle'),
+      subtitle: t('services.stepLocationSubtitle'),
+    },
+  };
+
+  const pageTitle = isEditing ? t('services.edit') : t('services.new');
+  const headerTitle = `${pageTitle} · ${stepMeta[step].title}`;
+
+  const goBack = () => {
+    setError('');
+    if (step > 1) {
+      setStep((s) => (s - 1) as FormStep);
+    } else {
+      router.back();
+    }
+  };
+
+  const goNext = () => {
+    if (step === 1) {
+      if (!step1Valid) {
+        setError(t('services.stepInfosError'));
+        return;
+      }
+      setError('');
+      setStep(2);
+      return;
+    }
+    if (step === 2) {
+      if (!step2Valid) {
+        setError(t('services.stepPricingError'));
+        return;
+      }
+      setError('');
+      setStep(3);
+      return;
+    }
+    if (step === 3) {
+      if (!step3Valid) return;
+      setError('');
+      setStep(4);
+    }
+  };
 
   const handleLocationModeChange = (value: string) => {
     const mode = value as LocationMode;
@@ -228,11 +303,24 @@ export default function ProviderServiceFormScreen() {
     setCity(next);
   };
 
+  const handlePickerConfirm = (lat: number, lng: number) => {
+    setLatitude(String(lat));
+    setLongitude(String(lng));
+  };
+
   const handleSave = async () => {
     if (!canSave || !categoryId) return;
-    if (locationMode === 'custom' && !customLocationValid) return;
+    if (locationMode === 'custom' && !customLocationValid) {
+      setError(t('services.stepLocationError'));
+      alert({
+        title: t('common.error'),
+        message: t('services.coordsHint'),
+      });
+      return;
+    }
 
     setLoading(true);
+    setError('');
     try {
       const photoStorageIds = photos
         .map((p) => p.storageId)
@@ -354,207 +442,304 @@ export default function ProviderServiceFormScreen() {
     );
   }
 
+  const nextDisabled =
+    (step === 1 && !step1Valid) ||
+    (step === 2 && !step2Valid) ||
+    (step === 3 && !step3Valid);
+
   return (
-    <PageScaffold
-      title={isEditing ? t('services.edit') : t('services.new')}
-      subtitle={t('services.formSubtitle')}
-      showBack
-      contentContainerStyle={{ paddingBottom: Spacing.fifteen }}
-    >
-      <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four, gap: Spacing.one }}>
-        <AuthField
-          label={t('services.fieldTitle')}
-          value={title}
-          onChangeText={setTitle}
-          placeholder={t('services.titlePlaceholder')}
-          leftIcon={<Article size={20} />}
-        />
-
-        <AuthField
-          label={t('services.fieldDescription')}
-          value={description}
-          onChangeText={setDescription}
-          multiline
-          numberOfLines={5}
-          placeholder={t('services.descriptionPlaceholder')}
+    <SafeAreaView edges={['bottom']} style={{ flex: 1, backgroundColor: colors.canvas }}>
+      <PageScaffold
+        title={headerTitle}
+        subtitle={stepMeta[step].subtitle}
+        showBack
+        onBack={goBack}
+        bottomInset={false}
+        contentContainerStyle={{ paddingBottom: Spacing.twelve }}
+      >
+        <View
           style={{
-            minHeight: 120,
-            textAlignVertical: 'top',
-            ...(Platform.OS === 'android' ? { includeFontPadding: false } : null),
+            paddingHorizontal: PAGE_H_PAD,
+            paddingTop: Spacing.four,
+            gap: Spacing.one,
           }}
-        />
-
-        <CategoryPickerField
-          label={t('services.fieldCategory')}
-          placeholder={t('services.categoryPlaceholder')}
-          sheetTitle={t('services.fieldCategory')}
-          value={categoryId}
-          onChange={setCategoryId}
-        />
-
-        <Text
-          style={[
-            textStyle('caption'),
-            {
-              color: colors.ink,
-              fontWeight: '600',
-              marginBottom: Spacing.two,
-            },
-          ]}
         >
-          {t('services.fieldPricing')}
-        </Text>
-        <PillGroup
-          options={[
-            { label: t('service.fixedPrice'), value: 'fixed' },
-            { label: t('common.negotiable'), value: 'negotiable' },
-          ]}
-          value={pricingType}
-          onChange={(v) => {
-            setPricingType(v as PricingType);
-            if (v === 'negotiable') setPrice('');
-          }}
-          style={{ marginBottom: Spacing.three }}
-        />
+          <AuthStepper step={step} total={TOTAL_STEPS} />
 
-        {pricingType === 'fixed' ? (
-          <AuthField
-            label={t('services.fieldPrice')}
-            value={price}
-            onChangeText={setPrice}
-            keyboardType="numeric"
-            placeholder="25000"
-            leftIcon={<CurrencyCircleDollar size={20} />}
-          />
-        ) : null}
-
-        <AuthField
-          label={t('services.fieldDeliveryDays')}
-          value={deliveryDays}
-          onChangeText={setDeliveryDays}
-          keyboardType="numeric"
-          placeholder="3"
-          leftIcon={<CalendarBlank size={20} />}
-        />
-
-        <Text
-          style={[
-            textStyle('caption'),
-            {
-              color: colors.ink,
-              fontWeight: '600',
-              marginBottom: Spacing.two,
-            },
-          ]}
-        >
-          {t('services.fieldAvailability')}
-        </Text>
-        <PillGroup
-          options={[
-            { label: t('common.available'), value: 'available' },
-            { label: t('common.busy'), value: 'busy' },
-            { label: t('common.unavailable'), value: 'unavailable' },
-          ]}
-          value={availability}
-          onChange={(v) => setAvailability(v as Availability)}
-          style={{ marginBottom: Spacing.three }}
-        />
-
-        <Text
-          style={[
-            textStyle('caption'),
-            {
-              color: colors.ink,
-              fontWeight: '600',
-              marginBottom: Spacing.two,
-            },
-          ]}
-        >
-          {t('services.fieldLocation')}
-        </Text>
-        <PillGroup
-          options={[
-            { label: t('services.locationModeProvider'), value: 'provider' },
-            { label: t('services.locationModeCustom'), value: 'custom' },
-          ]}
-          value={locationMode}
-          onChange={handleLocationModeChange}
-          style={{ marginBottom: Spacing.three }}
-        />
-
-        {locationMode === 'provider' ? (
-          <Text
-            style={{
-              fontSize: 13,
-              color: colors.muted,
-              marginBottom: Spacing.three,
-              lineHeight: 18,
-            }}
-          >
-            {t('services.useProfileLocationHint')}
-          </Text>
-        ) : (
-          <>
-            <CityChips
-              cities={MVP_CITIES}
-              value={isMvpCity(city) ? city : ''}
-              onChange={handleCityChange}
-            />
-            <AuthField
-              label={t('services.fieldRegion')}
-              value={region}
-              onChangeText={setRegion}
-              placeholder="ndjamena"
-              leftIcon={<MapPin size={20} />}
-              editable={false}
-            />
-            <AuthField
-              label={t('services.fieldLatitude')}
-              value={latitude}
-              onChangeText={setLatitude}
-              keyboardType="decimal-pad"
-              placeholder="12.1348"
-              leftIcon={<GlobeHemisphereWest size={20} />}
-            />
-            <AuthField
-              label={t('services.fieldLongitude')}
-              value={longitude}
-              onChangeText={setLongitude}
-              keyboardType="decimal-pad"
-              placeholder="15.0557"
-              leftIcon={<GlobeHemisphereWest size={20} />}
-            />
-            <Text
-              style={{
-                fontSize: 12,
-                color: colors.muted,
-                marginBottom: Spacing.three,
-                lineHeight: 16,
-              }}
+          {error ? (
+            <View
+              style={[
+                styles.errorBanner,
+                {
+                  backgroundColor: colors.error + '12',
+                  borderColor: colors.error + '30',
+                },
+              ]}
             >
-              {t('services.coordsHint')}
-            </Text>
-          </>
-        )}
+              <WarningCircle size={18} color={colors.error} weight="fill" />
+              <Text style={[textStyle('caption'), { color: colors.error, flex: 1 }]}>
+                {error}
+              </Text>
+            </View>
+          ) : null}
 
-        <ImagePickerField
-          label={t('services.fieldPhotos')}
-          value={photos}
-          onChange={setPhotos}
-          maxCount={MAX_PHOTOS}
-          mode="both"
-          mediaTypes="images"
-          style={{ marginBottom: Spacing.four }}
-        />
+          {step === 1 ? (
+            <>
+              <AuthField
+                label={t('services.fieldTitle')}
+                value={title}
+                onChangeText={setTitle}
+                placeholder={t('services.titlePlaceholder')}
+                leftIcon={<Article size={20} />}
+              />
 
-        <AuthPrimaryButton
-          title={t('services.save')}
-          onPress={handleSave}
-          loading={loading}
-          disabled={!canSave}
-          tone="orbit"
-        />
-      </View>
-    </PageScaffold>
+              <AuthField
+                label={t('services.fieldDescription')}
+                value={description}
+                onChangeText={setDescription}
+                multiline
+                numberOfLines={5}
+                placeholder={t('services.descriptionPlaceholder')}
+                leftIcon={<TextAlignLeft size={20} />}
+                style={{
+                  minHeight: 120,
+                  textAlignVertical: 'top',
+                  ...(Platform.OS === 'android' ? { includeFontPadding: false } : null),
+                }}
+              />
+
+              <CategoryPickerField
+                label={t('services.fieldCategory')}
+                placeholder={t('services.categoryPlaceholder')}
+                sheetTitle={t('services.fieldCategory')}
+                value={categoryId}
+                onChange={setCategoryId}
+              />
+            </>
+          ) : null}
+
+          {step === 2 ? (
+            <>
+              <Text
+                style={[
+                  textStyle('caption'),
+                  {
+                    color: colors.ink,
+                    fontWeight: '600',
+                    marginBottom: Spacing.two,
+                  },
+                ]}
+              >
+                {t('services.fieldPricing')}
+              </Text>
+              <PillGroup
+                options={[
+                  { label: t('service.fixedPrice'), value: 'fixed' },
+                  { label: t('common.negotiable'), value: 'negotiable' },
+                ]}
+                value={pricingType}
+                onChange={(v) => {
+                  setPricingType(v as PricingType);
+                  if (v === 'negotiable') setPrice('');
+                }}
+                style={{ marginBottom: Spacing.three }}
+              />
+
+              {pricingType === 'fixed' ? (
+                <AuthField
+                  label={t('services.fieldPrice')}
+                  value={price}
+                  onChangeText={setPrice}
+                  keyboardType="numeric"
+                  placeholder="25000"
+                  leftIcon={<CurrencyCircleDollar size={20} />}
+                />
+              ) : null}
+
+              <AuthField
+                label={t('services.fieldDeliveryDays')}
+                value={deliveryDays}
+                onChangeText={setDeliveryDays}
+                keyboardType="numeric"
+                placeholder="3"
+                leftIcon={<CalendarBlank size={20} />}
+              />
+
+              <Text
+                style={[
+                  textStyle('caption'),
+                  {
+                    color: colors.ink,
+                    fontWeight: '600',
+                    marginBottom: Spacing.two,
+                  },
+                ]}
+              >
+                {t('services.fieldAvailability')}
+              </Text>
+              <PillGroup
+                options={[
+                  { label: t('common.available'), value: 'available' },
+                  { label: t('common.busy'), value: 'busy' },
+                  { label: t('common.unavailable'), value: 'unavailable' },
+                ]}
+                value={availability}
+                onChange={(v) => setAvailability(v as Availability)}
+                style={{ marginBottom: Spacing.three }}
+              />
+            </>
+          ) : null}
+
+          {step === 3 ? (
+            <ImagePickerField
+              label={t('services.fieldPhotos')}
+              value={photos}
+              onChange={setPhotos}
+              maxCount={MAX_PHOTOS}
+              mode="both"
+              mediaTypes="images"
+              style={{ marginBottom: Spacing.four }}
+            />
+          ) : null}
+
+          {step === 4 ? (
+            <>
+              <Text
+                style={[
+                  textStyle('caption'),
+                  {
+                    color: colors.ink,
+                    fontWeight: '600',
+                    marginBottom: Spacing.two,
+                  },
+                ]}
+              >
+                {t('services.fieldLocation')}
+              </Text>
+              <PillGroup
+                options={[
+                  { label: t('services.locationModeProvider'), value: 'provider' },
+                  { label: t('services.locationModeCustom'), value: 'custom' },
+                ]}
+                value={locationMode}
+                onChange={handleLocationModeChange}
+                style={{ marginBottom: Spacing.three }}
+              />
+
+              {locationMode === 'provider' ? (
+                <Text
+                  style={{
+                    fontSize: 13,
+                    color: colors.muted,
+                    marginBottom: Spacing.three,
+                    lineHeight: 18,
+                  }}
+                >
+                  {t('services.useProfileLocationHint')}
+                </Text>
+              ) : (
+                <>
+                  <CityChips
+                    cities={MVP_CITIES}
+                    value={isMvpCity(city) ? city : ''}
+                    onChange={handleCityChange}
+                  />
+                  <AuthField
+                    label={t('services.fieldRegion')}
+                    value={region}
+                    onChangeText={setRegion}
+                    placeholder="ndjamena"
+                    leftIcon={<MapPin size={20} />}
+                    editable={false}
+                  />
+                  <LocationMapField
+                    label={t('services.fieldCoords')}
+                    latitude={parsedLat}
+                    longitude={parsedLng}
+                    onPress={() => setPickerOpen(true)}
+                  />
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: colors.muted,
+                      marginBottom: Spacing.three,
+                      lineHeight: 16,
+                    }}
+                  >
+                    {t('services.coordsHint')}
+                  </Text>
+                </>
+              )}
+            </>
+          ) : null}
+
+          {step < TOTAL_STEPS ? (
+            <AuthPrimaryButton
+              title={t('common.continue')}
+              onPress={goNext}
+              disabled={nextDisabled}
+              icon={<ArrowRight size={18} weight="bold" />}
+              tone="orbit"
+            />
+          ) : (
+            <AuthPrimaryButton
+              title={t('services.save')}
+              onPress={handleSave}
+              loading={loading}
+              disabled={!canSave}
+              tone="orbit"
+            />
+          )}
+
+          {step > 1 ? (
+            <View style={{ marginTop: Spacing.three }}>
+              <Pressable
+                onPress={goBack}
+                style={({ pressed }) => ({
+                  minHeight: 44,
+                  opacity: pressed ? 0.7 : 1,
+                })}
+              >
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: Spacing.two,
+                    paddingVertical: Spacing.three,
+                  }}
+                >
+                  <ArrowLeft size={16} color={colors.muted} weight="bold" />
+                  <Text style={[textStyle('button'), { color: colors.muted }]}>
+                    {t('common.back')}
+                  </Text>
+                </View>
+              </Pressable>
+            </View>
+          ) : null}
+        </View>
+      </PageScaffold>
+
+      <LocationPickerSheet
+        visible={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        initialLat={parsedLat}
+        initialLng={parsedLng}
+        onConfirm={handlePickerConfirm}
+        orbitColor={colors.orbit}
+      />
+    </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    borderRadius: Radius.lg,
+    padding: Spacing.three,
+    marginBottom: Spacing.four,
+    borderWidth: 0.1,
+  },
+});

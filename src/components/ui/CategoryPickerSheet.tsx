@@ -22,6 +22,27 @@ export type CategoryPickerItem = {
   serviceCount?: number;
 };
 
+function useCategoryPickerItems(
+  override?: CategoryPickerItem[],
+): CategoryPickerItem[] | undefined {
+  const queried = useQuery(
+    api.categories.listWithCounts,
+    override ? 'skip' : { activeOnly: true },
+  );
+
+  return useMemo(() => {
+    if (override) return override;
+    if (queried === undefined) return undefined;
+    return queried.map((cat) => ({
+      id: cat._id,
+      label: cat.nameFr,
+      icon: cat.icon,
+      slug: cat.slug,
+      serviceCount: cat.serviceCount,
+    }));
+  }, [override, queried]);
+}
+
 export interface CategoryPickerSheetProps {
   visible: boolean;
   onClose: () => void;
@@ -53,23 +74,7 @@ export function CategoryPickerSheet({
 }: CategoryPickerSheetProps) {
   const { t } = useTranslation();
   const [search, setSearch] = useState('');
-
-  const queried = useQuery(
-    api.categories.listWithCounts,
-    categoriesProp ? 'skip' : { activeOnly: true },
-  );
-
-  const categories = useMemo<CategoryPickerItem[] | undefined>(() => {
-    if (categoriesProp) return categoriesProp;
-    if (queried === undefined) return undefined;
-    return queried.map((cat) => ({
-      id: cat._id,
-      label: cat.nameFr,
-      icon: cat.icon,
-      slug: cat.slug,
-      serviceCount: cat.serviceCount,
-    }));
-  }, [categoriesProp, queried]);
+  const categories = useCategoryPickerItems(categoriesProp);
 
   const filtered = useMemo(() => {
     if (!categories) return undefined;
@@ -130,6 +135,7 @@ export function CategoryPickerSheet({
           <CategoryMasonryGrid
             categories={filtered}
             onPressCategory={handleSelect}
+            variant="picker"
           />
         )}
       </View>
@@ -165,23 +171,7 @@ export function CategoryPickerField({
   const { t } = useTranslation();
   const { colors } = useAppTheme();
   const [open, setOpen] = useState(false);
-
-  const queried = useQuery(
-    api.categories.listWithCounts,
-    categoriesProp ? 'skip' : { activeOnly: true },
-  );
-
-  const categories = useMemo<CategoryPickerItem[] | undefined>(() => {
-    if (categoriesProp) return categoriesProp;
-    if (queried === undefined) return undefined;
-    return queried.map((cat) => ({
-      id: cat._id,
-      label: cat.nameFr,
-      icon: cat.icon,
-      slug: cat.slug,
-      serviceCount: cat.serviceCount,
-    }));
-  }, [categoriesProp, queried]);
+  const categories = useCategoryPickerItems(categoriesProp);
 
   const selectedLabel = useMemo(() => {
     if (value == null || value === '') return null;

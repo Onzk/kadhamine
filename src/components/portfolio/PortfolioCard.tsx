@@ -18,6 +18,9 @@ import { useAppTheme } from '@/providers/ThemeProvider';
 import { BorderWidth, Radius, Spacing } from '@/theme/tokens';
 import { fontFamily, textStyle } from '@/theme/typography';
 
+const LIST_THUMB = 80;
+const ACTION_SIZE = 44;
+
 export type PortfolioCardItem = {
   _id: Id<'portfolio'>;
   title: string;
@@ -43,33 +46,38 @@ function formatShortDate(ts: number, locale: string) {
 
 function MediaPlaceholder({
   mediaType,
+  size = 'list',
 }: {
   mediaType: PortfolioCardItem['mediaType'];
+  size?: 'list' | 'compact';
 }) {
   const { colors } = useAppTheme();
   const { t } = useTranslation();
   const Icon =
     mediaType === 'video' ? VideoCamera : mediaType === 'document' ? FileText : Images;
+  const isList = size === 'list';
 
   return (
     <View
       style={{
         width: '100%',
-        aspectRatio: 16 / 10,
+        height: '100%',
         backgroundColor: colors.iconWash,
         alignItems: 'center',
         justifyContent: 'center',
-        gap: Spacing.two,
+        gap: isList ? Spacing.one : Spacing.two,
       }}
     >
-      <Icon size={28} color={colors.muted} weight="duotone" />
-      <Text style={[textStyle('micro'), { color: colors.muted }]}>
-        {mediaType === 'video'
-          ? t('portfolio.mediaVideo')
-          : mediaType === 'document'
-            ? t('portfolio.mediaDocument')
-            : t('service.portfolio')}
-      </Text>
+      <Icon size={isList ? 22 : 28} color={colors.muted} weight="duotone" />
+      {!isList ? (
+        <Text style={[textStyle('micro'), { color: colors.muted }]}>
+          {mediaType === 'video'
+            ? t('portfolio.mediaVideo')
+            : mediaType === 'document'
+              ? t('portfolio.mediaDocument')
+              : t('service.portfolio')}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -123,7 +131,7 @@ export function PortfolioCard({
             />
           ) : (
             <View style={{ aspectRatio: 1 }}>
-              <MediaPlaceholder mediaType={item.mediaType} />
+              <MediaPlaceholder mediaType={item.mediaType} size="compact" />
             </View>
           )}
           <View style={{ padding: Spacing.three, gap: 4 }}>
@@ -148,183 +156,196 @@ export function PortfolioCard({
   }
 
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        { width: '100%', marginBottom: Spacing.four },
-        { opacity: pressed ? 0.96 : 1 },
-      ]}
-    >
+    <View style={{ width: '100%', marginBottom: Spacing.three }}>
       <View
         style={{
-          backgroundColor: colors.surfaceCard,
-          borderRadius: Radius.md,
-          overflow: 'hidden',
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: Spacing.three,
+          padding: Spacing.four,
+          borderRadius: Radius.lg,
           borderWidth: BorderWidth.default,
           borderColor: colors.borderStrong,
+          backgroundColor: colors.surfaceCard,
         }}
       >
-        {imageUri ? (
-          <Image
-            source={{ uri: imageUri }}
-            style={{ width: '100%', aspectRatio: 16 / 10 }}
-            contentFit="cover"
-          />
-        ) : (
-          <MediaPlaceholder mediaType={item.mediaType} />
-        )}
-
-        <View style={{ padding: Spacing.four, gap: Spacing.two }}>
-          <Text
-            numberOfLines={2}
-            style={[
-              textStyle('body'),
-              {
-                color: colors.ink,
-                fontFamily: fontFamily('body', 'bold'),
-                fontSize: 16,
-                lineHeight: 22,
-              },
-            ]}
-          >
-            {item.title}
-          </Text>
-
-          {item.description ? (
-            <Text
-              numberOfLines={2}
-              style={[textStyle('caption'), { color: colors.muted, lineHeight: 18 }]}
-            >
-              {item.description}
-            </Text>
-          ) : null}
-
+        <Pressable
+          onPress={onPress}
+          style={({ pressed }) => [
+            { flex: 1, minWidth: 0 },
+            { opacity: pressed ? 0.96 : 1 },
+          ]}
+        >
           <View
             style={{
               flexDirection: 'row',
-              flexWrap: 'wrap',
               alignItems: 'center',
-              gap: Spacing.two,
-              marginTop: Spacing.one,
+              gap: Spacing.three,
             }}
           >
-            {item.relatedService ? (
+            <View
+              style={{
+                width: LIST_THUMB,
+                height: LIST_THUMB,
+                flexShrink: 0,
+                borderRadius: Radius.sm,
+                overflow: 'hidden',
+                backgroundColor: colors.surfaceStrong,
+              }}
+            >
+              {imageUri ? (
+                <Image
+                  source={{ uri: imageUri }}
+                  style={{ width: '100%', height: '100%' }}
+                  contentFit="cover"
+                />
+              ) : (
+                <MediaPlaceholder mediaType={item.mediaType} size="list" />
+              )}
+            </View>
+
+            <View
+              style={{
+                flex: 1,
+                minWidth: 0,
+                justifyContent: 'space-between',
+                gap: Spacing.one,
+                minHeight: LIST_THUMB,
+                paddingVertical: 2,
+              }}
+            >
+              <View style={{ gap: 4 }}>
+                <Text
+                  numberOfLines={2}
+                  style={{
+                    fontFamily: fontFamily('body', 'medium'),
+                    fontSize: 14,
+                    lineHeight: 18,
+                    letterSpacing: -0.2,
+                    color: colors.ink,
+                  }}
+                >
+                  {item.title}
+                </Text>
+
+                {item.description ? (
+                  <Text
+                    numberOfLines={2}
+                    style={[textStyle('caption'), { color: colors.muted, lineHeight: 17 }]}
+                  >
+                    {item.description}
+                  </Text>
+                ) : null}
+              </View>
+
               <View
                 style={{
                   flexDirection: 'row',
+                  flexWrap: 'wrap',
                   alignItems: 'center',
-                  gap: 4,
-                  paddingHorizontal: Spacing.two,
-                  paddingVertical: 4,
-                  borderRadius: Radius.pill,
-                  backgroundColor: colors.iconWash,
-                  maxWidth: '70%',
+                  gap: Spacing.two,
                 }}
               >
-                <Briefcase size={12} color={colors.muted} weight="bold" />
-                <Text
-                  numberOfLines={1}
-                  style={[
-                    textStyle('micro'),
-                    { color: colors.ink, fontFamily: fontFamily('body', 'medium') },
-                  ]}
-                >
-                  {item.relatedService.title}
-                </Text>
-              </View>
-            ) : null}
+                {item.relatedService ? (
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 4,
+                      maxWidth: '70%',
+                      flexShrink: 1,
+                    }}
+                  >
+                    <Briefcase size={12} color={colors.muted} weight="bold" />
+                    <Text
+                      numberOfLines={1}
+                      style={[
+                        textStyle('micro'),
+                        {
+                          color: colors.muted,
+                          fontFamily: fontFamily('body', 'medium'),
+                          flexShrink: 1,
+                        },
+                      ]}
+                    >
+                      {item.relatedService.title}
+                    </Text>
+                  </View>
+                ) : null}
 
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <CalendarBlank size={12} color={colors.muted} />
-              <Text style={[textStyle('micro'), { color: colors.muted }]}>
-                {formatShortDate(item.createdAt, i18n.language)}
-              </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                  <CalendarBlank size={12} color={colors.muted} />
+                  <Text style={[textStyle('micro'), { color: colors.muted }]}>
+                    {formatShortDate(item.createdAt, i18n.language)}
+                  </Text>
+                </View>
+              </View>
             </View>
           </View>
+        </Pressable>
 
-          {showActions ? (
-            <View
-              style={{
-                flexDirection: 'row',
-                gap: Spacing.two,
-                marginTop: Spacing.two,
-                paddingTop: Spacing.three,
-                borderTopWidth: BorderWidth.default,
-                borderTopColor: colors.border,
-              }}
-            >
-              {onEdit ? (
-                <Pressable
-                  onPress={(e) => {
-                    e?.stopPropagation?.();
-                    onEdit();
+        {showActions ? (
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: Spacing.two,
+              flexShrink: 0,
+            }}
+          >
+            {onEdit ? (
+              <Pressable
+                onPress={onEdit}
+                hitSlop={Spacing.one}
+                accessibilityRole="button"
+                accessibilityLabel={t('portfolio.edit')}
+                style={({ pressed }) => [
+                  { width: ACTION_SIZE, height: ACTION_SIZE },
+                  { opacity: pressed ? 0.85 : 1 },
+                ]}
+              >
+                <View
+                  style={{
+                    width: ACTION_SIZE,
+                    height: ACTION_SIZE,
+                    borderRadius: Radius.button,
+                    backgroundColor: colors.iconWash,
+                    alignItems: 'center',
+                    justifyContent: 'center',
                   }}
-                  hitSlop={6}
-                  accessibilityRole="button"
-                  accessibilityLabel={t('portfolio.edit')}
-                  style={({ pressed }) => [{ flex: 1 }, { opacity: pressed ? 0.85 : 1 }]}
                 >
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 6,
-                      minHeight: 40,
-                      borderRadius: Radius.button,
-                      backgroundColor: colors.iconWash,
-                    }}
-                  >
-                    <PencilSimple size={16} color={colors.ink} weight="bold" />
-                    <Text
-                      style={[
-                        textStyle('caption'),
-                        { color: colors.ink, fontFamily: fontFamily('body', 'medium') },
-                      ]}
-                    >
-                      {t('common.edit')}
-                    </Text>
-                  </View>
-                </Pressable>
-              ) : null}
-              {onDelete ? (
-                <Pressable
-                  onPress={(e) => {
-                    e?.stopPropagation?.();
-                    onDelete();
+                  <PencilSimple size={18} color={colors.ink} weight="bold" />
+                </View>
+              </Pressable>
+            ) : null}
+            {onDelete ? (
+              <Pressable
+                onPress={onDelete}
+                hitSlop={Spacing.one}
+                accessibilityRole="button"
+                accessibilityLabel={t('common.delete')}
+                style={({ pressed }) => [
+                  { width: ACTION_SIZE, height: ACTION_SIZE },
+                  { opacity: pressed ? 0.85 : 1 },
+                ]}
+              >
+                <View
+                  style={{
+                    width: ACTION_SIZE,
+                    height: ACTION_SIZE,
+                    borderRadius: Radius.button,
+                    backgroundColor: colors.error + '14',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                   }}
-                  hitSlop={6}
-                  accessibilityRole="button"
-                  accessibilityLabel={t('common.delete')}
-                  style={({ pressed }) => [{ flex: 1 }, { opacity: pressed ? 0.85 : 1 }]}
                 >
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 6,
-                      minHeight: 40,
-                      borderRadius: Radius.button,
-                      backgroundColor: colors.iconWash,
-                    }}
-                  >
-                    <Trash size={16} color={colors.error} weight="bold" />
-                    <Text
-                      style={[
-                        textStyle('caption'),
-                        { color: colors.error, fontFamily: fontFamily('body', 'medium') },
-                      ]}
-                    >
-                      {t('common.delete')}
-                    </Text>
-                  </View>
-                </Pressable>
-              ) : null}
-            </View>
-          ) : null}
-        </View>
+                  <Trash size={18} color={colors.error} weight="bold" />
+                </View>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
       </View>
-    </Pressable>
+    </View>
   );
 }

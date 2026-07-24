@@ -140,6 +140,30 @@ export const LEAFLET_HTML = `<!DOCTYPE html>
       box-shadow: 0 0 0 4px rgba(6,182,212,.25);
       transform: translate(-50%, -50%);
     }
+    .tt-picker-pin {
+      width: 40px; height: 48px;
+      display: flex; flex-direction: column; align-items: center;
+      pointer-events: auto;
+      cursor: grab;
+    }
+    .tt-picker-pin .bubble {
+      width: 36px; height: 36px; border-radius: 18px;
+      background: #0B3D91; border: 3px solid #FCFBFA;
+      box-shadow: 0 0 0 6px rgba(11,61,145,.22), 0 3px 8px rgba(0,0,0,.28);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .tt-picker-pin .bubble::after {
+      content: '';
+      width: 10px; height: 10px; border-radius: 5px;
+      background: #FCFBFA;
+    }
+    .tt-picker-pin .tip {
+      width: 0; height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-top: 12px solid #0B3D91;
+      margin-top: -2px;
+    }
   </style>
 </head>
 <body>
@@ -226,6 +250,8 @@ export const LEAFLET_HTML = `<!DOCTYPE html>
     const markersLayer = L.layerGroup().addTo(map);
     let markerById = {};
     let userMarker = null;
+    let pickerMode = false;
+    let pickerMarker = null;
     let orbitColor = '#0B3D91';
     let theme = {
       surface: '#FCFBFA',
@@ -398,6 +424,7 @@ export const LEAFLET_HTML = `<!DOCTYPE html>
     }
 
     function setMarkers(list) {
+      if (pickerMode) return;
       markersLayer.clearLayers();
       markerById = {};
       (list || []).forEach(function (m) {
@@ -420,6 +447,68 @@ export const LEAFLET_HTML = `<!DOCTYPE html>
         markerById[m.id] = marker;
       });
     }
+
+    function makePickerIcon() {
+      var color = orbitColor || theme.orbit || '#0B3D91';
+      var html =
+        '<div class="tt-picker-pin">' +
+          '<div class="bubble" style="background:' + color + ';box-shadow:0 0 0 6px ' + hexToRgba(color, 0.22) + ',0 3px 8px rgba(0,0,0,.28);"></div>' +
+          '<div class="tip" style="border-top-color:' + color + '"></div>' +
+        '</div>';
+      return L.divIcon({
+        className: 'tt-marker',
+        html: html,
+        iconSize: [40, 48],
+        iconAnchor: [20, 48],
+      });
+    }
+
+    function postPickerPosition(lat, lng) {
+      post({ type: 'pickerPosition', lat: lat, lng: lng });
+    }
+
+    function setPickerMarker(lat, lng, silent) {
+      if (pickerMarker) {
+        pickerMarker.setLatLng([lat, lng]);
+        pickerMarker.setIcon(makePickerIcon());
+      } else {
+        pickerMarker = L.marker([lat, lng], {
+          icon: makePickerIcon(),
+          draggable: true,
+          autoPan: true,
+          zIndexOffset: 3000,
+        }).addTo(map);
+        pickerMarker.on('dragend', function () {
+          var ll = pickerMarker.getLatLng();
+          postPickerPosition(ll.lat, ll.lng);
+        });
+      }
+      if (!silent) postPickerPosition(lat, lng);
+    }
+
+    function clearPicker() {
+      if (pickerMarker) {
+        map.removeLayer(pickerMarker);
+        pickerMarker = null;
+      }
+      pickerMode = false;
+    }
+
+    function enablePicker(lat, lng, zoom) {
+      pickerMode = true;
+      markersLayer.clearLayers();
+      markerById = {};
+      var la = typeof lat === 'number' ? lat : 12.1348;
+      var ln = typeof lng === 'number' ? lng : 15.0557;
+      setPickerMarker(la, ln, true);
+      map.setView([la, ln], zoom != null ? zoom : 15);
+      postPickerPosition(la, ln);
+    }
+
+    map.on('click', function (e) {
+      if (!pickerMode || !e || !e.latlng) return;
+      setPickerMarker(e.latlng.lat, e.latlng.lng, false);
+    });
 
     function setUserLocation(lat, lng) {
       if (userMarker) {
@@ -451,13 +540,42 @@ export const LEAFLET_HTML = `<!DOCTYPE html>
               left: msg.padding.left || 0,
             };
           }
-          if (msg.center && msg.fitRadiusKm) {
-            fitRadiusKm(msg.center.lat, msg.center.lng, msg.fitRadiusKm);
-          } else if (msg.center) {
-            map.setView([msg.center.lat, msg.center.lng], msg.zoom || 12);
+          if (msg.picker) {
+            var pLat = msg.pickerLat != null
+              ? msg.pickerLat
+              : (msg.center && msg.center.lat);
+            var pLng = msg.pickerLng != null
+              ? msg.pickerLng
+              : (msg.center && msg.center.lng);
+            enablePicker(pLat, pLng, msg.zoom || 15);
+          } else {
+            clearPicker();
+            if (msg.center && msg.fitRadiusKm) {
+              fitRadiusKm(msg.center.lat, msg.center.lng, msg.fitRadiusKm);
+            } else if (msg.center) {
+              map.setView([msg.center.lat, msg.center.lng], msg.zoom || 12);
+            }
+            if (msg.markers) setMarkers(msg.markers);
+            if (msg.user) setUserLocation(msg.user.lat, msg.user.lng);
           }
-          if (msg.markers) setMarkers(msg.markers);
-          if (msg.user) setUserLocation(msg.user.lat, msg.user.lng);
+          break;
+        case 'enablePicker':
+          enablePicker(msg.lat, msg.lng, msg.zoom);
+          break;
+        case 'setPicker':
+          if (msg.lat != null && msg.lng != null) {
+            if (!pickerMode) {
+              enablePicker(msg.lat, msg.lng, msg.zoom);
+            } else {
+              setPickerMarker(msg.lat, msg.lng, true);
+              if (msg.fly) {
+                map.setView([msg.lat, msg.lng], msg.zoom || map.getZoom());
+              }
+            }
+          }
+          break;
+        case 'disablePicker':
+          clearPicker();
           break;
         case 'setMarkers':
           setMarkers(msg.markers || []);
@@ -474,7 +592,7 @@ export const LEAFLET_HTML = `<!DOCTYPE html>
           }
           break;
         case 'setUserLocation':
-          setUserLocation(msg.lat, msg.lng);
+          if (!pickerMode) setUserLocation(msg.lat, msg.lng);
           break;
         case 'setPadding':
           viewPadding = {
@@ -486,6 +604,7 @@ export const LEAFLET_HTML = `<!DOCTYPE html>
           break;
         case 'setTheme':
           applyTheme(msg.theme);
+          if (pickerMarker) pickerMarker.setIcon(makePickerIcon());
           break;
       }
     }

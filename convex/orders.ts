@@ -48,7 +48,25 @@ export const listMine = query({
           .query('reviews')
           .withIndex('by_order', (q) => q.eq('orderId', order._id))
           .first();
-        return { order, service, payment, hasReview: Boolean(review) };
+
+        const counterpartyId = args.role === 'client' ? order.providerId : order.clientId;
+        const counterpartyUser = await ctx.db.get(counterpartyId);
+        const counterpartyProfile = await ctx.db
+          .query('profiles')
+          .withIndex('by_user', (q) => q.eq('userId', counterpartyId))
+          .first();
+        const counterpartyName = counterpartyProfile
+          ? `${counterpartyProfile.firstName} ${counterpartyProfile.lastName}`.trim()
+          : counterpartyUser?.name ?? null;
+
+        return {
+          order,
+          service,
+          payment,
+          hasReview: Boolean(review),
+          counterpartyName,
+          counterpartyAvatar: counterpartyProfile?.avatarUrl ?? null,
+        };
       }),
     );
   },
@@ -87,6 +105,64 @@ export const listByService = query({
   },
 });
 
+/** Full order detail for client or provider — resolves media URLs. */
+export const getById = query({
+  args: { orderId: v.id('orders') },
+  handler: async (ctx, args) => {
+    const { userId } = await requireAuth(ctx);
+    const order = await ctx.db.get(args.orderId);
+    if (!order) return null;
+    if (order.clientId !== userId && order.providerId !== userId) {
+      throw new Error('Non autorisé');
+    }
+
+    const viewerRole: 'client' | 'provider' =
+      order.clientId === userId ? 'client' : 'provider';
+
+    const service = await ctx.db.get(order.serviceId);
+    const payment = await ctx.db
+      .query('payments')
+      .withIndex('by_order', (q) => q.eq('orderId', order._id))
+      .first();
+    const review = await ctx.db
+      .query('reviews')
+      .withIndex('by_order', (q) => q.eq('orderId', order._id))
+      .first();
+
+    const counterpartyId = viewerRole === 'client' ? order.providerId : order.clientId;
+    const counterpartyUser = await ctx.db.get(counterpartyId);
+    const counterpartyProfile = await ctx.db
+      .query('profiles')
+      .withIndex('by_user', (q) => q.eq('userId', counterpartyId))
+      .first();
+    const counterpartyName = counterpartyProfile
+      ? `${counterpartyProfile.firstName} ${counterpartyProfile.lastName}`.trim()
+      : counterpartyUser?.name ?? null;
+
+    const photoUrls = order.photoStorageIds?.length
+      ? (
+          await Promise.all(order.photoStorageIds.map((id) => ctx.storage.getUrl(id)))
+        ).filter((u): u is string => !!u)
+      : [];
+
+    const voiceUrl = order.voiceStorageId
+      ? await ctx.storage.getUrl(order.voiceStorageId)
+      : null;
+
+    return {
+      order,
+      service,
+      payment,
+      hasReview: Boolean(review),
+      viewerRole,
+      counterpartyName,
+      counterpartyAvatar: counterpartyProfile?.avatarUrl ?? null,
+      photoUrls,
+      voiceUrl,
+    };
+  },
+});
+
 export const create = mutation({
   args: {
     serviceId: v.id('services'),
@@ -101,12 +177,28 @@ export const create = mutation({
         v.literal('off_platform'),
       ),
     ),
+    latitude: v.optional(v.number()),
+    longitude: v.optional(v.number()),
+    city: v.optional(v.string()),
+    region: v.optional(v.string()),
+    addressLabel: v.optional(v.string()),
+    photoStorageIds: v.optional(v.array(v.id('_storage'))),
+    voiceStorageId: v.optional(v.id('_storage')),
+    voiceDurationMs: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const { userId } = await requireAuth(ctx);
     const service = await ctx.db.get(args.serviceId);
     if (!service || !service.isActive) {
       throw new Error('Service introuvable');
+    }
+    if (service.providerId === userId) {
+      throw new Error('Vous ne pouvez pas commander votre propre service');
+    }
+
+    const photoStorageIds = args.photoStorageIds?.slice(0, 4);
+    if (photoStorageIds && photoStorageIds.length > 4) {
+      throw new Error('Maximum 4 photos');
     }
 
     const isOffPlatform = args.paymentMethod === 'off_platform';
@@ -118,7 +210,15 @@ export const create = mutation({
       serviceId: args.serviceId,
       status: 'pending',
       title: service.title,
-      description: args.description,
+      description: args.description?.trim() || undefined,
+      latitude: args.latitude,
+      longitude: args.longitude,
+      city: args.city,
+      region: args.region,
+      addressLabel: args.addressLabel,
+      photoStorageIds: photoStorageIds?.length ? photoStorageIds : undefined,
+      voiceStorageId: args.voiceStorageId,
+      voiceDurationMs: args.voiceDurationMs,
       agreedPrice: args.agreedPrice ?? service.price,
       currency: 'XAF',
       deliveryDate: args.deliveryDate,
