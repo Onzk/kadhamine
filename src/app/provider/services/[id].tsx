@@ -1,21 +1,17 @@
-import React from 'react';
-import { View, Text, Pressable } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, Pressable, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { useQuery, useMutation } from 'convex/react';
-import {
-  PencilSimple,
-  ClipboardText,
-  Briefcase,
-  CheckCircle,
-} from 'phosphor-react-native';
+import { useQuery } from 'convex/react';
+import { PencilSimple, ClipboardText, Briefcase } from 'phosphor-react-native';
 import type { Id } from '../../../../convex/_generated/dataModel';
 
 import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
-import { AuthPrimaryButton } from '@/components/auth/AuthField';
+import { FilterChip } from '@/components/ui/FilterChip';
+import { SearchBar } from '@/components/ui/SearchBar';
+import { OrderCard, OrderCardSkeleton } from '@/components/cards/OrderCard';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { useAuth } from '@/providers/AuthProvider';
 import { formatPrice } from '@/types';
@@ -23,12 +19,7 @@ import { Radius, Spacing } from '@/theme/tokens';
 import { textStyle } from '@/theme/typography';
 import { api } from '../../../../convex/_generated/api';
 
-const STATUS_COLORS: Record<string, 'default' | 'verified' | 'premium' | 'danger' | 'accent'> = {
-  pending: 'accent',
-  accepted: 'verified',
-  completed: 'default',
-  cancelled: 'danger',
-};
+const FILTERS = ['all', 'pending', 'accepted', 'completed', 'cancelled'] as const;
 
 export default function ProviderServiceDetailScreen() {
   const { t } = useTranslation();
@@ -38,17 +29,36 @@ export default function ProviderServiceDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const serviceId = id as Id<'services'>;
 
+  const [filter, setFilter] = useState<(typeof FILTERS)[number]>('all');
+  const [query, setQuery] = useState('');
+
   const data = useQuery(api.services.getById, serviceId ? { serviceId } : 'skip');
   const orders = useQuery(
     api.orders.listByService,
     serviceId ? { serviceId } : 'skip',
   );
-  const respond = useMutation(api.orders.respond);
-  const complete = useMutation(api.orders.complete);
 
   const service = data?.service;
   const category = data?.category;
   const isOwner = service?.providerId === user?._id;
+
+  const filtered = useMemo(() => {
+    if (!orders) return orders;
+    const byStatus =
+      filter === 'all' ? orders : orders.filter(({ order }) => order.status === filter);
+    const q = query.trim().toLowerCase();
+    if (!q) return byStatus;
+    return byStatus.filter(({ order, clientProfile, clientUser }) => {
+      const clientName = clientProfile
+        ? `${clientProfile.firstName} ${clientProfile.lastName}`.trim()
+        : clientUser?.name ?? '';
+      const hay = [order.title, order.description, clientName]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return hay.includes(q);
+    });
+  }, [orders, filter, query]);
 
   if (data === undefined) {
     return (
@@ -115,8 +125,33 @@ export default function ProviderServiceDetailScreen() {
           </View>
         </Pressable>
       }
+      headerActions={
+        <View style={{ gap: Spacing.three }}>
+          <SearchBar
+            value={query}
+            onChangeText={setQuery}
+            placeholder={t('orders.searchPlaceholder')}
+            height={48}
+          />
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: Spacing.two }}
+          >
+            {FILTERS.map((f) => (
+              <FilterChip
+                key={f}
+                label={f === 'all' ? t('common.all') : t(`orders.${f}`)}
+                selected={filter === f}
+                onPress={() => setFilter(f)}
+                compact
+              />
+            ))}
+          </ScrollView>
+        </View>
+      }
     >
-      <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
+      <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four, gap: Spacing.three }}>
         <View
           style={{
             backgroundColor: colors.surfaceCard,
@@ -124,7 +159,7 @@ export default function ProviderServiceDetailScreen() {
             padding: Spacing.five,
             borderWidth: 0.1,
             borderColor: colors.border,
-            marginBottom: Spacing.five,
+            marginBottom: Spacing.two,
           }}
         >
           <View
@@ -168,7 +203,7 @@ export default function ProviderServiceDetailScreen() {
             {
               color: colors.ink,
               fontWeight: '700',
-              marginBottom: Spacing.three,
+              marginBottom: Spacing.one,
             },
           ]}
         >
@@ -176,108 +211,53 @@ export default function ProviderServiceDetailScreen() {
         </Text>
 
         {orders === undefined ? (
-          <Text style={{ color: colors.muted, textAlign: 'center', marginTop: 16 }}>
-            {t('common.loading')}
-          </Text>
-        ) : orders === null || orders.length === 0 ? (
+          <>
+            <OrderCardSkeleton />
+            <OrderCardSkeleton />
+          </>
+        ) : filtered?.length === 0 ? (
           <EmptyState
             icon={ClipboardText}
             title={t('orders.empty')}
-            description={t('services.ordersEmptyDesc')}
+            description={
+              query.trim() || filter !== 'all'
+                ? t('orders.emptyFilter')
+                : t('services.ordersEmptyDesc')
+            }
             compact
+            actionLabel={query.trim() || filter !== 'all' ? t('common.all') : undefined}
+            onAction={
+              query.trim() || filter !== 'all'
+                ? () => {
+                    setFilter('all');
+                    setQuery('');
+                  }
+                : undefined
+            }
+            actionVariant="outline"
           />
         ) : (
-          orders.map(({ order, clientProfile, clientUser }) => {
+          filtered?.map(({ order, clientProfile, clientUser, payment }) => {
             const clientName = clientProfile
               ? `${clientProfile.firstName} ${clientProfile.lastName}`.trim()
               : clientUser?.name ?? t('profile.defaultName');
 
             return (
-              <View
+              <OrderCard
                 key={order._id}
-                style={{
-                  backgroundColor: colors.surfaceCard,
-                  borderRadius: Radius.lg,
-                  padding: Spacing.five,
-                  marginBottom: Spacing.three,
-                  borderWidth: 0.1,
-                  borderColor: colors.border,
-                }}
-              >
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    alignItems: 'flex-start',
-                    gap: 8,
-                    marginBottom: 8,
-                  }}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text
-                      style={[
-                        textStyle('body'),
-                        { fontWeight: '600', color: colors.ink },
-                      ]}
-                    >
-                      {clientName}
-                    </Text>
-                    <Text style={{ fontSize: 12, color: colors.muted, marginTop: 2 }}>
-                      {new Date(order.createdAt).toLocaleDateString()}
-                    </Text>
-                  </View>
-                  <Badge
-                    label={t(`orders.${order.status}`)}
-                    variant={STATUS_COLORS[order.status] ?? 'default'}
-                  />
-                </View>
-
-                {order.agreedPrice != null ? (
-                  <Text
-                    style={{
-                      fontSize: 15,
-                      fontWeight: '700',
-                      color: colors.ink,
-                      marginBottom: 8,
-                    }}
-                  >
-                    {formatPrice(order.agreedPrice)}
-                  </Text>
-                ) : null}
-
-                {order.status === 'pending' ? (
-                  <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
-                    <View style={{ flex: 1 }}>
-                      <AuthPrimaryButton
-                        title={t('orders.accept')}
-                        onPress={() => respond({ orderId: order._id, accept: true })}
-                        tone="orbit"
-                        flat
-                      />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Button
-                        title={t('orders.reject')}
-                        variant="outline"
-                        onPress={() => respond({ orderId: order._id, accept: false })}
-                        fullWidth
-                      />
-                    </View>
-                  </View>
-                ) : null}
-
-                {order.status === 'accepted' ? (
-                  <View style={{ marginTop: 4 }}>
-                    <AuthPrimaryButton
-                      title={t('orders.complete')}
-                      onPress={() => complete({ orderId: order._id })}
-                      tone="orbit"
-                      flat
-                      icon={<CheckCircle size={18} color={colors.onOrbit} weight="bold" />}
-                    />
-                  </View>
-                ) : null}
-              </View>
+                title={order.title}
+                status={order.status}
+                agreedPrice={order.agreedPrice}
+                description={order.description}
+                counterpartyName={clientName}
+                counterpartyAvatar={clientProfile?.avatarUrl}
+                counterpartyLabel={t('orders.client')}
+                createdAt={order.createdAt}
+                deliveryDate={order.deliveryDate}
+                paymentStatus={payment?.status}
+                isOffPlatform={order.isOffPlatformPayment}
+                onPress={() => router.push(`/order/${order._id}`)}
+              />
             );
           })
         )}

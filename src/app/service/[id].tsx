@@ -19,12 +19,15 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
+  Easing,
   Extrapolation,
   interpolate,
   runOnJS,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
+  withRepeat,
+  withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
 import {
@@ -49,7 +52,6 @@ import { Badge } from '@/components/ui/Badge';
 import { AuthPrimaryButton } from '@/components/auth/AuthField';
 import { AppBottomSheet } from '@/components/ui/AppBottomSheet';
 import { OwnAccountSheet } from '@/components/ui/OwnAccountSheet';
-import { FlutterFab, FLUTTER_FAB } from '@/components/ui/FlutterFab';
 import { SheetActionRow, SheetActionSlot } from '@/components/ui/SheetActions';
 import { StarRating } from '@/components/ui/StarRating';
 import {
@@ -73,6 +75,84 @@ const STICKY_THRESHOLD = Math.round(HERO_H * 0.55);
 const NAV_SIZE = 44;
 const PHOTO_AUTOPLAY_MS = 3500;
 const PHOTO_RESUME_MS = 4000;
+
+/** Couleurs trust — identiques jour / nuit. */
+const TRUST_BG_VERIFIED = BrandColors.gold;
+const TRUST_BG_PREMIUM = BrandColors.crimson;
+const TRUST_BG_BOTH = '#7C3AED';
+/** Badge « Vérifié » sur le hero média. */
+const VERIFIED_ON_MEDIA_BG = '#16A34A';
+const TRUST_FG = '#FFFFFF';
+const TRUST_ICON_SIZE = 24;
+/** Une rotation complète lente (~8 s). */
+const TRUST_SPIN_MS = 8000;
+const TRUST_FAB_SIZE = 56;
+const TRUST_FAB_RADIUS = 16;
+const TRUST_FAB_EDGE = 16;
+
+function TrustFab({
+  backgroundColor,
+  icon,
+  accessibilityLabel,
+  onPress,
+  bottom,
+}: {
+  backgroundColor: string;
+  icon: React.ReactNode;
+  accessibilityLabel: string;
+  onPress: () => void;
+  bottom: number;
+}) {
+  const rotation = useSharedValue(0);
+
+  useEffect(() => {
+    rotation.value = withRepeat(
+      withTiming(360, { duration: TRUST_SPIN_MS, easing: Easing.linear }),
+      -1,
+      false,
+    );
+  }, [rotation]);
+
+  const spinStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation.value}deg` }],
+  }));
+
+  return (
+    <View
+      pointerEvents="box-none"
+      style={{
+        position: 'absolute',
+        right: TRUST_FAB_EDGE,
+        bottom,
+        zIndex: 100,
+      }}
+    >
+      <Pressable
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+        style={({ pressed }) => ({
+          width: TRUST_FAB_SIZE,
+          height: TRUST_FAB_SIZE,
+          opacity: pressed ? 0.9 : 1,
+        })}
+      >
+        <View
+          style={{
+            width: TRUST_FAB_SIZE,
+            height: TRUST_FAB_SIZE,
+            borderRadius: TRUST_FAB_RADIUS,
+            backgroundColor,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Animated.View style={spinStyle}>{icon}</Animated.View>
+        </View>
+      </Pressable>
+    </View>
+  );
+}
 
 function formatDate(ts: number, locale: string) {
   try {
@@ -552,16 +632,23 @@ export default function ServiceDetailScreen() {
       : 'common.available';
   const portfolioItems = (portfolio ?? []).filter((item) => item.mediaUrl).slice(0, 8);
 
+  const trustFabBg =
+    isVerified && isPremium
+      ? TRUST_BG_BOTH
+      : isVerified
+        ? TRUST_BG_VERIFIED
+        : TRUST_BG_PREMIUM;
+
   const trustFabIcon =
     isVerified && isPremium ? (
-      <SealCheck size={FLUTTER_FAB.iconSize} color="#FFFFFF" weight="fill" />
+      <SealCheck size={TRUST_ICON_SIZE} color={TRUST_FG} weight="fill" />
     ) : isVerified ? (
-      <ShieldCheck size={FLUTTER_FAB.iconSize} color="#FFFFFF" weight="fill" />
+      <ShieldCheck size={TRUST_ICON_SIZE} color={TRUST_FG} weight="fill" />
     ) : (
-      <Crown size={FLUTTER_FAB.iconSize} color="#FFFFFF" weight="fill" />
+      <Crown size={TRUST_ICON_SIZE} color={TRUST_FG} weight="fill" />
     );
 
-  const trustFabBottom = footerBlockH + FLUTTER_FAB.edgeMargin;
+  const trustFabBottom = footerBlockH + TRUST_FAB_EDGE;
 
   const handleOrder = () => {
     if (user?._id && service.providerId === user._id) {
@@ -776,7 +863,27 @@ export default function ServiceDetailScreen() {
             {catLabel ? <Badge label={catLabel} variant="taxonomy" /> : null}
             <Badge label={t(availabilityKey)} variant="default" />
             {profile?.isVerified ? (
-              <Badge label={t('common.verified')} variant="verified" />
+              <View
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 4,
+                  borderRadius: Radius.pill,
+                  backgroundColor: VERIFIED_ON_MEDIA_BG,
+                  alignSelf: 'flex-start',
+                }}
+              >
+                <Text
+                  style={[
+                    textStyle('micro'),
+                    {
+                      fontFamily: fontFamily('body', 'medium'),
+                      color: TRUST_FG,
+                    },
+                  ]}
+                >
+                  {t('common.verified')}
+                </Text>
+              </View>
             ) : null}
             {profile?.isPremium ? (
               <Badge label={t('common.premium')} variant="premium" />
@@ -1446,15 +1553,12 @@ export default function ServiceDetailScreen() {
       </View>
 
       {showTrustFab ? (
-        <FlutterFab
-          absolute
-          bottom={trustFabBottom}
-          right={FLUTTER_FAB.edgeMargin}
-          onPressed={() => setTrustSheetOpen(true)}
+        <TrustFab
+          backgroundColor={trustFabBg}
           icon={trustFabIcon}
-          backgroundColor={colors.orbit}
-          foregroundColor="#FFFFFF"
           accessibilityLabel={t('service.trustFabLabel')}
+          onPress={() => setTrustSheetOpen(true)}
+          bottom={trustFabBottom}
         />
       ) : null}
 

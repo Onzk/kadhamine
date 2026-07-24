@@ -82,6 +82,10 @@ type Props = {
    * Location-picker mode: one draggable / tap-to-place marker, no service pins.
    */
   picker?: boolean;
+  /**
+   * Static preview: no pan / zoom / drag (order detail). Does not affect /map or pickers.
+   */
+  readOnly?: boolean;
   onMarkerPress?: (id: string) => void;
   /** Tap on the in-map callout card. */
   onTooltipPress?: (id: string) => void;
@@ -121,6 +125,7 @@ export const LeafletMapView = forwardRef<LeafletMapHandle, Props>(function Leafl
     theme,
     focusPadding,
     picker = false,
+    readOnly = false,
     onMarkerPress,
     onTooltipPress,
     onFocusComplete,
@@ -139,6 +144,8 @@ export const LeafletMapView = forwardRef<LeafletMapHandle, Props>(function Leafl
   onPickerPositionRef.current = onPickerPosition;
   const pickerRef = useRef(picker);
   pickerRef.current = picker;
+  const readOnlyRef = useRef(readOnly);
+  readOnlyRef.current = readOnly;
 
   const send = useCallback((msg: object) => {
     postToWeb(webRef, msg);
@@ -202,6 +209,11 @@ export const LeafletMapView = forwardRef<LeafletMapHandle, Props>(function Leafl
     });
   }, [picker, center.lat, center.lng, zoom, orbitColor, theme, send]);
 
+  useEffect(() => {
+    if (!readyRef.current || picker) return;
+    send({ type: 'setReadOnly', enabled: readOnly });
+  }, [readOnly, picker, send]);
+
   const onMessage = useCallback(
     (e: WebViewMessageEvent) => {
       let msg: {
@@ -232,6 +244,7 @@ export const LeafletMapView = forwardRef<LeafletMapHandle, Props>(function Leafl
           picker: isPicker,
           pickerLat: center.lat,
           pickerLng: center.lng,
+          readOnly: isPicker ? false : readOnlyRef.current,
         });
         onReady?.();
         return;
@@ -283,7 +296,7 @@ export const LeafletMapView = forwardRef<LeafletMapHandle, Props>(function Leafl
   );
 
   return (
-    <View style={[styles.fill, style]}>
+    <View style={[styles.fill, style]} pointerEvents={readOnly ? 'none' : 'auto'}>
       <WebView
         ref={webRef}
         originWhitelist={['*']}
@@ -296,7 +309,8 @@ export const LeafletMapView = forwardRef<LeafletMapHandle, Props>(function Leafl
         mixedContentMode="always"
         setSupportMultipleWindows={false}
         androidLayerType={Platform.OS === 'android' ? 'hardware' : undefined}
-        nestedScrollEnabled
+        nestedScrollEnabled={!readOnly}
+        scrollEnabled={!readOnly}
       />
     </View>
   );

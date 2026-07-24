@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Pressable, Dimensions } from 'react-native';
+import { View, Pressable, ScrollView, Dimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
@@ -21,12 +21,23 @@ import { formatRating } from '@/types';
 import {
   categoryLabel,
   distinctionLabel,
+  isProviderPremium,
   type HomeProviderItem,
 } from '@/components/cards/providerShared';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const COL_GAP = Spacing.three;
+const ROW_GAP = Spacing.three;
+/** Largeur tuile en grille verticale. */
 const TILE_W = (SCREEN_W - PAGE_H_PAD * 2 - COL_GAP) / 2;
+const LIST_TILE_H = 132;
+const LIST_TILE_W = SCREEN_W - PAGE_H_PAD * 2;
+
+/** Masonry horizontal — 3 rangées (~count/3), hauteurs décalées. */
+const ROW_COUNT = 3;
+const ROW_HEIGHTS = [188, 168, 152] as const;
+const TRACK_HEIGHT =
+  ROW_HEIGHTS.reduce((sum, h) => sum + h, 0) + ROW_GAP * (ROW_COUNT - 1);
 
 interface ProviderGridProps {
   items: HomeProviderItem[] | undefined;
@@ -38,25 +49,75 @@ interface ProviderGridProps {
   skeletonRows?: number;
   emptyTitle?: string;
   emptyDescription?: string;
+  /** `horizontal` (défaut) — scroll latéral 3 rangées. `grid` — 2 colonnes. `list` — liste verticale. */
+  layout?: 'horizontal' | 'grid' | 'list';
+}
+
+function hashId(id: string): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return h;
+}
+
+function pickHorizontalWidth(item: HomeProviderItem): number {
+  const h = hashId(item.profile._id) % 3;
+  if (item.profile.isPremium) return h === 0 ? 180 : 164;
+  return h === 0 ? 156 : 140;
+}
+
+type SizedTile = {
+  item: HomeProviderItem;
+  width: number;
+  height: number;
+  tall: boolean;
+};
+
+/** Répartit les tuiles sur 3 rangées en respectant l’ordre (premium / notes d’abord). */
+function buildHorizontalRows(items: HomeProviderItem[]): SizedTile[][] {
+  const rows: SizedTile[][] = Array.from({ length: ROW_COUNT }, () => []);
+  const widths = Array.from({ length: ROW_COUNT }, () => 0);
+
+  for (const item of items) {
+    let target = 0;
+    for (let i = 1; i < ROW_COUNT; i++) {
+      if (widths[i] < widths[target]) target = i;
+    }
+    const height = ROW_HEIGHTS[target];
+    const width = pickHorizontalWidth(item);
+    rows[target].push({
+      item,
+      width,
+      height,
+      tall: target === 0,
+    });
+    widths[target] += width + COL_GAP;
+  }
+
+  return rows;
 }
 
 function ProviderTile({
   item,
   tall,
+  width = TILE_W,
+  height,
   onPress,
 }: {
   item: HomeProviderItem;
   tall: boolean;
+  width?: number;
+  height?: number;
   onPress: () => void;
 }) {
   const { t, i18n } = useTranslation();
   const { colors } = useAppTheme();
   const { profile, serviceCount, category } = item;
-  const isPremium = profile.isPremium;
+  const isPremium = isProviderPremium(profile);
   const initial = profile.firstName.charAt(0).toUpperCase();
   const catLabel = categoryLabel(category, i18n.language);
   const topSkill = profile.skills[0];
   const distinction = distinctionLabel(profile.badge, isPremium, profile.isVerified, t);
+  const tileHeight = height ?? (tall ? 196 : 168);
 
   const cardBody = (
     <View
@@ -87,71 +148,57 @@ function ProviderTile({
               contentFit="cover"
             />
           ) : (
-            <Text style={[textStyle('featureHeading'), { color: colors.ink, fontSize: 18 }]}>
+            <Text
+              style={[
+                textStyle('featureHeading'),
+                { color: colors.ink, fontSize: isPremium ? 20 : 18 },
+              ]}
+            >
               {initial}
             </Text>
           )}
         </View>
-
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text
-            numberOfLines={1}
-            style={{
-              fontFamily: fontFamily('body', 'medium'),
-              fontSize: 14,
-              lineHeight: 18,
-              color: colors.ink,
-            }}
-          >
-            {profile.firstName} {profile.lastName.charAt(0)}.
-          </Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
-            <MapPin size={11} color={colors.muted} weight="bold" />
-            <Text numberOfLines={1} style={[textStyle('micro'), { color: colors.muted, flex: 1 }]}>
-              {profile.city}
+        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Text
+              numberOfLines={1}
+              style={{
+                fontFamily: fontFamily('body', 'bold'),
+                fontSize: 14,
+                lineHeight: 18,
+                color: colors.ink,
+                flexShrink: 1,
+              }}
+            >
+              {profile.firstName} {profile.lastName}
             </Text>
+            {profile.isVerified ? (
+              <CheckCircle size={14} color={colors.orbit} weight="fill" />
+            ) : null}
+            {isPremium ? <Crown size={13} color={BrandColors.gold} weight="fill" /> : null}
           </View>
+          {(profile.city || profile.region) && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+              <MapPin size={11} color={colors.muted} />
+              <Text numberOfLines={1} style={[textStyle('micro'), { color: colors.muted, flex: 1 }]}>
+                {[profile.city, profile.region].filter(Boolean).join(', ')}
+              </Text>
+            </View>
+          )}
+          {profile.averageRating > 0 ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+              <StarRating rating={profile.averageRating} size={11} />
+              <Text style={[textStyle('micro'), { color: colors.ink }]}>
+                {formatRating(profile.averageRating)}
+              </Text>
+            </View>
+          ) : null}
         </View>
-
-        {isPremium ? (
-          <View
-            style={{
-              width: 24,
-              height: 24,
-              borderRadius: 12,
-              backgroundColor: BrandColors.gold,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Crown size={13} color={BrandColors.ink} weight="fill" />
-          </View>
-        ) : profile.isVerified ? (
-          <CheckCircle size={18} color={colors.orbit} weight="fill" />
-        ) : null}
-      </View>
-
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: Spacing.one,
-          marginTop: Spacing.two,
-        }}
-      >
-        <StarRating rating={profile.averageRating} size={12} />
-        <Text style={[textStyle('micro'), { color: colors.ink, fontFamily: fontFamily('body', 'medium') }]}>
-          {formatRating(profile.averageRating)}
-        </Text>
-        <Text style={[textStyle('micro'), { color: colors.muted }]}>({profile.reviewCount})</Text>
       </View>
 
       {distinction ? (
         <View style={{ marginTop: Spacing.two }}>
-          <Badge
-            label={distinction}
-            variant={isPremium ? 'premium' : profile.isVerified ? 'verified' : 'accent'}
-          />
+          <Badge label={distinction} variant={isPremium ? 'premium' : 'verified'} />
         </View>
       ) : null}
 
@@ -160,14 +207,8 @@ function ProviderTile({
           style={{
             flexDirection: 'row',
             alignItems: 'center',
-            gap: 6,
+            gap: 4,
             marginTop: Spacing.two,
-            paddingHorizontal: Spacing.two,
-            paddingVertical: 5,
-            borderRadius: Radius.sm,
-            backgroundColor: colors.iconWash,
-            alignSelf: 'flex-start',
-            maxWidth: '100%',
           }}
         >
           <CategoryIcon
@@ -175,7 +216,7 @@ function ProviderTile({
             slug={category?.slug}
             label={catLabel}
             size={14}
-            color={colors.orbit}
+            color={colors.ink}
           />
           <Text numberOfLines={1} style={[textStyle('micro'), { color: colors.ink, flexShrink: 1 }]}>
             {catLabel}
@@ -209,8 +250,8 @@ function ProviderTile({
     <Pressable
       onPress={onPress}
       style={({ pressed }) => ({
-        width: TILE_W,
-        minHeight: tall ? 196 : 168,
+        width,
+        height: tileHeight,
         opacity: pressed ? 0.92 : 1,
         transform: [{ scale: pressed ? 0.98 : 1 }],
       })}
@@ -251,13 +292,21 @@ function ProviderTile({
   );
 }
 
-function ProviderTileSkeleton({ tall }: { tall: boolean }) {
+function ProviderTileSkeleton({
+  tall,
+  width = TILE_W,
+  height,
+}: {
+  tall: boolean;
+  width?: number;
+  height?: number;
+}) {
   const { colors } = useAppTheme();
   return (
     <View
       style={{
-        width: TILE_W,
-        minHeight: tall ? 196 : 168,
+        width,
+        height: height ?? (tall ? 196 : 168),
         borderRadius: Radius.lg,
         backgroundColor: colors.surfaceCard,
         borderWidth: BorderWidth.default,
@@ -279,7 +328,7 @@ function ProviderTileSkeleton({ tall }: { tall: boolean }) {
   );
 }
 
-/** Grille mosaïque 2 colonnes — page talents ou sections détaillées. */
+/** Grille mosaïque prestataires — horizontale (défaut) ou 2 colonnes. */
 export function ProviderGrid({
   items,
   onPressProvider,
@@ -290,11 +339,12 @@ export function ProviderGrid({
   skeletonRows = 3,
   emptyTitle,
   emptyDescription,
+  layout = 'horizontal',
 }: ProviderGridProps) {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
 
-  const rows = useMemo(() => {
+  const gridRows = useMemo(() => {
     if (!items?.length) return [];
     const out: HomeProviderItem[][] = [];
     for (let i = 0; i < items.length; i += 2) {
@@ -303,29 +353,135 @@ export function ProviderGrid({
     return out;
   }, [items]);
 
+  const horizontalRows = useMemo(
+    () => (items?.length ? buildHorizontalRows(items) : []),
+    [items],
+  );
+
   const resolvedEmptyTitle = emptyTitle ?? t('home.providersEmpty');
   const resolvedEmptyDescription = emptyDescription ?? t('home.providersEmptyDesc');
 
-  return (
-    <View style={showHeader ? { marginBottom: Spacing.eight } : undefined}>
-      {showHeader && title ? (
-        <View
-          style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
+  const header = showHeader && title ? (
+    <View
+      style={{
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: PAGE_H_PAD,
+        marginBottom: Spacing.four,
+      }}
+    >
+      <Text style={[textStyle('featureHeading'), { color: colors.ink }]}>{title}</Text>
+      {actionLabel && onAction ? (
+        <Pressable onPress={onAction} hitSlop={8}>
+          <Text style={[textStyle('button'), { color: colors.ink }]}>{actionLabel} →</Text>
+        </Pressable>
+      ) : null}
+    </View>
+  ) : null;
+
+  if (items !== undefined && items.length === 0) {
+    return (
+      <View style={showHeader ? { marginBottom: Spacing.eight } : undefined}>
+        {header}
+        <View style={{ paddingHorizontal: PAGE_H_PAD }}>
+          <EmptyState compact title={resolvedEmptyTitle} description={resolvedEmptyDescription} />
+        </View>
+      </View>
+    );
+  }
+
+  if (layout === 'horizontal') {
+    const skeletonWidths = [
+      [180, 156, 164],
+      [140, 156, 148],
+      [152, 140, 168],
+    ] as const;
+
+    const track = (
+      <View style={{ height: TRACK_HEIGHT, justifyContent: 'space-between' }}>
+        {ROW_HEIGHTS.map((rowH, rowIndex) => (
+          <View
+            key={rowIndex}
+            style={{ flexDirection: 'row', gap: COL_GAP, height: rowH }}
+          >
+            {items === undefined
+              ? skeletonWidths[rowIndex].map((w, i) => (
+                  <ProviderTileSkeleton
+                    key={`s-${rowIndex}-${i}`}
+                    tall={rowIndex === 0}
+                    width={w}
+                    height={rowH}
+                  />
+                ))
+              : (horizontalRows[rowIndex] ?? []).map((tile) => (
+                  <ProviderTile
+                    key={tile.item.profile._id}
+                    item={tile.item}
+                    tall={tile.tall}
+                    width={tile.width}
+                    height={tile.height}
+                    onPress={() => onPressProvider(tile.item.profile._id)}
+                  />
+                ))}
+          </View>
+        ))}
+      </View>
+    );
+
+    return (
+      <View style={showHeader ? { marginBottom: Spacing.eight } : undefined}>
+        {header}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          decelerationRate="fast"
+          nestedScrollEnabled
+          style={{ height: TRACK_HEIGHT }}
+          contentContainerStyle={{
             paddingHorizontal: PAGE_H_PAD,
-            marginBottom: Spacing.four,
+            height: TRACK_HEIGHT,
+            alignItems: 'flex-start',
           }}
         >
-          <Text style={[textStyle('featureHeading'), { color: colors.ink }]}>{title}</Text>
-          {actionLabel && onAction ? (
-            <Pressable onPress={onAction} hitSlop={8}>
-              <Text style={[textStyle('button'), { color: colors.ink }]}>{actionLabel} →</Text>
-            </Pressable>
-          ) : null}
+          {track}
+        </ScrollView>
+      </View>
+    );
+  }
+
+  if (layout === 'list') {
+    return (
+      <View style={showHeader ? { marginBottom: Spacing.eight } : undefined}>
+        {header}
+        <View style={{ paddingHorizontal: PAGE_H_PAD, gap: COL_GAP }}>
+          {items === undefined
+            ? Array.from({ length: skeletonRows }).map((_, i) => (
+                <ProviderTileSkeleton
+                  key={`list-sk-${i}`}
+                  tall={false}
+                  width={LIST_TILE_W}
+                  height={LIST_TILE_H}
+                />
+              ))
+            : items.map((item) => (
+                <ProviderTile
+                  key={item.profile._id}
+                  item={item}
+                  tall={false}
+                  width={LIST_TILE_W}
+                  height={LIST_TILE_H}
+                  onPress={() => onPressProvider(item.profile._id)}
+                />
+              ))}
         </View>
-      ) : null}
+      </View>
+    );
+  }
+
+  return (
+    <View style={showHeader ? { marginBottom: Spacing.eight } : undefined}>
+      {header}
 
       {items === undefined ? (
         <View style={{ paddingHorizontal: PAGE_H_PAD, gap: COL_GAP }}>
@@ -336,13 +492,9 @@ export function ProviderGrid({
             </View>
           ))}
         </View>
-      ) : items.length === 0 ? (
-        <View style={{ paddingHorizontal: PAGE_H_PAD }}>
-          <EmptyState compact title={resolvedEmptyTitle} description={resolvedEmptyDescription} />
-        </View>
       ) : (
         <View style={{ paddingHorizontal: PAGE_H_PAD, gap: COL_GAP }}>
-          {rows.map((pair, rowIndex) => (
+          {gridRows.map((pair, rowIndex) => (
             <View key={rowIndex} style={{ flexDirection: 'row', gap: COL_GAP, alignItems: 'stretch' }}>
               {pair.map((item, colIndex) => (
                 <ProviderTile

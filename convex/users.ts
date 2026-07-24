@@ -99,3 +99,12 @@ export const updateLanguage = mutation({
     });
   },
 });
+
+/** Mark the current user as active (client presence heartbeat). */
+export const heartbeat = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const { userId } = await requireAuth(ctx);
+    await ctx.db.patch(userId, { lastActiveAt: now() });
+  },
+});

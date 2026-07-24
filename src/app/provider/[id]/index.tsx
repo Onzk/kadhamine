@@ -3,7 +3,6 @@ import {
   View,
   Pressable,
   ActivityIndicator,
-  ScrollView,
   Share,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -11,6 +10,15 @@ import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, {
+  Extrapolation,
+  interpolate,
+  runOnJS,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+  type SharedValue,
+} from 'react-native-reanimated';
 import {
   CaretLeft,
   ChatCircleDots,
@@ -22,8 +30,9 @@ import {
   Briefcase,
   Star,
   ShareNetwork,
+  Wrench,
 } from 'phosphor-react-native';
-import type { Id } from '../../../convex/_generated/dataModel';
+import type { Id } from '../../../../convex/_generated/dataModel';
 
 import { Badge } from '@/components/ui/Badge';
 import { AuthPrimaryButton } from '@/components/auth/AuthField';
@@ -44,10 +53,176 @@ import { useAppDialog } from '@/providers/AppDialogProvider';
 import { formatRating } from '@/types';
 import { BorderWidth, Radius, Spacing } from '@/theme/tokens';
 import { fontFamily, textStyle } from '@/theme/typography';
-import { api } from '../../../convex/_generated/api';
+import { api } from '../../../../convex/_generated/api';
 
 const ACTION_BTN_H = 54;
 const NAV_SIZE = 44;
+/** Apparition du topbar après le hero identité (avatar + nom). */
+const STICKY_THRESHOLD = 168;
+
+interface StickyTopBarProps {
+  title: string;
+  rating: number;
+  isPremium: boolean;
+  isVerified: boolean;
+  premiumLabel: string;
+  verifiedLabel: string;
+  progress: SharedValue<number>;
+  active: boolean;
+  onBack: () => void;
+  onShare: () => void;
+  shareLabel: string;
+}
+
+function StickyTopBar({
+  title,
+  rating,
+  isPremium,
+  isVerified,
+  premiumLabel,
+  verifiedLabel,
+  progress,
+  active,
+  onBack,
+  onShare,
+  shareLabel,
+}: StickyTopBarProps) {
+  const { colors } = useAppTheme();
+
+  const style = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      progress.value,
+      [STICKY_THRESHOLD - 28, STICKY_THRESHOLD + 16],
+      [0, 1],
+      Extrapolation.CLAMP,
+    ),
+    transform: [
+      {
+        translateY: interpolate(
+          progress.value,
+          [STICKY_THRESHOLD - 28, STICKY_THRESHOLD + 16],
+          [-10, 0],
+          Extrapolation.CLAMP,
+        ),
+      },
+    ],
+  }));
+
+  return (
+    <Animated.View
+      pointerEvents={active ? 'auto' : 'none'}
+      style={[
+        {
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 30,
+          backgroundColor: colors.canvas,
+          borderBottomWidth: BorderWidth.default,
+          borderBottomColor: colors.border,
+          paddingTop: Spacing.two,
+          paddingHorizontal: PAGE_H_PAD,
+          paddingBottom: Spacing.two,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: Spacing.two,
+        },
+        style,
+      ]}
+    >
+      <Pressable
+        onPress={onBack}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel="Retour"
+        style={({ pressed }) => ({
+          width: NAV_SIZE,
+          height: NAV_SIZE,
+          opacity: pressed ? 0.85 : 1,
+        })}
+      >
+        <View
+          style={{
+            width: NAV_SIZE,
+            height: NAV_SIZE,
+            borderRadius: NAV_SIZE / 2,
+            backgroundColor: colors.iconWash,
+            borderWidth: BorderWidth.default,
+            borderColor: colors.borderStrong,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <CaretLeft size={20} color={colors.ink} weight="bold" />
+        </View>
+      </Pressable>
+
+      <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+        <Text
+          numberOfLines={1}
+          style={[
+            textStyle('featureHeading'),
+            { color: colors.ink, fontSize: 16, lineHeight: 20 },
+          ]}
+        >
+          {title}
+        </Text>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: Spacing.oneHalf,
+          }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+            <Star size={12} color={colors.rating} weight="fill" />
+            <Text
+              style={{
+                fontFamily: fontFamily('body', 'medium'),
+                fontSize: 12,
+                lineHeight: 14,
+                color: colors.ink,
+              }}
+            >
+              {formatRating(rating)}
+            </Text>
+          </View>
+          {isPremium ? <Badge label={premiumLabel} variant="premium" /> : null}
+          {isVerified ? <Badge label={verifiedLabel} variant="verified" /> : null}
+        </View>
+      </View>
+
+      <Pressable
+        onPress={onShare}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel={shareLabel}
+        style={({ pressed }) => ({
+          width: NAV_SIZE,
+          height: NAV_SIZE,
+          opacity: pressed ? 0.85 : 1,
+        })}
+      >
+        <View
+          style={{
+            width: NAV_SIZE,
+            height: NAV_SIZE,
+            borderRadius: NAV_SIZE / 2,
+            backgroundColor: colors.iconWash,
+            borderWidth: BorderWidth.default,
+            borderColor: colors.borderStrong,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <ShareNetwork size={18} color={colors.ink} weight="bold" />
+        </View>
+      </Pressable>
+    </Animated.View>
+  );
+}
 
 function categoryLabel(
   category: { nameFr: string; nameAr?: string; nameSara?: string } | null | undefined,
@@ -114,6 +289,8 @@ export default function ProviderDetailScreen() {
   const [contactLoading, setContactLoading] = useState(false);
   const [ownAccountSheet, setOwnAccountSheet] = useState(false);
   const [selectedPortfolio, setSelectedPortfolio] = useState<PortfolioDetailItem | null>(null);
+  const [stickyActive, setStickyActive] = useState(false);
+  const scrollY = useSharedValue(0);
 
   const data = useQuery(
     api.profiles.getPublicProvider,
@@ -179,26 +356,26 @@ export default function ProviderDetailScreen() {
     }
   };
 
-  const handleOrder = () => {
-    if (!data) return;
-    if (user?._id && data.userId === user._id) {
-      setOwnAccountSheet(true);
-      return;
-    }
-    if (!user?._id) {
-      requireLogin(t('service.order'));
-      return;
-    }
-    const firstService = data.services[0];
-    if (!firstService) {
-      alert({
-        title: t('common.error'),
-        message: t('provider.noServices'),
-      });
-      return;
-    }
-    router.push(`/order/create?serviceId=${firstService._id}`);
+  const handleOpenServices = () => {
+    if (!id) return;
+    router.push(`/provider/${id}/services`);
   };
+
+  const onScroll = useAnimatedScrollHandler({
+    onScroll: (e) => {
+      scrollY.value = e.contentOffset.y;
+      runOnJS(setStickyActive)(e.contentOffset.y > STICKY_THRESHOLD - 8);
+    },
+  });
+
+  const heroNavStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      scrollY.value,
+      [STICKY_THRESHOLD - 40, STICKY_THRESHOLD + 8],
+      [1, 0],
+      Extrapolation.CLAMP,
+    ),
+  }));
 
   if (data === undefined) {
     return (
@@ -283,20 +460,40 @@ export default function ProviderDetailScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-      <ScrollView
+      <StickyTopBar
+        title={fullName}
+        rating={profile.averageRating}
+        isPremium={!!profile.isPremium}
+        isVerified={!!profile.isVerified}
+        premiumLabel={t('common.premium')}
+        verifiedLabel={t('common.verified')}
+        progress={scrollY}
+        active={stickyActive}
+        onBack={() => router.back()}
+        onShare={handleShare}
+        shareLabel={t('service.share')}
+      />
+
+      <Animated.ScrollView
+        onScroll={onScroll}
+        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: scrollBottomPad }}
       >
-        {/* Top nav */}
-        <View
-          style={{
-            paddingTop: Spacing.three,
-            paddingHorizontal: PAGE_H_PAD,
-            paddingBottom: Spacing.two,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: Spacing.two,
-          }}
+        {/* Top nav — fades as sticky bar appears */}
+        <Animated.View
+          style={[
+            {
+              paddingTop: Spacing.three,
+              paddingHorizontal: PAGE_H_PAD,
+              paddingBottom: Spacing.two,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: Spacing.two,
+            },
+            heroNavStyle,
+          ]}
+          pointerEvents={stickyActive ? 'none' : 'auto'}
         >
           <Pressable
             onPress={() => router.back()}
@@ -359,7 +556,7 @@ export default function ProviderDetailScreen() {
               <ShareNetwork size={20} color={colors.ink} weight="bold" />
             </View>
           </Pressable>
-        </View>
+        </Animated.View>
 
         {/* Hero identity */}
         <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
@@ -693,7 +890,7 @@ export default function ProviderDetailScreen() {
             )}
           </View>
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
 
       {/* Footer CTA */}
       <View
@@ -726,11 +923,12 @@ export default function ProviderDetailScreen() {
           </SheetActionSlot>
           <SheetActionSlot>
             <AuthPrimaryButton
-              title={t('service.order')}
-              onPress={handleOrder}
+              title={t('common.services')}
+              onPress={handleOpenServices}
               tone="orbit"
               flat
               fill
+              icon={<Wrench size={18} weight="fill" />}
             />
           </SheetActionSlot>
         </SheetActionRow>

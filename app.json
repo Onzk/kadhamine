@@ -15,7 +15,7 @@
     "android": {
       "package": "com.tchadtalent.app",
       "edgeToEdgeEnabled": true,
-      "softwareKeyboardLayoutMode": "resize",
+      "softwareKeyboardLayoutMode": "pan",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

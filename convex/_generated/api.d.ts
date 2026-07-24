@@ -17,6 +17,7 @@ import type * as cities from "../cities.js";
 import type * as favorites from "../favorites.js";
 import type * as fedapay from "../fedapay.js";
 import type * as files from "../files.js";
+import type * as geocode from "../geocode.js";
 import type * as http from "../http.js";
 import type * as lib from "../lib.js";
 import type * as messages from "../messages.js";
@@ -51,6 +52,7 @@ declare const fullApi: ApiFromModules<{
   favorites: typeof favorites;
   fedapay: typeof fedapay;
   files: typeof files;
+  geocode: typeof geocode;
   http: typeof http;
   lib: typeof lib;
   messages: typeof messages;

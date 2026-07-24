@@ -10,19 +10,13 @@ import {
 
 import { Badge } from '@/components/ui/Badge';
 import { Text } from '@/components/ui/ThemedText';
+import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { BorderWidth, Radius, Spacing } from '@/theme/tokens';
 import { fontFamily, textStyle } from '@/theme/typography';
 import { formatPrice } from '@/types';
 
 const AVATAR = 40;
-
-const STATUS_COLORS: Record<string, 'default' | 'verified' | 'premium' | 'danger' | 'accent'> = {
-  pending: 'accent',
-  accepted: 'verified',
-  completed: 'default',
-  cancelled: 'danger',
-};
 
 const PAYMENT_BADGE: Record<string, 'default' | 'verified' | 'premium' | 'danger' | 'accent'> = {
   pending: 'accent',
@@ -57,13 +51,12 @@ export type OrderCardProps = {
   deliveryDate?: string | null;
   paymentStatus?: string | null;
   isOffPlatform?: boolean;
-  /** Footer actions (buttons). */
-  actions?: React.ReactNode;
   onPress?: () => void;
 };
 
 /**
  * Carte commande — qualité list ServiceCard : padding, badges, prix, parties, dates.
+ * Actions (accept / pay / …) live on the order detail screen only.
  */
 export function OrderCard({
   title,
@@ -77,7 +70,6 @@ export function OrderCard({
   deliveryDate,
   paymentStatus,
   isOffPlatform,
-  actions,
   onPress,
 }: OrderCardProps) {
   const { colors } = useAppTheme();
@@ -114,9 +106,9 @@ export function OrderCard({
             </Text>
           ) : null}
         </View>
-        <Badge
+        <OrderStatusBadge
           label={t(`orders.${status}`, { defaultValue: status })}
-          variant={STATUS_COLORS[status] ?? 'default'}
+          status={status}
         />
       </View>
 
@@ -263,8 +255,6 @@ export function OrderCard({
           </Text>
         </View>
       ) : null}
-
-      {actions ? <View style={{ gap: Spacing.two }}>{actions}</View> : null}
     </>
   );
 

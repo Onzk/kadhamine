@@ -51,8 +51,9 @@ export function ConfirmationBottomSheet({
       scrollable={false}
       stickyHeader={false}
       showHandle={false}
-      showClose={false}
+      showClose
       maxHeightRatio={0.5}
+      bottomPadExtra={Spacing.four}
     >
       <View
         style={{
@@ -60,7 +61,8 @@ export function ConfirmationBottomSheet({
           width: '100%',
           minHeight: 140,
           alignItems: 'center',
-          paddingTop: Spacing.five,
+          // Place pour le X flottant.
+          paddingTop: icon ? Spacing.five : Spacing.eight,
         }}
       >
         {icon ? (
@@ -73,7 +75,7 @@ export function ConfirmationBottomSheet({
             {
               color: colors.ink,
               textAlign: 'center',
-              marginBottom: message ? Spacing.three : Spacing.five,
+              marginBottom: message ? Spacing.three : Spacing.four,
             },
           ]}
         >
@@ -86,7 +88,7 @@ export function ConfirmationBottomSheet({
             style={{
               color: colors.muted,
               textAlign: 'center',
-              marginBottom: Spacing.five,
+              marginBottom: Spacing.four,
               lineHeight: 22,
             }}
           >

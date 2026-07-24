@@ -173,15 +173,7 @@ export default function RegisterScreen() {
 
       {step === 1 ? (
         <>
-          <Text
-            style={[
-              textStyle('caption'),
-              { color: colors.ink, marginBottom: Spacing.three, fontFamily: 'SofiaSans_500Medium' },
-            ]}
-          >
-            {t('auth.chooseRole')}
-          </Text>
-          <RolePicker value={role} onChange={setRole} />
+          <RolePicker value={role} onChange={setRole} label={t('auth.chooseRole')} />
 
           <AuthField
             variant="light"

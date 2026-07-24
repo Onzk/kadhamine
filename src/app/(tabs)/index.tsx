@@ -27,7 +27,7 @@ import { useAppDialog } from '@/providers/AppDialogProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { consumePendingWelcome } from '@/services/pendingWelcome';
 import { Spacing } from '@/theme/tokens';
-import { textStyle } from '@/theme/typography';
+import { fontFamily, textStyle } from '@/theme/typography';
 import { api } from '../../../convex/_generated/api';
 
 /** Espacement vertical unique entre les grandes sections. */
@@ -86,6 +86,10 @@ export default function HomeScreen() {
   const featured = useQuery(api.services.getFeatured, { limit: 10 });
   const topRated = useQuery(api.services.list, { sortBy: 'rating', limit: 10 });
   const homeProviders = useQuery(api.profiles.listHome, { limit: 6 });
+  const unreadNotifications = useQuery(
+    api.notifications.unreadCount,
+    user?._id ? {} : 'skip',
+  );
   const seedCategories = useMutation(api.seed.seedCategories);
   const seedSettings = useMutation(api.seed.seedSettings);
 
@@ -96,12 +100,17 @@ export default function HomeScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      // Attendre le user pour adapter le message au type de compte.
+      if (user === undefined) return;
+
       let cancelled = false;
       const timer = setTimeout(() => {
         void (async () => {
           const kind = await consumePendingWelcome();
           if (cancelled || !kind) return;
-          alert(getWelcomeAlertOptions(kind, t, colors.orbit));
+          const role =
+            user?.role === 'provider' || user?.role === 'client' ? user.role : null;
+          alert(getWelcomeAlertOptions(kind, t, colors.orbit, role));
         })();
       }, 350);
 
@@ -109,13 +118,19 @@ export default function HomeScreen() {
         cancelled = true;
         clearTimeout(timer);
       };
-    }, [alert, colors.orbit, t]),
+    }, [alert, colors.orbit, t, user]),
   );
 
   const isGuest = !user;
   const firstName = user?.profile?.firstName ?? '';
   const avatarUrl = user?.profile?.avatarUrl;
   const initial = (firstName || 'T').charAt(0).toUpperCase();
+  const notificationsBadgeLabel =
+    typeof unreadNotifications === 'number' && unreadNotifications > 0
+      ? unreadNotifications > 99
+        ? '99+'
+        : String(unreadNotifications)
+      : null;
 
   const goToSearch = (params?: Record<string, string>) =>
     router.navigate(
@@ -194,22 +209,47 @@ export default function HomeScreen() {
               {isDark ? <Sun size={18} color={colors.ink} /> : <Moon size={18} color={colors.ink} />}
             </View>
           </Pressable>
-          <Pressable onPress={() => router.push('/notifications')} style={iconBtnSize}>
+          <Pressable
+            onPress={() => router.push('/notifications')}
+            accessibilityRole="button"
+            accessibilityLabel={
+              notificationsBadgeLabel
+                ? t('home.unreadNotifications', { count: unreadNotifications })
+                : t('notifications.title')
+            }
+            style={({ pressed }) => [iconBtnSize, { opacity: pressed ? 0.85 : 1 }]}
+          >
             <View style={[iconBtnInner, { position: 'relative' }]}>
               <Bell size={18} color={colors.ink} />
-              <View
-                style={{
-                  position: 'absolute',
-                  top: 10,
-                  right: 11,
-                  width: 8,
-                  height: 8,
-                  borderRadius: 4,
-                  backgroundColor: colors.signal,
-                  borderWidth: 0.1,
-                  borderColor: colors.surfaceCard,
-                }}
-              />
+              {notificationsBadgeLabel ? (
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: 4,
+                    right: 4,
+                    minWidth: 16,
+                    height: 16,
+                    paddingHorizontal: 4,
+                    borderRadius: 8,
+                    backgroundColor: colors.signal,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderWidth: 1.5,
+                    borderColor: colors.surfaceCard,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: '#FFFFFF',
+                      fontSize: 9,
+                      lineHeight: 11,
+                      fontFamily: fontFamily('body', 'bold'),
+                    }}
+                  >
+                    {notificationsBadgeLabel}
+                  </Text>
+                </View>
+              ) : null}
             </View>
           </Pressable>
         </View>

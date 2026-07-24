@@ -16,11 +16,13 @@ import { fontFamily, textStyle } from '@/theme/typography';
 import { formatRating } from '@/types';
 
 const { width: SCREEN_W } = Dimensions.get('window');
-const SLOT_GAP = Spacing.six;
-const SLOT_W = (SCREEN_W - PAGE_H_PAD * 2 - SLOT_GAP * 2) / 3;
+const CONTENT_W = SCREEN_W - PAGE_H_PAD * 2;
+/** Colonnes plus étroites que 1/3 pour éviter le chevauchement des textes. */
+const SLOT_W = Math.floor(CONTENT_W * 0.26);
+const SLOT_GAP = Math.max(Spacing.four, Math.floor((CONTENT_W - SLOT_W * 3) / 2));
 /** Avatars plus petits que la colonne pour que le gap soit visible. */
-const AVATAR_FIRST = Math.min(80, Math.round(SLOT_W * 0.72));
-const AVATAR_SIDE = Math.min(58, Math.round(SLOT_W * 0.54));
+const AVATAR_FIRST = Math.min(72, Math.round(SLOT_W * 0.78));
+const AVATAR_SIDE = Math.min(52, Math.round(SLOT_W * 0.58));
 /**
  * Descend 2e et 3e (même offset) pour que le 1er — couronne + avatar plus grand —
  * reste nettement plus haut.
@@ -198,12 +200,13 @@ function RankColumn({
             numberOfLines={2}
             style={{
               fontFamily: fontFamily('body', 'bold'),
-              fontSize: isFirst ? 15 : 13,
-              lineHeight: 18,
+              fontSize: isFirst ? 14 : 12,
+              lineHeight: 16,
               color: colors.ink,
               textAlign: 'center',
               marginTop: Spacing.three,
-              width: '100%',
+              width: SLOT_W,
+              paddingHorizontal: 2,
             }}
           >
             {fullName}
@@ -217,7 +220,8 @@ function RankColumn({
                 {
                   color: colors.muted,
                   textAlign: 'center',
-                  width: '100%',
+                  width: SLOT_W,
+                  paddingHorizontal: 2,
                   lineHeight: 14,
                 },
               ]}
@@ -269,6 +273,7 @@ function RankRow({
       style={{
         flexDirection: 'row',
         alignItems: 'flex-start',
+        justifyContent: 'center',
         gap: SLOT_GAP,
       }}
     >
@@ -298,6 +303,7 @@ function PodiumSkeleton() {
           style={{
             flexDirection: 'row',
             alignItems: 'flex-start',
+            justifyContent: 'center',
             gap: SLOT_GAP,
           }}
         >

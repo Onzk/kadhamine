@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, useWindowDimensions, View } from 'react-native';
 import { MapPin } from 'phosphor-react-native';
 import { useTranslation } from 'react-i18next';
+import { useAction } from 'convex/react';
 
 import { AuthPrimaryButton } from '@/components/auth/AuthField';
 import {
@@ -14,16 +15,28 @@ import { PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { SheetActionsFooter, SheetSingleAction } from '@/components/ui/SheetActions';
 import { Text } from '@/components/ui/ThemedText';
 import { useAppTheme } from '@/providers/ThemeProvider';
+import { formatLocationLabel } from '@/utils/locationDisplay';
 import { NDJAMENA } from '@/utils/geo';
 import { BorderWidth, Radius, Spacing } from '@/theme/tokens';
 import { textStyle } from '@/theme/typography';
+import { api } from '../../../convex/_generated/api';
+
+export type LocationPickerResult = {
+  lat: number;
+  lng: number;
+  addressLabel?: string;
+  city?: string;
+  region?: string;
+};
 
 export type LocationPickerSheetProps = {
   visible: boolean;
   onClose: () => void;
   initialLat?: number | null;
   initialLng?: number | null;
-  onConfirm: (lat: number, lng: number) => void;
+  /** Optional — unused for draft preview (coords shown while picking). */
+  initialAddressLabel?: string | null;
+  onConfirm: (result: LocationPickerResult) => void;
   orbitColor?: string;
   title?: string;
   subtitle?: string;
@@ -35,6 +48,7 @@ function formatCoord(n: number): string {
 
 /**
  * Bottom sheet with Leaflet map — tap or drag pin to pick lat/lng.
+ * Reverse-geocodes on confirm via Convex → Nominatim.
  */
 export function LocationPickerSheet({
   visible,
@@ -46,9 +60,10 @@ export function LocationPickerSheet({
   title,
   subtitle,
 }: LocationPickerSheetProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { colors } = useAppTheme();
   const { height: windowHeight } = useWindowDimensions();
+  const reverseGeocode = useAction(api.geocode.reverse);
 
   const fallbackLat = NDJAMENA.latitude;
   const fallbackLng = NDJAMENA.longitude;
@@ -62,6 +77,7 @@ export function LocationPickerSheet({
   const [draftLat, setDraftLat] = useState(seedLat);
   const [draftLng, setDraftLng] = useState(seedLng);
   const [center, setCenter] = useState({ lat: seedLat, lng: seedLng });
+  const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
     if (!visible) return;
@@ -73,6 +89,7 @@ export function LocationPickerSheet({
     setDraftLng(lng);
     setCenter({ lat, lng });
     setSessionKey((k) => k + 1);
+    setConfirming(false);
   }, [visible, initialLat, initialLng, fallbackLat, fallbackLng]);
 
   const snapHeight = Math.round(windowHeight * 0.85);
@@ -92,9 +109,34 @@ export function LocationPickerSheet({
     [colors, orbitColor],
   );
 
-  const handleConfirm = () => {
-    onConfirm(draftLat, draftLng);
-    onClose();
+  const previewLabel = t('services.coordsSummary', {
+    lat: formatCoord(draftLat),
+    lng: formatCoord(draftLng),
+  });
+
+  const handleConfirm = async () => {
+    setConfirming(true);
+    try {
+      const geo = await reverseGeocode({
+        lat: draftLat,
+        lng: draftLng,
+        language: i18n.language,
+      });
+
+      onConfirm({
+        lat: draftLat,
+        lng: draftLng,
+        addressLabel: geo.label ?? undefined,
+        city: geo.city ?? undefined,
+        region: geo.region ?? undefined,
+      });
+      onClose();
+    } catch {
+      onConfirm({ lat: draftLat, lng: draftLng });
+      onClose();
+    } finally {
+      setConfirming(false);
+    }
   };
 
   return (
@@ -154,11 +196,8 @@ export function LocationPickerSheet({
           }}
         >
           <MapPin size={18} color={colors.orbit} weight="fill" />
-          <Text style={[textStyle('caption'), { color: colors.ink, flex: 1 }]}>
-            {t('services.coordsSummary', {
-              lat: formatCoord(draftLat),
-              lng: formatCoord(draftLng),
-            })}
+          <Text style={[textStyle('caption'), { color: colors.ink, flex: 1 }]} numberOfLines={2}>
+            {previewLabel}
           </Text>
         </View>
 
@@ -166,11 +205,13 @@ export function LocationPickerSheet({
           <SheetActionsFooter>
             <SheetSingleAction>
               <AuthPrimaryButton
-                title={t('services.useThisLocation')}
+                title={confirming ? t('services.resolvingAddress') : t('services.useThisLocation')}
                 onPress={handleConfirm}
                 tone="orbit"
                 flat
                 fill
+                loading={confirming}
+                disabled={confirming}
               />
             </SheetSingleAction>
           </SheetActionsFooter>
@@ -184,15 +225,21 @@ export type LocationMapFieldProps = {
   label: string;
   latitude: number | null;
   longitude: number | null;
+  addressLabel?: string | null;
+  city?: string | null;
+  region?: string | null;
   onPress: () => void;
   disabled?: boolean;
 };
 
-/** Read-only coords summary + open-map action for service form. */
+/** Read-only location summary + open-map action. */
 export function LocationMapField({
   label,
   latitude,
   longitude,
+  addressLabel,
+  city,
+  region,
   onPress,
   disabled = false,
 }: LocationMapFieldProps) {
@@ -203,6 +250,13 @@ export function LocationMapField({
     Number.isFinite(latitude) &&
     typeof longitude === 'number' &&
     Number.isFinite(longitude);
+
+  const displayLabel = hasCoords
+    ? formatLocationLabel(
+        { addressLabel, city, region, latitude, longitude },
+        (lat, lng) => t('services.coordsSummary', { lat, lng }),
+      )
+    : null;
 
   return (
     <View style={{ marginBottom: Spacing.three }}>
@@ -236,7 +290,7 @@ export function LocationMapField({
             paddingHorizontal: Spacing.four,
             paddingVertical: Spacing.three,
             backgroundColor: colors.surfaceCard,
-            borderRadius: 12,
+            borderRadius: Radius.lg,
             borderWidth: BorderWidth.default,
             borderColor: colors.borderStrong,
             gap: Spacing.three,
@@ -249,14 +303,9 @@ export function LocationMapField({
                 textStyle('body'),
                 { color: hasCoords ? colors.ink : colors.muted },
               ]}
-              numberOfLines={1}
+              numberOfLines={2}
             >
-              {hasCoords
-                ? t('services.coordsSummary', {
-                    lat: formatCoord(latitude),
-                    lng: formatCoord(longitude),
-                  })
-                : t('services.pickOnMap')}
+              {displayLabel ?? t('services.pickOnMap')}
             </Text>
             <Text style={[textStyle('caption'), { color: colors.muted }]}>
               {hasCoords ? t('services.editOnMap') : t('services.pickOnMapHint')}

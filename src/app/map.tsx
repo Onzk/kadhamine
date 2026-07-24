@@ -24,6 +24,7 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
 } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CategoryChipMasonry } from '@/components/ui/CategoryChipMasonry';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -57,10 +58,9 @@ import { formatPrice, formatRating } from '@/types';
 import { api } from '../../convex/_generated/api';
 
 const { height: SCREEN_H } = Dimensions.get('window');
-const SHEET_COLLAPSED = 110;
+const SHEET_COLLAPSED_BASE = 110;
 const SHEET_MID = Math.round(SCREEN_H * 0.42);
 const SHEET_EXPANDED = Math.round(SCREEN_H * 0.72);
-const SNAP_POINTS = [SHEET_COLLAPSED, SHEET_MID, SHEET_EXPANDED];
 const PANEL_RADIUS = Radius.xl;
 /** Search bar + category chips — usable map top inset for focus centering. */
 const MAP_FOCUS_TOP_PAD = 160;
@@ -71,11 +71,12 @@ function categoryAccent(icon?: string, label?: string) {
   return getCategoryVisual({ icon, label }).pastel.fg;
 }
 
-function nearestSnap(value: number) {
+function nearestSnap(value: number, collapsed: number) {
   'worklet';
-  let best = SNAP_POINTS[0];
+  const points = [collapsed, SHEET_MID, SHEET_EXPANDED];
+  let best = points[0];
   let bestDist = Math.abs(value - best);
-  for (const p of SNAP_POINTS) {
+  for (const p of points) {
     const d = Math.abs(value - p);
     if (d < bestDist) {
       best = p;
@@ -85,9 +86,9 @@ function nearestSnap(value: number) {
   return best;
 }
 
-function clampSheet(value: number) {
+function clampSheet(value: number, collapsed: number) {
   'worklet';
-  return Math.min(SHEET_EXPANDED, Math.max(SHEET_COLLAPSED, value));
+  return Math.min(SHEET_EXPANDED, Math.max(collapsed, value));
 }
 
 function flushMapSession(partial: {
@@ -107,7 +108,12 @@ export default function MapScreen() {
   const saved = getMapSession();
   const { colors } = useAppTheme();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { latitude, longitude, loading: locLoading, isFallback, refresh } = useLocation();
+
+  const safeTop = Math.max(insets.top, Spacing.two);
+  const safeBottom = Math.max(insets.bottom, Spacing.two);
+  const sheetCollapsed = SHEET_COLLAPSED_BASE + safeBottom;
 
   /** Default chip matches the ~25 km GPS-off overview. */
   const [radiusKm, setRadiusKm] = useState<RadiusKm>(
@@ -174,12 +180,12 @@ export default function MapScreen() {
 
   const focusPadding = useMemo(
     () => ({
-      top: MAP_FOCUS_TOP_PAD + 130,
+      top: MAP_FOCUS_TOP_PAD + safeTop + 130,
       bottom: SHEET_MID,
       left: PAGE_H_PAD,
       right: PAGE_H_PAD,
     }),
-    [],
+    [safeTop],
   );
 
   /** Captured once at mount — used for WebView init / remount rehydrate only. */
@@ -297,12 +303,24 @@ export default function MapScreen() {
   );
 
   const sheetHeight = useSharedValue(
-    saved.hasSession ? saved.sheetHeight : SHEET_COLLAPSED,
+    saved.hasSession
+      ? Math.max(saved.sheetHeight, sheetCollapsed)
+      : sheetCollapsed,
   );
   const dragStart = useSharedValue(
-    saved.hasSession ? saved.sheetHeight : SHEET_COLLAPSED,
+    saved.hasSession
+      ? Math.max(saved.sheetHeight, sheetCollapsed)
+      : sheetCollapsed,
   );
   const headerHeight = useSharedValue(72);
+  const collapsedHeight = useSharedValue(sheetCollapsed);
+
+  useEffect(() => {
+    collapsedHeight.value = sheetCollapsed;
+    if (sheetHeight.value < sheetCollapsed) {
+      sheetHeight.value = sheetCollapsed;
+    }
+  }, [sheetCollapsed, collapsedHeight, sheetHeight]);
 
   const pan = Gesture.Pan()
     .activeOffsetY([-8, 8])
@@ -310,10 +328,13 @@ export default function MapScreen() {
       dragStart.value = sheetHeight.value;
     })
     .onUpdate((e) => {
-      sheetHeight.value = clampSheet(dragStart.value - e.translationY);
+      sheetHeight.value = clampSheet(
+        dragStart.value - e.translationY,
+        collapsedHeight.value,
+      );
     })
     .onEnd(() => {
-      const snapped = nearestSnap(sheetHeight.value);
+      const snapped = nearestSnap(sheetHeight.value, collapsedHeight.value);
       sheetHeight.value = withSpring(snapped, {
         damping: 20,
         stiffness: 200,
@@ -444,9 +465,9 @@ export default function MapScreen() {
     pendingFocusId.current = null;
     setSelectedId(null);
     setShowCallout(false);
-    sheetHeight.value = withSpring(SHEET_COLLAPSED, { damping: 20, stiffness: 200 });
-    persistSheetHeight(SHEET_COLLAPSED);
-  }, [sheetHeight, persistSheetHeight]);
+    sheetHeight.value = withSpring(sheetCollapsed, { damping: 20, stiffness: 200 });
+    persistSheetHeight(sheetCollapsed);
+  }, [sheetHeight, persistSheetHeight, sheetCollapsed]);
 
   const handleBack = useCallback(() => {
     if (selectedId) {
@@ -563,7 +584,7 @@ export default function MapScreen() {
       <View
         style={{
           position: 'absolute',
-          top: Spacing.three,
+          top: safeTop + Spacing.three,
           left: Spacing.four,
           right: Spacing.four,
           zIndex: 30,
@@ -598,7 +619,7 @@ export default function MapScreen() {
       </View>
 
       <CategoryChipMasonry
-        style={{ position: 'absolute', top: 68, left: 0, right: 0, zIndex: 30 }}
+        style={{ position: 'absolute', top: safeTop + 68, left: 0, right: 0, zIndex: 30 }}
         categories={categories?.slice(0, 12).map((cat) => ({
           id: cat._id,
           label: cat.nameFr,
@@ -754,7 +775,7 @@ export default function MapScreen() {
             scrollEventThrottle={16}
             contentContainerStyle={{
               paddingHorizontal: PAGE_H_PAD,
-              paddingBottom: Spacing.eight,
+              paddingBottom: Spacing.eight + safeBottom,
               gap: Spacing.two,
             }}
           >

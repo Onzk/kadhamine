@@ -21,12 +21,15 @@ export type HomeProviderItem = {
   serviceCount: number;
   topServiceId: Id<'services'>;
   category: {
+    _id?: Id<'categories'>;
     icon?: string;
     slug?: string;
     nameFr: string;
     nameAr?: string;
     nameSara?: string;
   } | null;
+  /** Catégories couvertes par au moins un service actif. */
+  categoryIds?: Id<'categories'>[];
 };
 
 export function categoryLabel(
@@ -53,4 +56,12 @@ export function distinctionLabel(
   }
   if (isVerified) return t('common.verified');
   return null;
+}
+
+/** Premium actif via flag ou badge (évite les faux négatifs côté filtre). */
+export function isProviderPremium(profile: {
+  isPremium?: boolean;
+  badge?: string;
+}): boolean {
+  return profile.isPremium === true || profile.badge === 'premium';
 }

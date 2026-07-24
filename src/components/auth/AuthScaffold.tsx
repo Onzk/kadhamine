@@ -30,11 +30,20 @@ const BOTTOM_EXTRA = Spacing.four;
 interface AuthStickyBarProps {
   title: string;
   onBack?: () => void;
+  leading?: React.ReactNode;
+  trailing?: React.ReactNode;
   progress: SharedValue<number>;
   active: boolean;
 }
 
-function AuthStickyBar({ title, onBack, progress, active }: AuthStickyBarProps) {
+function AuthStickyBar({
+  title,
+  onBack,
+  leading,
+  trailing,
+  progress,
+  active,
+}: AuthStickyBarProps) {
   const { colors } = useAppTheme();
 
   const style = useAnimatedStyle(() => ({
@@ -56,6 +65,13 @@ function AuthStickyBar({ title, onBack, progress, active }: AuthStickyBarProps) 
     ],
   }));
 
+  const left =
+    leading !== undefined ? (
+      leading
+    ) : onBack ? (
+      <AuthBackButton onPress={onBack} />
+    ) : null;
+
   return (
     <Animated.View
       pointerEvents={active ? 'auto' : 'none'}
@@ -76,16 +92,21 @@ function AuthStickyBar({ title, onBack, progress, active }: AuthStickyBarProps) 
         style,
       ]}
     >
-      {onBack ? <AuthBackButton onPress={onBack} /> : null}
-      <Text
-        numberOfLines={1}
-        style={[
-          textStyle('featureHeading'),
-          { color: colors.ink, flex: 1, fontSize: 18, lineHeight: 22 },
-        ]}
-      >
-        {title}
-      </Text>
+      {left}
+      {leading === undefined ? (
+        <Text
+          numberOfLines={1}
+          style={[
+            textStyle('featureHeading'),
+            { color: colors.ink, flex: 1, fontSize: 18, lineHeight: 22 },
+          ]}
+        >
+          {title}
+        </Text>
+      ) : (
+        <View style={{ flex: 1 }} />
+      )}
+      {trailing ?? null}
     </Animated.View>
   );
 }
@@ -98,6 +119,10 @@ export interface AuthScaffoldProps {
   subtitle?: string;
   onBack?: () => void;
   showLogo?: boolean;
+  /** Slot gauche app bar (ex. brand) — remplace le bouton retour. */
+  leading?: React.ReactNode;
+  /** Slot droit app bar (ex. déconnexion) — remplace le logo. */
+  trailing?: React.ReactNode;
   children: React.ReactNode;
   contentContainerStyle?: StyleProp<ViewStyle>;
 }
@@ -112,6 +137,8 @@ export function AuthScaffold({
   subtitle,
   onBack,
   showLogo = true,
+  leading,
+  trailing,
   children,
   contentContainerStyle,
 }: AuthScaffoldProps) {
@@ -154,6 +181,8 @@ export function AuthScaffold({
           <AuthStickyBar
             title={barTitle}
             onBack={onBack}
+            leading={leading}
+            trailing={trailing}
             progress={scrollY}
             active={stickyActive}
           />
@@ -180,6 +209,8 @@ export function AuthScaffold({
               subtitle={subtitle}
               onBack={onBack}
               showLogo={showLogo}
+              leading={leading}
+              trailing={trailing}
             />
             {children}
           </Animated.ScrollView>

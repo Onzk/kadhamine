@@ -17,6 +17,7 @@ export type PickedAsset = {
   uri: string;
   mimeType: string;
   type: 'image' | 'video';
+  fileSize?: number;
 };
 
 function toMediaTypes(
@@ -33,6 +34,7 @@ function mapAsset(asset: ImagePicker.ImagePickerAsset): PickedAsset {
     uri: asset.uri,
     mimeType: asset.mimeType ?? (isVideo ? 'video/mp4' : 'image/jpeg'),
     type: isVideo ? 'video' : 'image',
+    fileSize: asset.fileSize,
   };
 }
 

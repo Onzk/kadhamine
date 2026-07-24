@@ -1,32 +1,33 @@
-import React, { useEffect, useRef, useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  Platform,
-  FlatList,
-  Pressable,
-  ActivityIndicator,
-  Keyboard,
-} from 'react-native';
+import { useMutation, useQuery } from 'convex/react';
+import { Audio } from 'expo-av';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import { useQuery, useMutation } from 'convex/react';
-import * as ImagePicker from 'expo-image-picker';
-import { Audio } from 'expo-av';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  CaretLeft,
   Camera,
+  CaretLeft,
   ChatCircleDots,
   Image as ImageIcon,
   Microphone,
   PaperPlaneTilt,
+  Paperclip,
   Stop,
   Trash,
+  WarningCircle,
   X,
 } from 'phosphor-react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+  ActivityIndicator,
+  FlatList,
+  Keyboard,
+  Platform,
+  Pressable,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Id } from '../../../convex/_generated/dataModel';
 
 import {
@@ -34,26 +35,150 @@ import {
   type ChatMessage,
 } from '@/components/chat/ChatBubble';
 import { ImageZoomModal } from '@/components/chat/ImageZoomModal';
+import { AppBottomSheet, CLOSE_MS } from '@/components/ui/AppBottomSheet';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { PAGE_H_PAD } from '@/components/ui/PageHeader';
+import { SettingsRow } from '@/components/ui/SettingsRow';
+import { useImagePicker } from '@/hooks/useImagePicker';
+import { useUpload } from '@/hooks/useUpload';
+import { useAppDialog } from '@/providers/AppDialogProvider';
 import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
-import { useAppDialog } from '@/providers/AppDialogProvider';
-import { useUpload } from '@/hooks/useUpload';
-import { Radius, Spacing } from '@/theme/tokens';
+import { BorderWidth, Radius, Spacing } from '@/theme/tokens';
 import { fontFamily, textStyle } from '@/theme/typography';
 import { api } from '../../../convex/_generated/api';
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const MAX_AUDIO_MS = 60_000;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const KEYBOARD_EXTRA = Spacing.four;
+
+/** Login-style field chrome (AuthField light). */
+const FIELD_RADIUS = 12;
+const INPUT_MIN_H = 52;
+const INPUT_LINE = 22.4;
+const INPUT_MAX_H = INPUT_LINE * 5 + Spacing.three * 2;
+/** Switch to textarea once the line would overflow. */
+const TEXTAREA_CHAR_THRESHOLD = 52;
+/** Always-on content pad under composer chrome (keyboard open or closed). */
+const PANEL_CONTENT_PAD_BOTTOM = Spacing.three;
+/** Extra gap above keyboard. */
+const KEYBOARD_EXTRA_PAD = Spacing.twelve;
+/** Tighter horizontal inset than standard pages. */
+const CHAT_H_PAD = Spacing.three;
+/** Must match convex/messages ONLINE_WINDOW_MS */
+const ONLINE_WINDOW_MS = 2 * 60 * 1000;
+
+type ListRow =
+  | { kind: 'day'; id: string; label: string }
+  | { kind: 'message'; id: string; message: ChatMessage; clustered: boolean };
+
+function waitForModalClose() {
+  return new Promise<void>((resolve) => {
+    setTimeout(() => {
+      requestAnimationFrame(() => resolve());
+    }, CLOSE_MS);
+  });
+}
 
 function formatMs(ms: number) {
   const total = Math.max(0, Math.floor(ms / 1000));
   const m = Math.floor(total / 60);
   const s = total % 60;
   return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+function dayKey(ts: number) {
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+function formatClock(ts: number, language: string) {
+  return new Date(ts).toLocaleTimeString(language, {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function formatPeerPresence(
+  lastActiveAt: number | null | undefined,
+  language: string,
+  t: (key: string, opts?: Record<string, string | number>) => string,
+  nowMs: number,
+): { online: boolean; label: string } {
+  if (lastActiveAt != null && nowMs - lastActiveAt < ONLINE_WINDOW_MS) {
+    return { online: true, label: t('messages.online') };
+  }
+  if (lastActiveAt == null) {
+    return { online: false, label: t('messages.lastSeenUnknown') };
+  }
+
+  const diffMin = Math.floor(Math.max(0, nowMs - lastActiveAt) / 60_000);
+  const time = formatClock(lastActiveAt, language);
+
+  if (diffMin < 1) {
+    return { online: false, label: t('messages.lastSeenJustNow') };
+  }
+  if (diffMin < 60) {
+    return {
+      online: false,
+      label: t('messages.lastSeenMinutes', { count: diffMin }),
+    };
+  }
+  if (diffMin < 24 * 60) {
+    const hours = Math.floor(diffMin / 60);
+    // Same calendar day → prefer clock; otherwise hours ago
+    const startOfToday = new Date(nowMs);
+    startOfToday.setHours(0, 0, 0, 0);
+    if (lastActiveAt >= startOfToday.getTime()) {
+      return {
+        online: false,
+        label: t('messages.lastSeenToday', { time }),
+      };
+    }
+    return {
+      online: false,
+      label: t('messages.lastSeenHours', { count: hours }),
+    };
+  }
+
+  const startOfToday = new Date(nowMs);
+  startOfToday.setHours(0, 0, 0, 0);
+  const startOfYesterday = startOfToday.getTime() - 24 * 60 * 60 * 1000;
+
+  if (lastActiveAt >= startOfYesterday) {
+    return {
+      online: false,
+      label: t('messages.lastSeenYesterday', { time }),
+    };
+  }
+
+  const date = new Date(lastActiveAt).toLocaleDateString(language, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+  return {
+    online: false,
+    label: t('messages.lastSeenDate', { date, time }),
+  };
+}
+
+function formatDayLabel(
+  ts: number,
+  language: string,
+  t: (k: string) => string,
+) {
+  const date = new Date(ts);
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const startOfYesterday = startOfToday - 24 * 60 * 60 * 1000;
+
+  if (ts >= startOfToday) return t('messages.today');
+  if (ts >= startOfYesterday) return t('messages.yesterday');
+  return date.toLocaleDateString(language, {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
 }
 
 function replySnippet(msg: ChatMessage, t: (k: string) => string) {
@@ -68,16 +193,50 @@ function replySnippet(msg: ChatMessage, t: (k: string) => string) {
   return msg.content;
 }
 
+function buildRows(
+  messages: ChatMessage[],
+  language: string,
+  t: (k: string) => string,
+): ListRow[] {
+  const rows: ListRow[] = [];
+  let lastDay: string | null = null;
+  let lastSender: string | undefined;
+
+  for (const message of messages) {
+    const key = dayKey(message.createdAt);
+    if (key !== lastDay) {
+      lastDay = key;
+      lastSender = undefined;
+      rows.push({
+        kind: 'day',
+        id: `day-${key}`,
+        label: formatDayLabel(message.createdAt, language, t),
+      });
+    }
+    const clustered =
+      lastSender !== undefined && lastSender === message.senderId;
+    lastSender = message.senderId;
+    rows.push({ kind: 'message', id: message._id, message, clustered });
+  }
+
+  return rows;
+}
+
 export default function ChatScreen() {
   const { conversationId } = useLocalSearchParams<{ conversationId: string }>();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { colors, isDark } = useAppTheme();
   const { alert } = useAppDialog();
   const { user } = useAuth();
   const { uploadFromUri } = useUpload();
+  const { pickFromLibrary, pickFromCamera, uploadAsset } = useImagePicker({
+    quality: 0.85,
+    mediaTypes: 'images',
+  });
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const listRef = useRef<FlatList>(null);
+  const listRef = useRef<FlatList<ListRow>>(null);
+  const inputRef = useRef<TextInput>(null);
 
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
@@ -85,6 +244,11 @@ export default function ChatScreen() {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   const [zoomUri, setZoomUri] = useState<string | null>(null);
+  const [attachSheetOpen, setAttachSheetOpen] = useState(false);
+  const [inputHeight, setInputHeight] = useState(INPUT_MIN_H);
+  const [inputFocused, setInputFocused] = useState(false);
+  const [asTextarea, setAsTextarea] = useState(false);
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [recordingMs, setRecordingMs] = useState(0);
@@ -105,6 +269,26 @@ export default function ChatScreen() {
     conversation?.peer.name?.trim() || t('messages.conversationFallback');
   const peerInitial = peerName.charAt(0).toUpperCase();
   const peerId = conversation?.peer._id;
+  const peerPresence = useMemo(
+    () =>
+      formatPeerPresence(
+        conversation?.peer.lastActiveAt,
+        i18n.language,
+        t,
+        nowMs,
+      ),
+    [conversation?.peer.lastActiveAt, i18n.language, t, nowMs],
+  );
+
+  const listRows = useMemo(
+    () => (messages ? buildRows(messages as ChatMessage[], i18n.language, t) : []),
+    [messages, i18n.language, t],
+  );
+
+  useEffect(() => {
+    const id = setInterval(() => setNowMs(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -128,12 +312,12 @@ export default function ChatScreen() {
   }, [conversationId, markRead, messages?.length]);
 
   useEffect(() => {
-    if (!messages?.length) return;
+    if (!listRows.length) return;
     const id = requestAnimationFrame(() => {
       listRef.current?.scrollToEnd({ animated: true });
     });
     return () => cancelAnimationFrame(id);
-  }, [messages?.length, keyboardHeight]);
+  }, [listRows.length, keyboardHeight]);
 
   useEffect(() => {
     return () => {
@@ -232,6 +416,7 @@ export default function ChatScreen() {
         return;
       }
       Keyboard.dismiss();
+      setAttachSheetOpen(false);
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
@@ -263,6 +448,7 @@ export default function ChatScreen() {
   const handleSend = async () => {
     if (!message.trim() || !conversationId) return;
     setSending(true);
+    setAttachSheetOpen(false);
     try {
       await sendMessage({
         conversationId: conversationId as Id<'conversations'>,
@@ -271,61 +457,48 @@ export default function ChatScreen() {
         replyToId: replyTo?._id as Id<'messages'> | undefined,
       });
       setMessage('');
+      setInputHeight(INPUT_MIN_H);
+      setAsTextarea(false);
       setReplyTo(null);
     } finally {
       setSending(false);
     }
   };
 
-  const pickAndSendImage = async (source: 'camera' | 'library') => {
+  const closeAttachSheet = async () => {
+    if (!attachSheetOpen) return;
+    setAttachSheetOpen(false);
+    await waitForModalClose();
+  };
+
+  const sendPickedImage = async (
+    uri: string,
+    mimeType: string,
+    fileSize?: number,
+  ) => {
     if (!conversationId) return;
-
-    const permission =
-      source === 'camera'
-        ? await ImagePicker.requestCameraPermissionsAsync()
-        : await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-    if (!permission.granted) {
-      alert({
-        title: t('messages.permissionRequired'),
-        message: t('messages.permissionMessage'),
-      });
-      return;
-    }
-
-    const result =
-      source === 'camera'
-        ? await ImagePicker.launchCameraAsync({
-            mediaTypes: ['images'],
-            quality: 0.8,
-          })
-        : await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ['images'],
-            quality: 0.8,
-          });
-
-    if (result.canceled || !result.assets[0]) return;
-
-    const asset = result.assets[0];
-    const mimeType = asset.mimeType ?? 'image/jpeg';
     if (!ALLOWED_TYPES.includes(mimeType)) {
       alert({
         title: t('messages.unsupportedFormat'),
         message: t('messages.unsupportedFormatMessage'),
+        icon: <WarningCircle size={40} color={colors.error} weight="fill" />,
+        iconTone: 'error',
       });
       return;
     }
-    if (asset.fileSize && asset.fileSize > MAX_IMAGE_BYTES) {
+    if (fileSize != null && fileSize > MAX_IMAGE_BYTES) {
       alert({
         title: t('messages.fileTooLarge'),
         message: t('messages.fileTooLargeMessage'),
+        icon: <WarningCircle size={40} color={colors.error} weight="fill" />,
+        iconTone: 'error',
       });
       return;
     }
 
     setUploading(true);
     try {
-      const storageId = await uploadFromUri(asset.uri, mimeType);
+      const storageId = await uploadAsset({ uri, mimeType, type: 'image' });
       await sendMessage({
         conversationId: conversationId as Id<'conversations'>,
         content: 'Image',
@@ -338,105 +511,201 @@ export default function ChatScreen() {
       alert({
         title: t('common.error'),
         message: err instanceof Error ? err.message : t('messages.sendError'),
+        icon: <WarningCircle size={40} color={colors.error} weight="fill" />,
+        iconTone: 'error',
       });
     } finally {
       setUploading(false);
     }
   };
 
-  const canSend = message.trim().length > 0 && !sending && !uploading && !recording;
+  const handlePermissionError = (err: unknown) => {
+    if (err instanceof Error) {
+      if (err.message === 'PERMISSION_CAMERA') {
+        alert({
+          title: t('messages.permissionRequired'),
+          message: t('profile.cameraPermission'),
+          icon: <WarningCircle size={40} color={colors.error} weight="fill" />,
+          iconTone: 'error',
+        });
+        return;
+      }
+      if (err.message === 'PERMISSION_GALLERY') {
+        alert({
+          title: t('messages.permissionRequired'),
+          message: t('profile.galleryPermission'),
+          icon: <WarningCircle size={40} color={colors.error} weight="fill" />,
+          iconTone: 'error',
+        });
+        return;
+      }
+    }
+    alert({
+      title: t('common.error'),
+      message: t('messages.sendError'),
+      icon: <WarningCircle size={40} color={colors.error} weight="fill" />,
+      iconTone: 'error',
+    });
+  };
+
+  const pickGallery = async () => {
+    await closeAttachSheet();
+    try {
+      const assets = await pickFromLibrary();
+      if (!assets?.length) return;
+      const asset = assets[0]!;
+      await sendPickedImage(asset.uri, asset.mimeType, asset.fileSize);
+    } catch (err) {
+      handlePermissionError(err);
+    }
+  };
+
+  const pickCamera = async () => {
+    await closeAttachSheet();
+    try {
+      const asset = await pickFromCamera();
+      if (!asset) return;
+      await sendPickedImage(asset.uri, asset.mimeType, asset.fileSize);
+    } catch (err) {
+      handlePermissionError(err);
+    }
+  };
+
+  const hasText = message.trim().length > 0;
+  const canSend = hasText && !sending && !uploading && !recording;
   const isRecording = Boolean(recording);
   const busy = uploading || sending;
+  const showSend = hasText || isRecording;
+  const useTextarea =
+    asTextarea ||
+    message.includes('\n') ||
+    message.length >= TEXTAREA_CHAR_THRESHOLD;
 
+  /** Keyboard pad + always-present content pad */
   const panelPadBottom =
-    keyboardHeight > 0
-      ? Platform.OS === 'ios'
-        ? keyboardHeight + KEYBOARD_EXTRA
-        : // Android `resize` already shrinks the window — keep a clear margin above the keyboard
-          KEYBOARD_EXTRA + Spacing.three
-      : Math.max(insets.bottom, Spacing.three);
+    (keyboardHeight > 0 ? keyboardHeight + KEYBOARD_EXTRA_PAD : insets.bottom) +
+    PANEL_CONTENT_PAD_BOTTOM;
+
+  const renderDayChip = (label: string) => (
+    <View style={{ alignItems: 'center', marginVertical: Spacing.three }}>
+      <View
+        style={{
+          paddingHorizontal: Spacing.three,
+          paddingVertical: Spacing.oneHalf,
+          borderRadius: Radius.pill,
+          backgroundColor: isDark ? colors.surfaceStrong : colors.surfaceStrong,
+        }}
+      >
+        <Text
+          style={{
+            fontFamily: fontFamily('body', 'medium'),
+            fontSize: 12,
+            lineHeight: 16,
+            color: colors.muted,
+          }}
+        >
+          {label}
+        </Text>
+      </View>
+    </View>
+  );
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-      {/* Sticky chat header */}
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: Spacing.three,
-          paddingHorizontal: PAGE_H_PAD,
-          paddingVertical: Spacing.three,
-          borderBottomWidth: 0.1,
-          borderBottomColor: colors.border,
-          backgroundColor: colors.canvas,
-        }}
-      >
-        <Pressable
-          onPress={() => router.back()}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel={t('common.back')}
-          style={({ pressed }) => [{ width: 44, height: 44, opacity: pressed ? 0.8 : 1 }]}
-        >
-          <View
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 22,
-              backgroundColor: colors.iconWash,
-              borderWidth: 0.1,
-              borderColor: colors.border,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <CaretLeft size={20} color={colors.ink} weight="bold" />
-          </View>
-        </Pressable>
-
+      {/* Classic chat header — same canvas as page (no white bar) */}
+      <View style={{ backgroundColor: colors.canvas }}>
         <View
           style={{
-            width: 40,
-            height: 40,
-            borderRadius: 20,
-            overflow: 'hidden',
-            backgroundColor: colors.iconWash,
+            flexDirection: 'row',
             alignItems: 'center',
-            justifyContent: 'center',
+            gap: Spacing.one,
+            paddingHorizontal: Spacing.two,
+            paddingVertical: Spacing.two,
           }}
         >
-          {conversation?.peer.avatarUrl ? (
-            <Image
-              source={{ uri: conversation.peer.avatarUrl }}
-              style={{ width: '100%', height: '100%' }}
-              contentFit="cover"
-            />
-          ) : (
-            <Text
+          <Pressable
+            onPress={() => router.back()}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.back')}
+            style={({ pressed }) => [{ width: 36, height: 36, opacity: pressed ? 0.8 : 1 }]}
+          >
+            <View
               style={{
-                fontFamily: fontFamily('body', 'medium'),
-                fontSize: 16,
-                color: colors.ink,
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
-              {peerInitial}
-            </Text>
-          )}
-        </View>
+              <CaretLeft size={20} color={colors.ink} weight="bold" />
+            </View>
+          </Pressable>
 
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text
-            numberOfLines={1}
-            style={[
-              textStyle('featureHeading'),
-              { color: colors.ink, fontSize: 18, lineHeight: 22 },
-            ]}
+          <View
+            style={{
+              flex: 1,
+              minWidth: 0,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: Spacing.two,
+            }}
           >
-            {peerName}
-          </Text>
-          <Text numberOfLines={1} style={[textStyle('micro'), { color: colors.muted }]}>
-            {t('messages.chatSubtitle')}
-          </Text>
+            <View
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                overflow: 'hidden',
+                backgroundColor: colors.iconWash,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {conversation?.peer.avatarUrl ? (
+                <Image
+                  source={{ uri: conversation.peer.avatarUrl }}
+                  style={{ width: '100%', height: '100%' }}
+                  contentFit="cover"
+                />
+              ) : (
+                <Text
+                  style={{
+                    fontFamily: fontFamily('body', 'medium'),
+                    fontSize: 14,
+                    color: colors.ink,
+                  }}
+                >
+                  {peerInitial}
+                </Text>
+              )}
+            </View>
+
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text
+                numberOfLines={1}
+                style={[
+                  textStyle('featureHeading'),
+                  { color: colors.ink, fontSize: 16, lineHeight: 20 },
+                ]}
+              >
+                {peerName}
+              </Text>
+              <Text
+                numberOfLines={1}
+                style={{
+                  fontFamily: fontFamily('body'),
+                  fontSize: 12,
+                  lineHeight: 16,
+                  color: peerPresence.online ? colors.success : colors.muted,
+                  marginTop: 1,
+                }}
+              >
+                {peerPresence.label}
+              </Text>
+            </View>
+          </View>
         </View>
       </View>
 
@@ -457,28 +726,35 @@ export default function ChatScreen() {
         ) : (
           <FlatList
             ref={listRef}
-            data={messages}
-            keyExtractor={(item) => item._id}
+            data={listRows}
+            keyExtractor={(item) => item.id}
             contentContainerStyle={{
-              paddingHorizontal: Spacing.four,
-              paddingTop: Spacing.four,
-              paddingBottom: Spacing.two,
+              paddingHorizontal: CHAT_H_PAD,
+              paddingTop: Spacing.three,
+              paddingBottom: Spacing.three,
               flexGrow: 1,
             }}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="interactive"
             onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
+            onScrollBeginDrag={() => setAttachSheetOpen(false)}
             renderItem={({ item }) => {
+              if (item.kind === 'day') return renderDayChip(item.label);
               const seenByPeer = Boolean(
-                peerId && item.readBy?.includes(peerId as Id<'users'>),
+                peerId && item.message.readBy?.includes(peerId as Id<'users'>),
               );
               return (
                 <ChatBubble
-                  message={item as ChatMessage}
-                  mine={item.senderId === user?._id}
+                  message={item.message}
+                  mine={item.message.senderId === user?._id}
                   seenByPeer={seenByPeer}
-                  onReply={(msg) => setReplyTo(msg)}
+                  clustered={item.clustered}
+                  onReply={(msg) => {
+                    setReplyTo(msg);
+                    setAttachSheetOpen(false);
+                    inputRef.current?.focus();
+                  }}
                   onImagePress={(uri) => setZoomUri(uri)}
                 />
               );
@@ -486,15 +762,11 @@ export default function ChatScreen() {
           />
         )}
 
-        {/* Composer panel — pads above keyboard */}
+        {/* White composer panel */}
         <View
           style={{
-            borderTopWidth: 0.1,
-            borderTopColor: colors.border,
-            borderTopLeftRadius: Radius.lg,
-            borderTopRightRadius: Radius.lg,
-            backgroundColor: colors.surfaceCard,
-            paddingHorizontal: Spacing.three,
+            backgroundColor: isDark ? colors.surfaceCard : colors.surface,
+            paddingHorizontal: CHAT_H_PAD,
             paddingTop: Spacing.three,
             paddingBottom: panelPadBottom,
           }}
@@ -508,15 +780,13 @@ export default function ChatScreen() {
                 marginBottom: Spacing.two,
                 paddingVertical: Spacing.two,
                 paddingHorizontal: Spacing.three,
-                borderRadius: Radius.lg,
-                borderWidth: 0.1,
-                borderColor: colors.border,
+                borderRadius: Radius.md,
                 backgroundColor: isDark ? colors.surfaceStrong : colors.iconWash,
               }}
             >
               <View
                 style={{
-                  width: 3,
+                  width: 3.5,
                   alignSelf: 'stretch',
                   borderRadius: 2,
                   backgroundColor: colors.orbit,
@@ -564,38 +834,51 @@ export default function ChatScreen() {
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
-                gap: Spacing.three,
-                marginBottom: Spacing.two,
-                paddingVertical: Spacing.two,
-                paddingHorizontal: Spacing.three,
-                borderRadius: Radius.lg,
-                borderWidth: 0.1,
-                borderColor: colors.border,
-                backgroundColor: isDark ? colors.surfaceStrong : colors.iconWash,
+                gap: Spacing.two,
               }}
             >
               <Pressable
                 onPress={cancelRecording}
                 accessibilityLabel={t('messages.voiceCancel')}
-                style={({ pressed }) => [{ width: 40, height: 40, opacity: pressed ? 0.85 : 1 }]}
+                style={({ pressed }) => [{ width: 48, height: 48, opacity: pressed ? 0.85 : 1 }]}
               >
                 <View
                   style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 20,
+                    width: 48,
+                    height: 48,
+                    borderRadius: 24,
                     backgroundColor: colors.error + '18',
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
                 >
-                  <Trash size={18} color={colors.error} weight="bold" />
+                  <Trash size={20} color={colors.error} weight="bold" />
                 </View>
               </Pressable>
 
-              <View style={{ flex: 1 }}>
+              <View
+                style={{
+                  flex: 1,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: Spacing.three,
+                  minHeight: 48,
+                  paddingHorizontal: Spacing.four,
+                  borderRadius: Radius.pill,
+                  backgroundColor: isDark ? colors.surfaceStrong : colors.surfaceCard,
+                }}
+              >
+                <View
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: colors.error,
+                  }}
+                />
                 <Text
                   style={{
+                    flex: 1,
                     fontFamily: fontFamily('body', 'medium'),
                     fontSize: 15,
                     color: colors.ink,
@@ -604,183 +887,215 @@ export default function ChatScreen() {
                   {t('messages.voiceRecording')}
                 </Text>
                 <Text style={[textStyle('micro'), { color: colors.muted }]}>
-                  {formatMs(recordingMs)} / {formatMs(MAX_AUDIO_MS)}
+                  {formatMs(recordingMs)}
                 </Text>
               </View>
 
               <Pressable
                 onPress={() => recording && finishAndSendAudio(recording)}
                 accessibilityLabel={t('messages.voiceStop')}
-                style={({ pressed }) => [{ width: 44, height: 44, opacity: pressed ? 0.85 : 1 }]}
+                style={({ pressed }) => [{ width: 48, height: 48, opacity: pressed ? 0.85 : 1 }]}
+              >
+                <View
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 24,
+                    backgroundColor: colors.orbit,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Stop size={18} color={colors.onOrbit} weight="fill" />
+                </View>
+              </Pressable>
+            </View>
+          ) : (
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'flex-end',
+                gap: Spacing.two,
+              }}
+            >
+              <Pressable
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setAttachSheetOpen(true);
+                }}
+                disabled={busy}
+                hitSlop={4}
+                accessibilityLabel={t('messages.attach')}
+                style={({ pressed }) => [
+                  { width: 44, height: 44, opacity: pressed || busy ? 0.7 : 1 },
+                ]}
               >
                 <View
                   style={{
                     width: 44,
                     height: 44,
                     borderRadius: 22,
-                    backgroundColor: colors.error,
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
                 >
-                  <Stop size={18} color={colors.onAccent} weight="fill" />
+                  {uploading ? (
+                    <ActivityIndicator color={colors.orbit} size="small" />
+                  ) : (
+                    <Paperclip size={22} color={colors.ink} weight="regular" />
+                  )}
                 </View>
               </Pressable>
-            </View>
-          ) : null}
 
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'flex-end',
-              gap: Spacing.two,
-            }}
-          >
-            <Pressable
-              onPress={() => pickAndSendImage('library')}
-              disabled={busy || isRecording}
-              hitSlop={4}
-              accessibilityLabel={t('messages.attachImage')}
-              style={({ pressed }) => [
-                { width: 44, height: 44, opacity: pressed || busy ? 0.7 : 1 },
-              ]}
-            >
               <View
                 style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 22,
-                  backgroundColor: colors.iconWash,
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  flex: 1,
+                  flexDirection: 'row',
+                  alignItems: useTextarea ? 'flex-start' : 'center',
+                  backgroundColor: colors.surfaceCard,
+                  borderRadius: FIELD_RADIUS,
+                  borderWidth: BorderWidth.default,
+                  borderColor: inputFocused ? colors.orbit : colors.borderStrong,
+                  paddingHorizontal: Spacing.four,
+                  minHeight: INPUT_MIN_H,
+                  overflow: 'hidden',
                 }}
               >
-                {uploading ? (
-                  <ActivityIndicator color={colors.orbit} size="small" />
-                ) : (
-                  <ImageIcon size={20} color={colors.ink} />
-                )}
-              </View>
-            </Pressable>
-
-            <Pressable
-              onPress={() => pickAndSendImage('camera')}
-              disabled={busy || isRecording}
-              hitSlop={4}
-              accessibilityLabel={t('messages.takePhoto')}
-              style={({ pressed }) => [
-                { width: 44, height: 44, opacity: pressed || busy ? 0.7 : 1 },
-              ]}
-            >
-              <View
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 22,
-                  backgroundColor: colors.iconWash,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Camera size={20} color={colors.ink} />
-              </View>
-            </Pressable>
-
-            <Pressable
-              onPress={startRecording}
-              disabled={busy || isRecording}
-              hitSlop={4}
-              accessibilityLabel={t('messages.voiceRecord')}
-              style={({ pressed }) => [
-                { width: 44, height: 44, opacity: pressed || busy || isRecording ? 0.7 : 1 },
-              ]}
-            >
-              <View
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 22,
-                  backgroundColor: isRecording ? colors.error + '22' : colors.iconWash,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Microphone
-                  size={20}
-                  color={isRecording ? colors.error : colors.ink}
-                  weight={isRecording ? 'fill' : 'regular'}
+                <TextInput
+                  ref={inputRef}
+                  value={message}
+                  onChangeText={(text) => {
+                    setMessage(text);
+                    if (!text) {
+                      setInputHeight(INPUT_MIN_H);
+                      setAsTextarea(false);
+                      return;
+                    }
+                    if (text.includes('\n') || text.length >= TEXTAREA_CHAR_THRESHOLD) {
+                      setAsTextarea(true);
+                    }
+                  }}
+                  onContentSizeChange={(e) => {
+                    if (!useTextarea) return;
+                    const contentH = Math.ceil(e.nativeEvent.contentSize.height);
+                    setInputHeight(
+                      Math.min(
+                        INPUT_MAX_H,
+                        Math.max(INPUT_LINE, contentH) + Spacing.three * 2,
+                      ),
+                    );
+                  }}
+                  onFocus={() => setInputFocused(true)}
+                  onBlur={() => setInputFocused(false)}
+                  placeholder={t('messages.typeMessage')}
+                  placeholderTextColor={colors.muted}
+                  selectionColor={colors.orbit}
+                  multiline={useTextarea}
+                  maxLength={2000}
+                  editable={!busy}
+                  scrollEnabled={useTextarea && inputHeight >= INPUT_MAX_H - 1}
+                  style={{
+                    flex: 1,
+                    fontFamily: fontFamily('body'),
+                    fontSize: 16,
+                    lineHeight: INPUT_LINE,
+                    letterSpacing: -0.08,
+                    color: colors.ink,
+                    paddingVertical: Spacing.three,
+                    margin: 0,
+                    ...(useTextarea
+                      ? { height: Math.max(INPUT_MIN_H, inputHeight), maxHeight: INPUT_MAX_H }
+                      : null),
+                    ...(Platform.OS === 'android'
+                      ? {
+                          includeFontPadding: false,
+                          textAlignVertical: useTextarea ? 'top' : 'center',
+                        }
+                      : null),
+                  }}
                 />
               </View>
-            </Pressable>
 
-            <View
-              style={{
-                flex: 1,
-                backgroundColor: isDark ? colors.surfaceStrong : colors.canvas,
-                borderRadius: Radius.lg,
-                borderWidth: 0.1,
-                borderColor: colors.borderStrong,
-                paddingHorizontal: Spacing.four,
-                minHeight: 44,
-                justifyContent: 'center',
-              }}
-            >
-              <TextInput
-                value={message}
-                onChangeText={setMessage}
-                placeholder={t('messages.typeMessage')}
-                placeholderTextColor={colors.muted}
-                selectionColor={colors.orbit}
-                multiline
-                maxLength={2000}
-                editable={!busy && !isRecording}
-                style={{
-                  fontFamily: fontFamily('body'),
-                  fontSize: 16,
-                  lineHeight: 22.4,
-                  color: colors.ink,
-                  paddingVertical: Spacing.twoHalf,
-                  maxHeight: 120,
-                  ...(Platform.OS === 'android'
-                    ? { includeFontPadding: false, textAlignVertical: 'center' }
-                    : null),
-                }}
-              />
+              {showSend ? (
+                <Pressable
+                  onPress={handleSend}
+                  disabled={!canSend}
+                  hitSlop={4}
+                  accessibilityLabel={t('messages.send')}
+                  style={({ pressed }) => [
+                    {
+                      width: 48,
+                      height: 48,
+                      opacity: !canSend ? 0.45 : pressed ? 0.85 : 1,
+                    },
+                  ]}
+                >
+                  <View
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 24,
+                      backgroundColor: colors.orbit,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {sending ? (
+                      <ActivityIndicator color={colors.onOrbit} size="small" />
+                    ) : (
+                      <PaperPlaneTilt size={20} color={colors.onOrbit} weight="fill" />
+                    )}
+                  </View>
+                </Pressable>
+              ) : (
+                <Pressable
+                  onPress={startRecording}
+                  disabled={busy}
+                  hitSlop={4}
+                  accessibilityLabel={t('messages.voiceRecord')}
+                  style={({ pressed }) => [
+                    { width: 48, height: 48, opacity: pressed || busy ? 0.7 : 1 },
+                  ]}
+                >
+                  <View
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 24,
+                      backgroundColor: colors.orbit,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Microphone size={22} color={colors.onOrbit} weight="fill" />
+                  </View>
+                </Pressable>
+              )}
             </View>
-
-            <Pressable
-              onPress={handleSend}
-              disabled={!canSend}
-              hitSlop={4}
-              accessibilityLabel={t('messages.send')}
-              style={({ pressed }) => [
-                {
-                  width: 44,
-                  height: 44,
-                  opacity: !canSend ? 0.45 : pressed ? 0.85 : 1,
-                },
-              ]}
-            >
-              <View
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 22,
-                  backgroundColor: colors.orbit,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                {sending ? (
-                  <ActivityIndicator color={colors.onOrbit} size="small" />
-                ) : (
-                  <PaperPlaneTilt size={20} color={colors.onOrbit} weight="fill" />
-                )}
-              </View>
-            </Pressable>
-          </View>
+          )}
         </View>
       </View>
+
+      <AppBottomSheet
+        visible={attachSheetOpen}
+        onClose={() => setAttachSheetOpen(false)}
+        title={t('messages.attach')}
+      >
+        <View style={{ gap: Spacing.two, paddingBottom: Spacing.two }}>
+          <SettingsRow
+            icon={ImageIcon}
+            title={t('messages.attachImage')}
+            description={t('imagePicker.chooseGallery')}
+            onPress={() => void pickGallery()}
+          />
+          <SettingsRow
+            icon={Camera}
+            title={t('messages.takePhoto')}
+            description={t('imagePicker.takePhoto')}
+            onPress={() => void pickCamera()}
+          />
+        </View>
+      </AppBottomSheet>
 
       <ImageZoomModal uri={zoomUri} onClose={() => setZoomUri(null)} />
     </View>

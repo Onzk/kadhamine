@@ -3,6 +3,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery } from 'convex/react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Bell, Lock, MagnifyingGlass } from 'phosphor-react-native';
 
 import {
@@ -58,6 +59,7 @@ export default function NotificationsScreen() {
   const { colors } = useAppTheme();
   const { user, isLoading } = useAuth();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
 
@@ -93,12 +95,15 @@ export default function NotificationsScreen() {
   };
 
   const showToolbar = !!user && !!notifications && notifications.length > 0;
+  const safeBottom = Math.max(insets.bottom, Spacing.three);
 
   return (
     <PageScaffold
       title={t('notifications.title')}
       subtitle={t('notifications.subtitle')}
       showBack
+      bottomInset={false}
+      contentContainerStyle={{ paddingBottom: Spacing.eight + safeBottom }}
       rightAction={
         user && unreadCount > 0 ? (
           <Pressable

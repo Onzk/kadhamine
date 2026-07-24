@@ -37,12 +37,23 @@ export default function TabsLayout() {
     api.verification.getStatus,
     isAuthenticated && isProvider ? {} : 'skip',
   );
+  const unreadConversations = useQuery(
+    api.messages.unreadConversationCount,
+    isAuthenticated ? {} : 'skip',
+  );
 
   /** Prestataire non vérifié qui n’a encore soumis aucune demande. */
   const showVerificationBadge =
     isProvider &&
     !user?.profile?.isVerified &&
     verificationStatus === null;
+
+  const messagesBadge =
+    typeof unreadConversations === 'number' && unreadConversations > 0
+      ? unreadConversations > 99
+        ? '99+'
+        : unreadConversations
+      : undefined;
 
   // Canvas fills the full tab bar (including under system nav).
   // paddingBottom pushes icons/labels above that inset zone.
@@ -158,6 +169,19 @@ export default function TabsLayout() {
         options={{
           title: t('tabs.messages'),
           tabBarIcon: renderIcon(ChatCircleDots),
+          tabBarBadge: messagesBadge,
+          tabBarBadgeStyle: messagesBadge
+            ? {
+                backgroundColor: colors.orbit,
+                color: colors.onOrbit,
+                fontSize: 11,
+                fontFamily: fontFamily('body', 'medium'),
+                minWidth: 18,
+                height: 18,
+                lineHeight: 16,
+                borderRadius: 9,
+              }
+            : undefined,
         }}
       />
       <Tabs.Screen

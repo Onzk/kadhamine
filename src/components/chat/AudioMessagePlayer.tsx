@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import { Audio } from 'expo-av';
 import { Pause, Play } from 'phosphor-react-native';
@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 
 import { Text } from '@/components/ui/ThemedText';
 import { useAppTheme } from '@/providers/ThemeProvider';
-import { Radius, Spacing } from '@/theme/tokens';
+import { Spacing } from '@/theme/tokens';
 import { fontFamily, textStyle } from '@/theme/typography';
 
 function formatMs(ms: number) {
@@ -16,16 +16,40 @@ function formatMs(ms: number) {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
+/** Deterministic pseudo-random heights from URI so each clip has a stable waveform. */
+function buildWaveHeights(seed: string, count: number): number[] {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  const heights: number[] = [];
+  for (let i = 0; i < count; i++) {
+    h = (h * 1664525 + 1013904223) >>> 0;
+    const n = (h % 1000) / 1000;
+    // Soft peaks / valleys — not a flat line
+    const wave = 0.35 + 0.65 * (0.55 + 0.45 * Math.sin(i * 0.55 + n * Math.PI));
+    heights.push(4 + Math.round(wave * 16));
+  }
+  return heights;
+}
+
+const BAR_COUNT = 28;
+
 type AudioMessagePlayerProps = {
   uri: string;
   durationMs?: number;
   mine: boolean;
+  /** Renders beside the duration (e.g. timestamp), bottom-aligned. */
+  trailing?: React.ReactNode;
 };
 
 /**
- * Compact play/pause + duration for chat audio bubbles.
+ * Play/pause + modern waveform with progress fill and duration.
  */
-export function AudioMessagePlayer({ uri, durationMs = 0, mine }: AudioMessagePlayerProps) {
+export function AudioMessagePlayer({
+  uri,
+  durationMs = 0,
+  mine,
+  trailing,
+}: AudioMessagePlayerProps) {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
   const [sound, setSound] = useState<Audio.Sound | null>(null);
@@ -35,7 +59,13 @@ export function AudioMessagePlayer({ uri, durationMs = 0, mine }: AudioMessagePl
   const [resolvedDuration, setResolvedDuration] = useState(durationMs);
 
   const fg = mine ? colors.onOrbit : colors.ink;
+  const barIdle = mine ? 'rgba(255,255,255,0.35)' : colors.dust;
+  const barActive = mine ? colors.onOrbit : colors.orbit;
   const wash = mine ? 'rgba(255,255,255,0.22)' : colors.iconWash;
+
+  const heights = useMemo(() => buildWaveHeights(uri, BAR_COUNT), [uri]);
+  const progress =
+    resolvedDuration > 0 ? Math.min(1, Math.max(0, positionMs / resolvedDuration)) : 0;
 
   useEffect(() => {
     let mounted = true;
@@ -109,7 +139,7 @@ export function AudioMessagePlayer({ uri, durationMs = 0, mine }: AudioMessagePl
         flexDirection: 'row',
         alignItems: 'center',
         gap: Spacing.three,
-        minWidth: 168,
+        minWidth: 196,
         paddingVertical: Spacing.one,
         paddingHorizontal: Spacing.one,
       }}
@@ -143,31 +173,49 @@ export function AudioMessagePlayer({ uri, durationMs = 0, mine }: AudioMessagePl
         </View>
       </Pressable>
 
-      <View style={{ flex: 1, gap: 6 }}>
+      <View style={{ flex: 1, gap: 6, minWidth: 0 }}>
         <View
           style={{
-            height: 4,
-            borderRadius: Radius.xs,
-            backgroundColor: wash,
-            overflow: 'hidden',
+            flexDirection: 'row',
+            alignItems: 'center',
+            height: 22,
+            gap: 2,
           }}
         >
-          <View
-            style={{
-              height: '100%',
-              width: `${
-                resolvedDuration > 0
-                  ? Math.min(100, (positionMs / resolvedDuration) * 100)
-                  : 0
-              }%`,
-              backgroundColor: fg,
-              opacity: 0.85,
-            }}
-          />
+          {heights.map((h, i) => {
+            const filled = i / BAR_COUNT <= progress;
+            return (
+              <View
+                key={i}
+                style={{
+                  flex: 1,
+                  height: h,
+                  borderRadius: 1.5,
+                  backgroundColor: filled ? barActive : barIdle,
+                  opacity: filled ? 1 : 0.9,
+                }}
+              />
+            );
+          })}
         </View>
-        <Text style={[textStyle('micro'), { color: fg, opacity: 0.9, fontFamily: fontFamily('body') }]}>
-          {formatMs(displayMs)}
-        </Text>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'flex-end',
+            justifyContent: 'space-between',
+            gap: Spacing.two,
+          }}
+        >
+          <Text
+            style={[
+              textStyle('micro'),
+              { color: fg, opacity: 0.9, fontFamily: fontFamily('body') },
+            ]}
+          >
+            {formatMs(displayMs)}
+          </Text>
+          {trailing}
+        </View>
       </View>
     </View>
   );

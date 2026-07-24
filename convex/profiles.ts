@@ -9,6 +9,8 @@ type HomeProviderItem = {
   serviceCount: number;
   topServiceId: Id<'services'>;
   category: Doc<'categories'> | null;
+  /** Toutes les catégories des services actifs (filtre talents). */
+  categoryIds: Id<'categories'>[];
 };
 
 async function enrichHomeProvider(
@@ -35,20 +37,27 @@ async function enrichHomeProvider(
   )[0]!;
 
   const category = await ctx.db.get(topService.categoryId);
+  const categoryIds = [...new Set(services.map((s) => s.categoryId))];
 
   return {
     profile,
     serviceCount: services.length,
     topServiceId: topService._id,
     category,
+    categoryIds,
   };
 }
 
 /** Prestataires accueil — premium en tête, puis note / confiance. */
 export const listHome = query({
-  args: { limit: v.optional(v.number()) },
+  args: {
+    limit: v.optional(v.number()),
+    /** Si true, ne retourne que les profils Premium. */
+    premiumOnly: v.optional(v.boolean()),
+  },
   handler: async (ctx, args) => {
-    const limit = Math.min(Math.max(args.limit ?? 20, 1), 40);
+    const limit = Math.min(Math.max(args.limit ?? 20, 1), 60);
+    const premiumOnly = args.premiumOnly === true;
     const results: HomeProviderItem[] = [];
     const seen = new Set<Id<'profiles'>>();
 
@@ -73,7 +82,7 @@ export const listHome = query({
       }
     }
 
-    if (results.length < limit) {
+    if (!premiumOnly && results.length < limit) {
       const others = await ctx.db.query('profiles').collect();
       const sortedOthers = others
         .filter((p) => !p.isPremium && !seen.has(p._id))

@@ -3,6 +3,7 @@ import { useQuery } from 'convex/react';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { api } from '../../convex/_generated/api';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { usePresenceHeartbeat } from '@/hooks/usePresenceHeartbeat';
 import { reportConvexError } from '@/lib/convexErrors';
 
 interface AuthContextValue {
@@ -22,6 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAuthenticated = user !== null && user !== undefined;
 
   usePushNotifications(isAuthenticated);
+  usePresenceHeartbeat(isAuthenticated);
 
   const signOut = async () => {
     try {

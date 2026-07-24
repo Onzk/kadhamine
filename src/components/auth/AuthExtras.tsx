@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { Briefcase, UsersThree, CaretLeft } from 'phosphor-react-native';
+import { Briefcase, UsersThree, CaretLeft, SignOut, Check } from 'phosphor-react-native';
 import { useTranslation } from 'react-i18next';
 
 import { Logo } from '@/components/brand/Logo';
@@ -60,15 +60,81 @@ export function AuthHeaderLogo() {
   );
 }
 
+/** Brand mark — logo + wordmark (app bar gauche). */
+export function AuthBrandMark() {
+  const { colors } = useAppTheme();
+
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.two,
+        flexShrink: 1,
+        minWidth: 0,
+      }}
+      accessibilityRole="header"
+      accessibilityLabel="TalentTchad"
+    >
+      <Logo size={32} />
+      <Text
+        numberOfLines={1}
+        style={[textStyle('featureHeading'), { color: colors.ink, fontSize: 17, lineHeight: 22 }]}
+      >
+        TalentTchad
+      </Text>
+    </View>
+  );
+}
+
+/** Bouton déconnexion — même chrome que le retour auth. */
+export function AuthLogoutButton({ onPress }: { onPress: () => void }) {
+  const { t } = useTranslation();
+  const { colors } = useAppTheme();
+
+  return (
+    <Pressable
+      onPress={onPress}
+      hitSlop={8}
+      accessibilityRole="button"
+      accessibilityLabel={t('auth.logout')}
+      style={({ pressed }) => ({
+        width: AUTH_NAV_SIZE,
+        height: AUTH_NAV_SIZE,
+        opacity: pressed ? 0.85 : 1,
+      })}
+    >
+      <View
+        style={{
+          width: AUTH_NAV_SIZE,
+          height: AUTH_NAV_SIZE,
+          borderRadius: AUTH_NAV_SIZE / 2,
+          backgroundColor: colors.iconWash,
+          borderWidth: 0.1,
+          borderColor: colors.borderStrong,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <SignOut size={20} color={colors.ink} weight="bold" />
+      </View>
+    </Pressable>
+  );
+}
+
 type Role = 'client' | 'provider';
 
 interface RolePickerProps {
   value: Role;
   onChange: (role: Role) => void;
+  /** Affiche un libellé au-dessus (défaut : auth.accountType / chooseRole). */
+  label?: string;
+  /** Masque le libellé (ex. déjà dans le sous-titre de page). */
+  hideLabel?: boolean;
 }
 
-/** Sélecteur Client / Prestataire — 50/50, couleurs distinctes par rôle. */
-export function RolePicker({ value, onChange }: RolePickerProps) {
+/** Sélecteur Client / Prestataire — rangées pleine largeur, état sélection clair. */
+export function RolePicker({ value, onChange, label, hideLabel = false }: RolePickerProps) {
   const { t } = useTranslation();
   const { colors } = useAppTheme();
 
@@ -76,118 +142,119 @@ export function RolePicker({ value, onChange }: RolePickerProps) {
     role: Role;
     Icon: typeof UsersThree;
     desc: string;
-    accent: string;
-    wash: string;
-    onAccent: string;
   }> = [
     {
       role: 'client',
       Icon: UsersThree,
       desc: t('auth.clientDesc'),
-      accent: colors.orbit,
-      wash: colors.orbitWash,
-      onAccent: colors.onOrbit,
     },
     {
       role: 'provider',
       Icon: Briefcase,
       desc: t('auth.providerDesc'),
-      accent: colors.clay,
-      wash: colors.orbitWash,
-      onAccent: colors.onOrbit,
     },
   ];
 
   return (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignSelf: 'stretch',
-        width: '100%',
-        gap: Spacing.three,
-        marginBottom: Spacing.six,
-      }}
-    >
-      {options.map(({ role, Icon, desc, accent, wash, onAccent }) => {
-        const selected = value === role;
-        const cardBg = selected
-          ? role === 'provider'
-            ? accent + '12'
-            : wash
-          : colors.iconWash;
-        return (
-          <Pressable
-            key={role}
-            onPress={() => onChange(role)}
-            accessibilityRole="button"
-            accessibilityState={{ selected }}
-            style={({ pressed }) => ({
-              flex: 1,
-              flexBasis: 0,
-              minWidth: 0,
-              minHeight: 128,
-              opacity: pressed ? 0.92 : 1,
-              transform: [{ scale: pressed ? 0.98 : 1 }],
-            })}
-          >
-            <View
-              style={{
-                flex: 1,
-                minHeight: 128,
-                paddingVertical: Spacing.four,
-                paddingHorizontal: Spacing.two,
-                borderRadius: Radius.lg,
-                borderWidth: selected ? 1.5 : 0.1,
-                borderColor: selected ? accent : colors.borderStrong,
-                backgroundColor: cardBg,
-                alignItems: 'center',
-              }}
+    <View style={{ marginBottom: Spacing.six, alignSelf: 'stretch', width: '100%' }}>
+      {hideLabel ? null : (
+        <Text
+          style={[
+            textStyle('caption'),
+            {
+              fontFamily: fontFamily('body', 'medium'),
+              color: colors.ink,
+              marginBottom: Spacing.three,
+            },
+          ]}
+        >
+          {label ?? t('profile.accountType')}
+        </Text>
+      )}
+
+      <View style={{ gap: Spacing.two }}>
+        {options.map(({ role, Icon, desc }) => {
+          const selected = value === role;
+          return (
+            <Pressable
+              key={role}
+              onPress={() => onChange(role)}
+              accessibilityRole="radio"
+              accessibilityState={{ selected }}
+              style={({ pressed }) => [{ width: '100%' }, { opacity: pressed ? 0.92 : 1 }]}
             >
               <View
                 style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 22,
-                  backgroundColor: selected ? accent : colors.surfaceCard,
-                  borderWidth: selected ? 0 : 0.1,
-                  borderColor: colors.borderStrong,
+                  flexDirection: 'row',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: Spacing.two,
+                  gap: Spacing.three,
+                  paddingVertical: Spacing.four,
+                  paddingHorizontal: Spacing.four,
+                  borderRadius: Radius.md,
+                  borderWidth: selected ? 1.5 : 0.1,
+                  borderColor: selected ? colors.orbit : colors.borderStrong,
+                  backgroundColor: selected ? colors.orbitWash : colors.surfaceCard,
                 }}
               >
-                <Icon size={22} color={selected ? onAccent : colors.ink} weight="bold" />
+                <View
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 22,
+                    backgroundColor: selected ? colors.orbit : colors.iconWash,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Icon
+                    size={22}
+                    color={selected ? colors.onOrbit : colors.ink}
+                    weight="bold"
+                  />
+                </View>
+
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text
+                    style={[
+                      textStyle('button'),
+                      {
+                        color: colors.ink,
+                        fontFamily: fontFamily('body', 'medium'),
+                        marginBottom: 2,
+                      },
+                    ]}
+                  >
+                    {t(`auth.${role}`)}
+                  </Text>
+                  <Text
+                    style={[textStyle('caption'), { color: colors.muted, lineHeight: 18 }]}
+                    numberOfLines={2}
+                  >
+                    {desc}
+                  </Text>
+                </View>
+
+                <View
+                  style={{
+                    width: 22,
+                    height: 22,
+                    borderRadius: 11,
+                    borderWidth: selected ? 0 : 0.1,
+                    borderColor: colors.borderStrong,
+                    backgroundColor: selected ? colors.orbit : 'transparent',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {selected ? (
+                    <Check size={14} color={colors.onOrbit} weight="bold" />
+                  ) : null}
+                </View>
               </View>
-              <Text
-                style={[
-                  textStyle('button'),
-                  {
-                    color: selected ? colors.ink : colors.body,
-                    marginBottom: 4,
-                    textAlign: 'center',
-                    fontFamily: fontFamily('body', 'medium'),
-                  },
-                ]}
-              >
-                {t(`auth.${role}`)}
-              </Text>
-              <Text
-                style={[
-                  textStyle('micro'),
-                  {
-                    color: selected ? colors.slate : colors.muted,
-                    textAlign: 'center',
-                    lineHeight: 16,
-                    flexShrink: 1,
-                  },
-                ]}
-              >
-                {desc}
-              </Text>
-            </View>
-          </Pressable>
-        );
-      })}
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 }
@@ -427,11 +494,40 @@ interface AuthHeaderProps {
   subtitle?: string;
   onBack?: () => void;
   showLogo?: boolean;
+  /** Remplace le slot gauche (ex. brand). */
+  leading?: React.ReactNode;
+  /** Remplace le slot droit (ex. déconnexion). */
+  trailing?: React.ReactNode;
 }
 
-/** En-tête auth — retour à gauche, logo seul à droite (sans wordmark), titre. */
-export function AuthHeader({ title, subtitle, onBack, showLogo = true }: AuthHeaderProps) {
+/** En-tête auth — retour/brand à gauche, logo/action à droite, titre. */
+export function AuthHeader({
+  title,
+  subtitle,
+  onBack,
+  showLogo = true,
+  leading,
+  trailing,
+}: AuthHeaderProps) {
   const { colors } = useAppTheme();
+
+  const left =
+    leading !== undefined ? (
+      leading
+    ) : onBack ? (
+      <AuthBackButton onPress={onBack} />
+    ) : (
+      <View style={{ width: AUTH_NAV_SIZE }} />
+    );
+
+  const right =
+    trailing !== undefined ? (
+      trailing
+    ) : showLogo ? (
+      <AuthHeaderLogo />
+    ) : (
+      <View style={{ width: AUTH_NAV_SIZE }} />
+    );
 
   return (
     <View>
@@ -441,15 +537,11 @@ export function AuthHeader({ title, subtitle, onBack, showLogo = true }: AuthHea
           alignItems: 'center',
           justifyContent: 'space-between',
           marginBottom: Spacing.six,
+          gap: Spacing.three,
         }}
       >
-        {onBack ? (
-          <AuthBackButton onPress={onBack} />
-        ) : (
-          <View style={{ width: AUTH_NAV_SIZE }} />
-        )}
-
-        {showLogo ? <AuthHeaderLogo /> : <View style={{ width: AUTH_NAV_SIZE }} />}
+        {left}
+        {right}
       </View>
 
       <Text

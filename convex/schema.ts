@@ -122,6 +122,8 @@ export default defineSchema({
     status: v.optional(accountStatus),
     pushToken: v.optional(v.string()),
     language: v.optional(v.string()),
+    /** Last client heartbeat — used for online/offline presence. */
+    lastActiveAt: v.optional(v.number()),
     createdAt: v.optional(v.number()),
     updatedAt: v.optional(v.number()),
   })

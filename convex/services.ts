@@ -256,7 +256,9 @@ export const getById = query({
       .order('desc')
       .take(10);
 
-    return { service, profile, category, provider, reviews };
+    const photos = await resolveServicePhotos(ctx, service);
+
+    return { service: { ...service, photos }, profile, category, provider, reviews };
   },
 });
 

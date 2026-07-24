@@ -12,6 +12,9 @@ const messageTypeValidator = v.union(
   v.literal('document'),
 );
 
+/** Consider online if heartbeat within this window. */
+export const ONLINE_WINDOW_MS = 2 * 60 * 1000;
+
 async function resolvePeer(
   ctx: QueryCtx,
   userId: Id<'users'>,
@@ -33,10 +36,16 @@ async function resolvePeer(
     ? `${peerProfile.firstName} ${peerProfile.lastName}`.trim()
     : (peerUser?.name ?? null);
 
+  const lastActiveAt = peerUser?.lastActiveAt ?? null;
+  const isOnline =
+    lastActiveAt != null && now() - lastActiveAt < ONLINE_WINDOW_MS;
+
   return {
     _id: peerId,
     name,
     avatarUrl,
+    lastActiveAt,
+    isOnline,
   };
 }
 
@@ -53,6 +62,21 @@ async function unreadCountFor(
   return messages.filter(
     (m) => m.senderId !== userId && !m.readBy.includes(userId),
   ).length;
+}
+
+async function conversationHasUnread(
+  ctx: QueryCtx,
+  conversationId: Id<'conversations'>,
+  userId: Id<'users'>,
+) {
+  const messages = await ctx.db
+    .query('messages')
+    .withIndex('by_conversation', (q) => q.eq('conversationId', conversationId))
+    .collect();
+
+  return messages.some(
+    (m) => m.senderId !== userId && !m.readBy.includes(userId),
+  );
 }
 
 function sortConversations(conversations: Doc<'conversations'>[]) {
@@ -316,5 +340,24 @@ export const markRead = mutation({
         });
       }
     }
+  },
+});
+
+/** Number of conversations where the current user has at least one unread message. */
+export const unreadConversationCount = query({
+  args: {},
+  handler: async (ctx) => {
+    const { userId } = await requireAuth(ctx);
+
+    const conversations = await ctx.db.query('conversations').collect();
+    const mine = conversations.filter((c) => c.participantIds.includes(userId));
+
+    let count = 0;
+    for (const conv of mine) {
+      if (await conversationHasUnread(ctx, conv._id, userId)) {
+        count += 1;
+      }
+    }
+    return count;
   },
 });

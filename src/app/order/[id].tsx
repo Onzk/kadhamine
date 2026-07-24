@@ -1,13 +1,19 @@
-import React, { useMemo } from 'react';
-import { View, ScrollView, Pressable, useWindowDimensions, Linking } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Pressable, useWindowDimensions, Linking } from 'react-native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery } from 'convex/react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
+  Briefcase,
   CheckCircle,
   MapPin,
+  NavigationArrow,
+  Prohibit,
   WarningCircle,
+  X,
+  type Icon,
 } from 'phosphor-react-native';
 import type { Id } from '../../../convex/_generated/dataModel';
 
@@ -17,7 +23,11 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { AuthPrimaryButton } from '@/components/auth/AuthField';
+import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
+import { ServiceDetailSheet } from '@/components/orders/ServiceDetailSheet';
 import { VoiceRecorderField } from '@/components/orders/VoiceRecorderField';
+import { ImageZoomModal } from '@/components/chat/ImageZoomModal';
+import { SheetActionRow, SheetActionSlot } from '@/components/ui/SheetActions';
 import {
   LeafletMapView,
   MAP_PICKER_ZOOM,
@@ -27,16 +37,17 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { useAppDialog } from '@/providers/AppDialogProvider';
 import { formatPrice } from '@/types';
+import { formatLocationLabel } from '@/utils/locationDisplay';
 import { BorderWidth, BrandColors, Radius, Spacing } from '@/theme/tokens';
 import { fontFamily, textStyle } from '@/theme/typography';
 import { api } from '../../../convex/_generated/api';
 
-const STATUS_COLORS: Record<string, 'default' | 'verified' | 'premium' | 'danger' | 'accent'> = {
-  pending: 'accent',
-  accepted: 'verified',
-  completed: 'default',
-  cancelled: 'danger',
-};
+const PHOTO_GAP = Spacing.two;
+const PHOTO_COLS = 2;
+const ACTION_BTN_H = 54;
+const TOPBAR_ICON_SIZE = 44;
+/** Extra scroll breathing room above the sticky footer (beyond footer clearance). */
+const SCROLL_FOOTER_EXTRA = Spacing.twelve;
 
 function formatDate(ts: number, locale: string) {
   try {
@@ -54,10 +65,13 @@ export default function OrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t, i18n } = useTranslation();
   const { colors, isDark } = useAppTheme();
-  const { alert, confirm } = useAppDialog();
+  const { confirm } = useAppDialog();
   const { user } = useAuth();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  const [zoomUri, setZoomUri] = useState<string | null>(null);
+  const [serviceSheetOpen, setServiceSheetOpen] = useState(false);
 
   const detail = useQuery(
     api.orders.getById,
@@ -82,6 +96,13 @@ export default function OrderDetailScreen() {
     }),
     [colors],
   );
+
+  const contentWidth = Math.max(width - PAGE_H_PAD * 2, 1);
+  const photoSize = Math.max(
+    96,
+    Math.floor((contentWidth - PHOTO_GAP * (PHOTO_COLS - 1)) / PHOTO_COLS),
+  );
+  const [footerHeight, setFooterHeight] = useState(0);
 
   if (!user) {
     return (
@@ -128,9 +149,13 @@ export default function OrderDetailScreen() {
     viewerRole,
     counterpartyName,
     counterpartyAvatar,
-    photoUrls,
+    photoUrls: rawPhotoUrls,
     voiceUrl,
   } = detail;
+
+  const photoUrls = (rawPhotoUrls ?? []).filter(
+    (u): u is string => typeof u === 'string' && u.length > 0,
+  );
 
   const isClient = viewerRole === 'client';
   const hasCoords =
@@ -145,6 +170,45 @@ export default function OrderDetailScreen() {
     (!payment || payment.status === 'pending' || payment.status === 'failed');
 
   const mapHeight = Math.min(220, Math.round(width * 0.55));
+
+  const locationDisplay = formatLocationLabel(
+    {
+      addressLabel: order.addressLabel,
+      city: order.city,
+      region: order.region,
+      latitude: order.latitude,
+      longitude: order.longitude,
+    },
+    (lat, lng) => t('services.coordsSummary', { lat, lng }),
+  );
+
+  const showPay = needsPayment;
+  const showAccept = !isClient && order.status === 'pending';
+  const showReject = showAccept;
+  const showComplete = !isClient && order.status === 'accepted';
+  const showValidate =
+    isClient && order.status === 'completed' && payment?.status === 'held';
+  const showReview =
+    isClient && order.status === 'completed' && order.canReview && !hasReview;
+  const showCancel = ['pending', 'accepted'].includes(order.status);
+
+  const footerActionCount =
+    (showPay ? 1 : 0) +
+    (showAccept ? 1 : 0) +
+    (showComplete ? 1 : 0) +
+    (showValidate ? 1 : 0) +
+    (showReview ? 1 : 0);
+  const hasFooter = footerActionCount > 0;
+  const hasTopbarCritical = showCancel || showReject;
+  /** Safe area bas système — toujours, avec ou sans footer d’actions. */
+  const safeBottom = Math.max(insets.bottom, Spacing.two);
+  const footerPad = safeBottom + Spacing.three;
+  const footerContentH = ACTION_BTN_H + Spacing.three;
+  const estimatedFooterH = hasFooter ? footerContentH + footerPad : 0;
+  const footerBlockH =
+    hasFooter && footerHeight > 0 ? footerHeight : estimatedFooterH;
+  const scrollBottomPad =
+    (hasFooter ? footerBlockH : safeBottom) + SCROLL_FOOTER_EXTRA;
 
   const handleCancel = () => {
     confirm({
@@ -170,21 +234,98 @@ export default function OrderDetailScreen() {
     });
   };
 
-  const openMaps = () => {
+  const handleAccept = () => {
+    confirm({
+      title: t('order.acceptConfirmTitle'),
+      message: t('order.acceptConfirmBody'),
+      confirmLabel: t('orders.accept'),
+      onConfirm: async () => {
+        await respond({ orderId: order._id, accept: true });
+      },
+    });
+  };
+
+  const handleComplete = () => {
+    confirm({
+      title: t('order.completeConfirmTitle'),
+      message: t('order.completeConfirmBody'),
+      confirmLabel: t('orders.complete'),
+      onConfirm: async () => {
+        await complete({ orderId: order._id });
+      },
+    });
+  };
+
+  const handleValidate = () => {
+    confirm({
+      title: t('order.validateConfirmTitle'),
+      message: t('order.validateConfirmBody'),
+      confirmLabel: t('orders.validate'),
+      onConfirm: async () => {
+        await validate({ orderId: order._id });
+      },
+    });
+  };
+
+  const handlePay = () => {
+    confirm({
+      title: t('order.payConfirmTitle'),
+      message: t('order.payConfirmBody'),
+      confirmLabel: t('payment.pay'),
+      onConfirm: () => {
+        router.push(`/checkout/${order._id}`);
+      },
+    });
+  };
+
+  const handleReview = () => {
+    confirm({
+      title: t('order.reviewConfirmTitle'),
+      message: t('order.reviewConfirmBody'),
+      confirmLabel: t('reviews.leaveReview'),
+      onConfirm: () => {
+        router.push(`/review/${order._id}`);
+      },
+    });
+  };
+
+  const openDirections = () => {
     if (!hasCoords) return;
-    const url = `https://www.google.com/maps/search/?api=1&query=${order.latitude},${order.longitude}`;
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${order.latitude},${order.longitude}&travelmode=driving`;
     void Linking.openURL(url);
   };
 
+  const topbarCriticalActions = hasTopbarCritical ? (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.two }}>
+      {showReject ? (
+        <TopBarCriticalButton
+          icon={Prohibit}
+          accessibilityLabel={t('orders.reject')}
+          onPress={handleReject}
+        />
+      ) : null}
+      {showCancel ? (
+        <TopBarCriticalButton
+          icon={X}
+          accessibilityLabel={t('orders.cancel')}
+          onPress={handleCancel}
+        />
+      ) : null}
+    </View>
+  ) : undefined;
+
   return (
-    <PageScaffold
-      title={t('order.detailTitle')}
-      subtitle={
-        isClient ? t('order.detailSubtitleClient') : t('order.detailSubtitleProvider')
-      }
-      showBack
-      contentContainerStyle={{ paddingBottom: Spacing.twelve }}
-    >
+    <View style={{ flex: 1 }}>
+      <PageScaffold
+        title={t('order.detailTitle')}
+        subtitle={
+          isClient ? t('order.detailSubtitleClient') : t('order.detailSubtitleProvider')
+        }
+        showBack
+        rightAction={topbarCriticalActions}
+        bottomInset={false}
+        contentContainerStyle={{ paddingBottom: scrollBottomPad }}
+      >
       <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four, gap: Spacing.five }}>
         {/* Header card */}
         <View
@@ -216,9 +357,9 @@ export default function OrderDetailScreen() {
             >
               {order.title}
             </Text>
-            <Badge
+            <OrderStatusBadge
               label={t(`orders.${order.status}`)}
-              variant={STATUS_COLORS[order.status] ?? 'default'}
+              status={order.status}
             />
           </View>
 
@@ -251,6 +392,16 @@ export default function OrderDetailScreen() {
             />
           ) : null}
         </View>
+
+        {service ? (
+          <Button
+            title={t('order.serviceDetailsButton')}
+            variant="outline"
+            fullWidth
+            onPress={() => setServiceSheetOpen(true)}
+            icon={<Briefcase size={18} color={colors.ink} weight="bold" />}
+          />
+        ) : null}
 
         {/* Counterparty */}
         <Section title={isClient ? t('orders.provider') : t('orders.client')}>
@@ -330,51 +481,98 @@ export default function OrderDetailScreen() {
                 ]}
                 orbitColor={colors.orbit}
                 theme={mapTheme}
+                picker={false}
+                readOnly
                 style={{ width: '100%', height: '100%' }}
               />
             </View>
-            <Pressable
-              onPress={openMaps}
-              style={({ pressed }) => ({ minHeight: 44, opacity: pressed ? 0.8 : 1 })}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: Spacing.three,
+                paddingVertical: Spacing.two,
+                minHeight: 44,
+              }}
             >
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: Spacing.two,
-                  paddingVertical: Spacing.two,
-                }}
+              <MapPin size={16} color={colors.orbit} weight="fill" />
+              <Text style={[textStyle('caption'), { color: colors.body, flex: 1 }]} numberOfLines={3}>
+                {locationDisplay ??
+                  t('services.coordsSummary', {
+                    lat: order.latitude!.toFixed(5),
+                    lng: order.longitude!.toFixed(5),
+                  })}
+              </Text>
+              <Pressable
+                onPress={openDirections}
+                accessibilityRole="link"
+                accessibilityLabel={t('order.openDirections')}
+                style={({ pressed }) => [
+                  { width: 40, height: 40 },
+                  { opacity: pressed ? 0.85 : 1 },
+                ]}
               >
-                <MapPin size={16} color={colors.orbit} weight="fill" />
-                <Text style={[textStyle('caption'), { color: colors.link }]}>
-                  {order.latitude!.toFixed(5)}, {order.longitude!.toFixed(5)}
-                </Text>
-              </View>
-            </Pressable>
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: Radius.md,
+                    backgroundColor: colors.orbitWash,
+                    borderWidth: BorderWidth.default,
+                    borderColor: colors.borderStrong,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <NavigationArrow size={18} color={colors.orbit} weight="fill" />
+                </View>
+              </Pressable>
+            </View>
           </Section>
         ) : null}
 
         {photoUrls.length > 0 ? (
-          <Section title={t('order.photosLabel')}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: Spacing.two }}
+          <Section title={t('order.photosSection')}>
+            <View
+              style={{
+                width: '100%',
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                gap: PHOTO_GAP,
+              }}
             >
-              {photoUrls.map((uri) => (
-                <Image
-                  key={uri}
-                  source={{ uri }}
-                  style={{
-                    width: 140,
-                    height: 140,
-                    borderRadius: Radius.sm,
-                    backgroundColor: colors.surfaceStrong,
-                  }}
-                  contentFit="cover"
-                />
+              {photoUrls.map((uri, index) => (
+                <Pressable
+                  key={`order-photo-${index}`}
+                  onPress={() => setZoomUri(uri)}
+                  accessibilityRole="imagebutton"
+                  accessibilityLabel={t('order.photosSection')}
+                  style={({ pressed }) => [
+                    { width: photoSize, height: photoSize },
+                    { opacity: pressed ? 0.9 : 1 },
+                  ]}
+                >
+                  <View
+                    style={{
+                      width: photoSize,
+                      height: photoSize,
+                      borderRadius: Radius.lg,
+                      overflow: 'hidden',
+                      borderWidth: BorderWidth.default,
+                      borderColor: colors.borderStrong,
+                      backgroundColor: colors.surfaceStrong,
+                    }}
+                  >
+                    <Image
+                      source={{ uri }}
+                      style={{ width: photoSize, height: photoSize }}
+                      contentFit="cover"
+                      recyclingKey={`order-photo-${order._id}-${index}`}
+                    />
+                  </View>
+                </Pressable>
               ))}
-            </ScrollView>
+            </View>
           </Section>
         ) : null}
 
@@ -409,76 +607,155 @@ export default function OrderDetailScreen() {
           </View>
         ) : null}
 
-        {/* Actions */}
-        <View style={{ gap: Spacing.two }}>
-          {needsPayment ? (
-            <AuthPrimaryButton
-              title={t('payment.pay')}
-              onPress={() => router.push(`/checkout/${order._id}`)}
-              tone="ink"
-              backgroundColor={isDark ? '#FFFFFF' : undefined}
-              textColor={isDark ? BrandColors.ink : undefined}
-              flat
-            />
-          ) : null}
-
-          {!isClient && order.status === 'pending' ? (
-            <>
-              <AuthPrimaryButton
-                title={t('orders.accept')}
-                onPress={() => respond({ orderId: order._id, accept: true })}
-                tone="orbit"
-                flat
-              />
-              <Button title={t('orders.reject')} variant="outline" onPress={handleReject} fullWidth />
-            </>
-          ) : null}
-
-          {!isClient && order.status === 'accepted' ? (
-            <AuthPrimaryButton
-              title={t('orders.complete')}
-              onPress={() => complete({ orderId: order._id })}
-              tone="orbit"
-              flat
-              icon={<CheckCircle size={18} weight="bold" />}
-            />
-          ) : null}
-
-          {isClient && order.status === 'completed' && payment?.status === 'held' ? (
-            <AuthPrimaryButton
-              title={t('orders.validate')}
-              onPress={() => validate({ orderId: order._id })}
-              tone="orbit"
-              flat
-            />
-          ) : null}
-
-          {isClient && order.status === 'completed' && order.canReview && !hasReview ? (
-            <Button
-              title={t('reviews.leaveReview')}
-              variant="outline"
-              onPress={() => router.push(`/review/${order._id}`)}
-              fullWidth
-            />
-          ) : null}
-
-          {isClient && order.status === 'completed' && order.canReview && hasReview ? (
-            <Text style={[textStyle('caption'), { color: colors.success, textAlign: 'center' }]}>
-              {t('reviews.thanks')}
-            </Text>
-          ) : null}
-
-          {['pending', 'accepted'].includes(order.status) ? (
-            <Button
-              title={t('orders.cancel')}
-              variant="ghost"
-              onPress={handleCancel}
-              fullWidth
-            />
-          ) : null}
-        </View>
+        {isClient && order.status === 'completed' && order.canReview && hasReview ? (
+          <Text style={[textStyle('caption'), { color: colors.success, textAlign: 'center' }]}>
+            {t('reviews.thanks')}
+          </Text>
+        ) : null}
       </View>
-    </PageScaffold>
+      </PageScaffold>
+
+      {hasFooter ? (
+        <View
+          onLayout={(e) => {
+            const h = e.nativeEvent.layout.height;
+            if (h > 0 && Math.abs(h - footerHeight) > 1) setFooterHeight(h);
+          }}
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            zIndex: 20,
+            paddingHorizontal: PAGE_H_PAD,
+            paddingTop: Spacing.three,
+            paddingBottom: footerPad,
+            backgroundColor: colors.surfaceCard,
+            borderTopWidth: BorderWidth.default,
+            borderTopColor: colors.borderStrong,
+          }}
+        >
+          <SheetActionRow>
+            {showPay ? (
+              <SheetActionSlot>
+                <AuthPrimaryButton
+                  title={t('payment.pay')}
+                  onPress={handlePay}
+                  tone="ink"
+                  backgroundColor={isDark ? '#FFFFFF' : undefined}
+                  textColor={isDark ? BrandColors.ink : undefined}
+                  flat
+                  fill
+                />
+              </SheetActionSlot>
+            ) : null}
+
+            {showAccept ? (
+              <SheetActionSlot>
+                <AuthPrimaryButton
+                  title={t('orders.accept')}
+                  onPress={handleAccept}
+                  tone="orbit"
+                  flat
+                  fill
+                />
+              </SheetActionSlot>
+            ) : null}
+
+            {showComplete ? (
+              <SheetActionSlot>
+                <AuthPrimaryButton
+                  title={t('orders.complete')}
+                  onPress={handleComplete}
+                  tone="orbit"
+                  flat
+                  fill
+                  icon={<CheckCircle size={18} weight="bold" />}
+                />
+              </SheetActionSlot>
+            ) : null}
+
+            {showValidate ? (
+              <SheetActionSlot>
+                <AuthPrimaryButton
+                  title={t('orders.validate')}
+                  onPress={handleValidate}
+                  tone="orbit"
+                  flat
+                  fill
+                />
+              </SheetActionSlot>
+            ) : null}
+
+            {showReview ? (
+              <SheetActionSlot>
+                <Button
+                  title={t('reviews.leaveReview')}
+                  variant="outline"
+                  onPress={handleReview}
+                  fullWidth
+                />
+              </SheetActionSlot>
+            ) : null}
+          </SheetActionRow>
+        </View>
+      ) : null}
+
+      <ImageZoomModal uri={zoomUri} onClose={() => setZoomUri(null)} />
+
+      {service ? (
+        <ServiceDetailSheet
+          visible={serviceSheetOpen}
+          onClose={() => setServiceSheetOpen(false)}
+          serviceId={service._id}
+          onViewFull={(serviceId) => {
+            setServiceSheetOpen(false);
+            router.push(`/service/${serviceId}`);
+          }}
+        />
+      ) : null}
+    </View>
+  );
+}
+
+function TopBarCriticalButton({
+  icon: IconComponent,
+  accessibilityLabel,
+  onPress,
+}: {
+  icon: Icon;
+  accessibilityLabel: string;
+  onPress: () => void;
+}) {
+  const { colors } = useAppTheme();
+
+  return (
+    <Pressable
+      onPress={onPress}
+      hitSlop={8}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      style={({ pressed }) => ({
+        width: TOPBAR_ICON_SIZE,
+        height: TOPBAR_ICON_SIZE,
+        opacity: pressed ? 0.85 : 1,
+      })}
+    >
+      <View
+        style={{
+          width: TOPBAR_ICON_SIZE,
+          height: TOPBAR_ICON_SIZE,
+          borderRadius: Radius.lg,
+          backgroundColor: colors.error + '12',
+          borderWidth: BorderWidth.default,
+          borderColor: colors.error + '30',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <IconComponent size={20} color={colors.error} weight="bold" />
+      </View>
+    </Pressable>
   );
 }
 

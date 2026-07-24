@@ -63,6 +63,11 @@ export interface AppBottomSheetProps {
    */
   hideHeader?: boolean;
   contentContainerStyle?: StyleProp<ViewStyle>;
+  /**
+   * Marge bas en plus de la safe area (défaut `Spacing.twelve`).
+   * Passer une valeur plus basse pour alertes / confirmations compactes.
+   */
+  bottomPadExtra?: number;
 }
 
 function SheetCloseButton({ onPress }: { onPress: () => void }) {
@@ -204,6 +209,7 @@ export function AppBottomSheet({
   stickyHeader = true,
   hideHeader = false,
   contentContainerStyle,
+  bottomPadExtra = Spacing.twelve,
 }: AppBottomSheetProps) {
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
@@ -412,8 +418,8 @@ export function AppBottomSheet({
   const scrollMaxHeight = Math.max(effectiveMaxHeight - handleBlockHeight, 120);
 
   const sheetLift = keyboardOpen ? keyboardHeight : 0;
-  /** Padding bas interne : safe area + marge pour l’action. */
-  const sheetBottomPad = systemBottom + Spacing.twelve;
+  /** Padding bas interne : safe area + marge (compacte pour alertes). */
+  const sheetBottomPad = systemBottom + bottomPadExtra;
   const useSticky = scrollable && stickyHeader && !hideHeader;
   const stickyMode = keyboardOpen ? 'compact' : 'full';
   const sheetBg = colors.canvas;
@@ -427,7 +433,7 @@ export function AppBottomSheet({
           paddingHorizontal: Spacing.six,
         },
         contentContainerStyle,
-        // Toujours en dernier — safe area + Spacing.twelve (non surchargeable).
+        // Toujours en dernier — safe area + bottomPadExtra (non surchargeable).
         { paddingBottom: sheetBottomPad },
       ]}
     >

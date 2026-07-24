@@ -17,6 +17,8 @@ export interface AlertBottomSheetProps {
   subtitle?: string;
   message?: string;
   detail?: string;
+  /** Force exactement N lignes sur le message principal. */
+  messageNumberOfLines?: number;
   buttonLabel?: string;
   onDismiss?: () => void;
   /** Icône principale centrée au-dessus du titre. */
@@ -36,6 +38,7 @@ export function AlertBottomSheet({
   subtitle,
   message,
   detail,
+  messageNumberOfLines,
   buttonLabel = 'OK',
   onDismiss,
   icon,
@@ -68,6 +71,7 @@ export function AlertBottomSheet({
       showHandle={false}
       showClose
       maxHeightRatio={0.62}
+      bottomPadExtra={Spacing.four}
     >
       <View
         style={{
@@ -102,7 +106,7 @@ export function AlertBottomSheet({
             {
               color: colors.ink,
               textAlign: 'center',
-              marginBottom: hasBodyCopy ? Spacing.three : Spacing.five,
+              marginBottom: hasBodyCopy ? Spacing.three : Spacing.four,
             },
           ]}
         >
@@ -115,7 +119,7 @@ export function AlertBottomSheet({
             style={{
               color: colors.muted,
               textAlign: 'center',
-              marginBottom: message || detail ? Spacing.two : Spacing.five,
+              marginBottom: message || detail ? Spacing.two : Spacing.four,
               lineHeight: 22,
             }}
           >
@@ -126,11 +130,15 @@ export function AlertBottomSheet({
         {message ? (
           <Text
             variant="body"
+            numberOfLines={messageNumberOfLines}
             style={{
               color: colors.body,
               textAlign: 'center',
-              marginBottom: detail ? Spacing.three : Spacing.five,
+              marginBottom: detail ? Spacing.three : Spacing.four,
               lineHeight: 22,
+              ...(messageNumberOfLines
+                ? { minHeight: 22 * messageNumberOfLines }
+                : null),
             }}
           >
             {message}
@@ -143,7 +151,7 @@ export function AlertBottomSheet({
             style={{
               color: colors.muted,
               textAlign: 'center',
-              marginBottom: Spacing.five,
+              marginBottom: Spacing.four,
               lineHeight: 22,
             }}
           >

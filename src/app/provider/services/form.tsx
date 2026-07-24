@@ -24,6 +24,7 @@ import { CategoryPickerField } from '@/components/ui/CategoryPickerSheet';
 import {
   LocationMapField,
   LocationPickerSheet,
+  type LocationPickerResult,
 } from '@/components/map/LocationPickerSheet';
 import { PillGroup } from '@/components/ui/PillGroup';
 import {
@@ -114,6 +115,7 @@ export default function ProviderServiceFormScreen() {
   const [region, setRegion] = useState(MVP_CITY_REGION[MVP_CITIES[0]]);
   const [latitude, setLatitude] = useState(String(MVP_CITY_COORDS[MVP_CITIES[0]].lat));
   const [longitude, setLongitude] = useState(String(MVP_CITY_COORDS[MVP_CITIES[0]].lng));
+  const [addressLabel, setAddressLabel] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [photos, setPhotos] = useState<ImagePickerValueItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -291,6 +293,7 @@ export default function ProviderServiceFormScreen() {
   };
 
   const handleCityChange = (next: string) => {
+    setAddressLabel(null);
     if (isMvpCity(next)) {
       applyCityDefaults(next, {
         setCity,
@@ -303,9 +306,12 @@ export default function ProviderServiceFormScreen() {
     setCity(next);
   };
 
-  const handlePickerConfirm = (lat: number, lng: number) => {
-    setLatitude(String(lat));
-    setLongitude(String(lng));
+  const handlePickerConfirm = (result: LocationPickerResult) => {
+    setLatitude(String(result.lat));
+    setLongitude(String(result.lng));
+    setAddressLabel(result.addressLabel ?? null);
+    if (result.city) setCity(result.city);
+    if (result.region) setRegion(result.region);
   };
 
   const handleSave = async () => {
@@ -656,6 +662,9 @@ export default function ProviderServiceFormScreen() {
                     label={t('services.fieldCoords')}
                     latitude={parsedLat}
                     longitude={parsedLng}
+                    addressLabel={addressLabel}
+                    city={city}
+                    region={region}
                     onPress={() => setPickerOpen(true)}
                   />
                   <Text

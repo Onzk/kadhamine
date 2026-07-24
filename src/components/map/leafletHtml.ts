@@ -240,6 +240,30 @@ export const LEAFLET_HTML = `<!DOCTYPE html>
       attributionControl: false,
     }).setView([12.1348, 15.0557], 12);
 
+    /** Freeze pan/zoom for static previews (order detail, etc.). */
+    function setReadOnly(enabled) {
+      var on = !!enabled;
+      try {
+        if (on) {
+          map.dragging.disable();
+          map.touchZoom.disable();
+          map.doubleClickZoom.disable();
+          map.scrollWheelZoom.disable();
+          map.boxZoom.disable();
+          map.keyboard.disable();
+          if (map.tap) map.tap.disable();
+        } else {
+          map.dragging.enable();
+          map.touchZoom.enable();
+          map.doubleClickZoom.enable();
+          map.scrollWheelZoom.enable();
+          map.boxZoom.enable();
+          map.keyboard.enable();
+          if (map.tap) map.tap.enable();
+        }
+      } catch (e) {}
+    }
+
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '© OSM',
@@ -495,6 +519,7 @@ export const LEAFLET_HTML = `<!DOCTYPE html>
     }
 
     function enablePicker(lat, lng, zoom) {
+      setReadOnly(false);
       pickerMode = true;
       markersLayer.clearLayers();
       markerById = {};
@@ -541,6 +566,7 @@ export const LEAFLET_HTML = `<!DOCTYPE html>
             };
           }
           if (msg.picker) {
+            setReadOnly(false);
             var pLat = msg.pickerLat != null
               ? msg.pickerLat
               : (msg.center && msg.center.lat);
@@ -557,7 +583,11 @@ export const LEAFLET_HTML = `<!DOCTYPE html>
             }
             if (msg.markers) setMarkers(msg.markers);
             if (msg.user) setUserLocation(msg.user.lat, msg.user.lng);
+            setReadOnly(!!msg.readOnly);
           }
+          break;
+        case 'setReadOnly':
+          setReadOnly(!!msg.enabled);
           break;
         case 'enablePicker':
           enablePicker(msg.lat, msg.lng, msg.zoom);

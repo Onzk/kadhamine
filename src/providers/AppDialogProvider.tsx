@@ -12,6 +12,8 @@ export type AppAlertOptions = {
   subtitle?: string;
   message?: string;
   detail?: string;
+  /** Limite le message à N lignes (ex. bienvenue = 3). */
+  messageNumberOfLines?: number;
   buttonLabel?: string;
   onPress?: () => void;
   icon?: React.ReactNode;
@@ -90,6 +92,7 @@ export function AppDialogProvider({ children }: { children: React.ReactNode }) {
         title={alertOptions?.title ?? ''}
         subtitle={alertOptions?.subtitle}
         message={alertOptions?.message}
+        messageNumberOfLines={alertOptions?.messageNumberOfLines}
         detail={alertOptions?.detail}
         buttonLabel={alertOptions?.buttonLabel ?? 'OK'}
         onDismiss={alertOptions?.onPress}
