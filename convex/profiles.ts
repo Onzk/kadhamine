@@ -1,3 +1,4 @@
+import { getAuthUserId } from '@convex-dev/auth/server';
 import { v } from 'convex/values';
 import { mutation, query } from './_generated/server';
 import type { Doc, Id } from './_generated/dataModel';
@@ -142,7 +143,12 @@ export const getPublicProvider = query({
 
     const user = await ctx.db.get(profile.userId);
     if (!user || user.role !== 'provider') return null;
-    if (user.status && user.status !== 'active') return null;
+
+    // Owner can always preview — clients only see active accounts.
+    const viewerId = await getAuthUserId(ctx);
+    const isOwner = viewerId === profile.userId;
+    const isActive = !user.status || user.status === 'active';
+    if (!isActive && !isOwner) return null;
 
     const services = await ctx.db
       .query('services')
@@ -249,6 +255,8 @@ export const getPublicProvider = query({
 
     return {
       userId: profile.userId,
+      /** True when the owner previews a not-yet-active account. */
+      isPendingPreview: !isActive && isOwner,
       profile: {
         _id: profile._id,
         firstName: profile.firstName,

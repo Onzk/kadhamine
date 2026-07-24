@@ -30,14 +30,9 @@ const COL_GAP = Spacing.three;
 const ROW_GAP = Spacing.three;
 /** Largeur tuile en grille verticale. */
 const TILE_W = (SCREEN_W - PAGE_H_PAD * 2 - COL_GAP) / 2;
-const LIST_TILE_H = 132;
 const LIST_TILE_W = SCREEN_W - PAGE_H_PAD * 2;
-
-/** Masonry horizontal — 3 rangées (~count/3), hauteurs décalées. */
-const ROW_COUNT = 3;
-const ROW_HEIGHTS = [188, 168, 152] as const;
-const TRACK_HEIGHT =
-  ROW_HEIGHTS.reduce((sum, h) => sum + h, 0) + ROW_GAP * (ROW_COUNT - 1);
+/** Hauteur indicative des squelettes liste (les vraies cards s’adaptent au contenu). */
+const LIST_SKELETON_H = 132;
 
 interface ProviderGridProps {
   items: HomeProviderItem[] | undefined;
@@ -49,7 +44,7 @@ interface ProviderGridProps {
   skeletonRows?: number;
   emptyTitle?: string;
   emptyDescription?: string;
-  /** `horizontal` (défaut) — scroll latéral 3 rangées. `grid` — 2 colonnes. `list` — liste verticale. */
+  /** `horizontal` (défaut) — scroll latéral, ~count/4 rangées. `grid` — 2 colonnes. `list` — liste verticale. */
   layout?: 'horizontal' | 'grid' | 'list';
 }
 
@@ -68,26 +63,29 @@ function pickHorizontalWidth(item: HomeProviderItem): number {
 type SizedTile = {
   item: HomeProviderItem;
   width: number;
-  height: number;
   tall: boolean;
 };
 
-/** Répartit les tuiles sur 3 rangées en respectant l’ordre (premium / notes d’abord). */
+/** Nombre de rangées horizontales ≈ count / 4 (min. 1). */
+function horizontalRowCount(count: number): number {
+  return Math.max(1, Math.ceil(count / 4));
+}
+
+/** Répartit les tuiles sur count/4 rangées (plus courte d’abord). Hauteur = contenu. */
 function buildHorizontalRows(items: HomeProviderItem[]): SizedTile[][] {
-  const rows: SizedTile[][] = Array.from({ length: ROW_COUNT }, () => []);
-  const widths = Array.from({ length: ROW_COUNT }, () => 0);
+  const rowCount = horizontalRowCount(items.length);
+  const rows: SizedTile[][] = Array.from({ length: rowCount }, () => []);
+  const widths = Array.from({ length: rowCount }, () => 0);
 
   for (const item of items) {
     let target = 0;
-    for (let i = 1; i < ROW_COUNT; i++) {
+    for (let i = 1; i < rowCount; i++) {
       if (widths[i] < widths[target]) target = i;
     }
-    const height = ROW_HEIGHTS[target];
     const width = pickHorizontalWidth(item);
     rows[target].push({
       item,
       width,
-      height,
       tall: target === 0,
     });
     widths[target] += width + COL_GAP;
@@ -100,13 +98,11 @@ function ProviderTile({
   item,
   tall,
   width = TILE_W,
-  height,
   onPress,
 }: {
   item: HomeProviderItem;
   tall: boolean;
   width?: number;
-  height?: number;
   onPress: () => void;
 }) {
   const { t, i18n } = useTranslation();
@@ -117,12 +113,10 @@ function ProviderTile({
   const catLabel = categoryLabel(category, i18n.language);
   const topSkill = profile.skills[0];
   const distinction = distinctionLabel(profile.badge, isPremium, profile.isVerified, t);
-  const tileHeight = height ?? (tall ? 196 : 168);
 
   const cardBody = (
     <View
       style={{
-        flex: 1,
         padding: Spacing.three,
         paddingTop: isPremium ? Spacing.four : Spacing.three,
       }}
@@ -251,7 +245,6 @@ function ProviderTile({
       onPress={onPress}
       style={({ pressed }) => ({
         width,
-        height: tileHeight,
         opacity: pressed ? 0.92 : 1,
         transform: [{ scale: pressed ? 0.98 : 1 }],
       })}
@@ -261,11 +254,13 @@ function ProviderTile({
           colors={[BrandColors.gold, colors.orbit, colors.clay]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={{ borderRadius: Radius.lg, padding: 1.5, flex: 1 }}
+          style={{
+            borderRadius: Radius.lg,
+            padding: 1.5,
+          }}
         >
           <View
             style={{
-              flex: 1,
               borderRadius: Radius.lg - 1,
               backgroundColor: colors.surfaceCard,
               overflow: 'hidden',
@@ -277,7 +272,6 @@ function ProviderTile({
       ) : (
         <View
           style={{
-            flex: 1,
             borderRadius: Radius.lg,
             backgroundColor: colors.surfaceCard,
             borderWidth: BorderWidth.default,
@@ -293,20 +287,17 @@ function ProviderTile({
 }
 
 function ProviderTileSkeleton({
-  tall,
   width = TILE_W,
-  height,
 }: {
-  tall: boolean;
+  tall?: boolean;
   width?: number;
-  height?: number;
 }) {
   const { colors } = useAppTheme();
   return (
     <View
       style={{
         width,
-        height: height ?? (tall ? 196 : 168),
+        minHeight: LIST_SKELETON_H,
         borderRadius: Radius.lg,
         backgroundColor: colors.surfaceCard,
         borderWidth: BorderWidth.default,
@@ -392,40 +383,48 @@ export function ProviderGrid({
   }
 
   if (layout === 'horizontal') {
-    const skeletonWidths = [
-      [180, 156, 164],
-      [140, 156, 148],
-      [152, 140, 168],
-    ] as const;
+    const skeletonCount = skeletonRows * 4;
+    const skeletonRowCount = horizontalRowCount(skeletonCount);
+    const skeletonRowsData = Array.from({ length: skeletonRowCount }, (_, rowIndex) =>
+      Array.from({ length: 4 }, (_, i) => ({
+        key: `s-${rowIndex}-${i}`,
+        width: 140 + ((rowIndex + i) % 3) * 12,
+      })),
+    );
 
     const track = (
-      <View style={{ height: TRACK_HEIGHT, justifyContent: 'space-between' }}>
-        {ROW_HEIGHTS.map((rowH, rowIndex) => (
-          <View
-            key={rowIndex}
-            style={{ flexDirection: 'row', gap: COL_GAP, height: rowH }}
-          >
-            {items === undefined
-              ? skeletonWidths[rowIndex].map((w, i) => (
+      <View style={{ gap: ROW_GAP }}>
+        {items === undefined
+          ? skeletonRowsData.map((row, rowIndex) => (
+              <View
+                key={rowIndex}
+                style={{ flexDirection: 'row', gap: COL_GAP, alignItems: 'flex-start' }}
+              >
+                {row.map((sk) => (
                   <ProviderTileSkeleton
-                    key={`s-${rowIndex}-${i}`}
+                    key={sk.key}
                     tall={rowIndex === 0}
-                    width={w}
-                    height={rowH}
+                    width={sk.width}
                   />
-                ))
-              : (horizontalRows[rowIndex] ?? []).map((tile) => (
+                ))}
+              </View>
+            ))
+          : horizontalRows.map((row, rowIndex) => (
+              <View
+                key={rowIndex}
+                style={{ flexDirection: 'row', gap: COL_GAP, alignItems: 'flex-start' }}
+              >
+                {row.map((tile) => (
                   <ProviderTile
                     key={tile.item.profile._id}
                     item={tile.item}
                     tall={tile.tall}
                     width={tile.width}
-                    height={tile.height}
                     onPress={() => onPressProvider(tile.item.profile._id)}
                   />
                 ))}
-          </View>
-        ))}
+              </View>
+            ))}
       </View>
     );
 
@@ -437,10 +436,8 @@ export function ProviderGrid({
           showsHorizontalScrollIndicator={false}
           decelerationRate="fast"
           nestedScrollEnabled
-          style={{ height: TRACK_HEIGHT }}
           contentContainerStyle={{
             paddingHorizontal: PAGE_H_PAD,
-            height: TRACK_HEIGHT,
             alignItems: 'flex-start',
           }}
         >
@@ -459,9 +456,7 @@ export function ProviderGrid({
             ? Array.from({ length: skeletonRows }).map((_, i) => (
                 <ProviderTileSkeleton
                   key={`list-sk-${i}`}
-                  tall={false}
                   width={LIST_TILE_W}
-                  height={LIST_TILE_H}
                 />
               ))
             : items.map((item) => (
@@ -470,7 +465,6 @@ export function ProviderGrid({
                   item={item}
                   tall={false}
                   width={LIST_TILE_W}
-                  height={LIST_TILE_H}
                   onPress={() => onPressProvider(item.profile._id)}
                 />
               ))}
@@ -486,21 +480,24 @@ export function ProviderGrid({
       {items === undefined ? (
         <View style={{ paddingHorizontal: PAGE_H_PAD, gap: COL_GAP }}>
           {Array.from({ length: skeletonRows }).map((_, row) => (
-            <View key={row} style={{ flexDirection: 'row', gap: COL_GAP }}>
-              <ProviderTileSkeleton tall={row % 2 === 0} />
-              <ProviderTileSkeleton tall={row % 2 === 1} />
+            <View key={row} style={{ flexDirection: 'row', gap: COL_GAP, alignItems: 'flex-start' }}>
+              <ProviderTileSkeleton />
+              <ProviderTileSkeleton />
             </View>
           ))}
         </View>
       ) : (
         <View style={{ paddingHorizontal: PAGE_H_PAD, gap: COL_GAP }}>
           {gridRows.map((pair, rowIndex) => (
-            <View key={rowIndex} style={{ flexDirection: 'row', gap: COL_GAP, alignItems: 'stretch' }}>
-              {pair.map((item, colIndex) => (
+            <View
+              key={rowIndex}
+              style={{ flexDirection: 'row', gap: COL_GAP, alignItems: 'flex-start' }}
+            >
+              {pair.map((item) => (
                 <ProviderTile
                   key={item.profile._id}
                   item={item}
-                  tall={(rowIndex + colIndex) % 2 === 0}
+                  tall={false}
                   onPress={() => onPressProvider(item.profile._id)}
                 />
               ))}

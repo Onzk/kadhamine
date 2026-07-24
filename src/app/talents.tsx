@@ -20,7 +20,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { SearchBar } from '@/components/ui/SearchBar';
 import { useAppTheme } from '@/providers/ThemeProvider';
-import { BorderWidth, BrandColors, Radius, Spacing } from '@/theme/tokens';
+import { BorderWidth, Radius, Spacing } from '@/theme/tokens';
 import { fontFamily, textStyle } from '@/theme/typography';
 import { api } from '../../convex/_generated/api';
 
@@ -227,7 +227,7 @@ export default function TalentsScreen() {
                 >
                   <ArrowsDownUp
                     size={22}
-                    color={hasActiveFilters ? colors.orbit : BrandColors.ink}
+                    color={hasActiveFilters ? colors.orbit : colors.ink}
                     weight="bold"
                   />
                 </View>
@@ -257,7 +257,7 @@ export default function TalentsScreen() {
                 >
                   <SquaresFour
                     size={22}
-                    color={selectedCategory ? colors.orbit : BrandColors.ink}
+                    color={selectedCategory ? colors.orbit : colors.ink}
                     weight="bold"
                   />
                 </View>

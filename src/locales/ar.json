@@ -212,6 +212,7 @@
     "servicesFilterEmpty": "لا توجد خدمات في هذه الفئة.",
     "notFound": "مقدّم الخدمة غير موجود",
     "notFoundDesc": "هذا الملف غير موجود أو لم يعد متاحاً.",
+    "pendingPreview": "معاينة خاصة: حسابك في انتظار الموافقة، ولا يرى العملاء هذه الصفحة بعد.",
     "shareMessage": "اكتشف {{name}} على TalentTchad",
     "shareRating": "★ {{rating}} ({{count}} تقييم)",
     "shareServicesCount": "{{count}} خدمة",

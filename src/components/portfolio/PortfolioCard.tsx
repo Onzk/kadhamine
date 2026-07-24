@@ -20,6 +20,8 @@ import { fontFamily, textStyle } from '@/theme/typography';
 
 const LIST_THUMB = 80;
 const ACTION_SIZE = 44;
+/** Overlay actions on compact (grid) cards. */
+const MINI_ACTION_SIZE = 24;
 
 export type PortfolioCardItem = {
   _id: Id<'portfolio'>;
@@ -38,6 +40,18 @@ function formatShortDate(ts: number, locale: string) {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
+    });
+  } catch {
+    return new Date(ts).toLocaleDateString();
+  }
+}
+
+/** Variante sans année pour les cartes de grille (place réduite). */
+function formatCompactDate(ts: number, locale: string) {
+  try {
+    return new Date(ts).toLocaleDateString(locale === 'ar' ? 'ar' : 'fr-FR', {
+      day: 'numeric',
+      month: 'short',
     });
   } catch {
     return new Date(ts).toLocaleDateString();
@@ -65,10 +79,10 @@ function MediaPlaceholder({
         backgroundColor: colors.iconWash,
         alignItems: 'center',
         justifyContent: 'center',
-        gap: isList ? Spacing.one : Spacing.two,
+        gap: Spacing.one,
       }}
     >
-      <Icon size={isList ? 22 : 28} color={colors.muted} weight="duotone" />
+      <Icon size={isList ? 22 : 24} color={colors.muted} weight="duotone" />
       {!isList ? (
         <Text style={[textStyle('micro'), { color: colors.muted }]}>
           {mediaType === 'video'
@@ -109,49 +123,194 @@ export function PortfolioCard({
   const showActions = !compact && (onEdit || onDelete);
 
   if (compact) {
+    const hasMiniActions = !!(onEdit || onDelete);
+    const MediaTypeIcon =
+      item.mediaType === 'video' ? VideoCamera : item.mediaType === 'document' ? FileText : null;
+    const mediaTypeLabel =
+      item.mediaType === 'video'
+        ? t('portfolio.mediaVideo')
+        : item.mediaType === 'document'
+          ? t('portfolio.mediaDocument')
+          : null;
+
     return (
-      <Pressable
-        onPress={onPress}
-        style={({ pressed }) => [{ width: '100%' }, { opacity: pressed ? 0.92 : 1 }]}
-      >
-        <View
-          style={{
-            borderRadius: Radius.md,
-            overflow: 'hidden',
-            backgroundColor: colors.surfaceCard,
-            borderWidth: BorderWidth.default,
-            borderColor: colors.borderStrong,
-          }}
+      <View style={{ width: '100%', position: 'relative' }}>
+        <Pressable
+          onPress={onPress}
+          style={({ pressed }) => [{ width: '100%' }, { opacity: pressed ? 0.92 : 1 }]}
         >
-          {imageUri ? (
-            <Image
-              source={{ uri: imageUri }}
-              style={{ width: '100%', aspectRatio: 1 }}
-              contentFit="cover"
-            />
-          ) : (
-            <View style={{ aspectRatio: 1 }}>
-              <MediaPlaceholder mediaType={item.mediaType} size="compact" />
+          <View
+            style={{
+              borderRadius: Radius.md,
+              overflow: 'hidden',
+              backgroundColor: colors.surfaceCard,
+              borderWidth: BorderWidth.default,
+              borderColor: colors.borderStrong,
+            }}
+          >
+            <View style={{ width: '100%', aspectRatio: 4 / 3 }}>
+              {imageUri ? (
+                <Image
+                  source={{ uri: imageUri }}
+                  style={{ width: '100%', height: '100%' }}
+                  contentFit="cover"
+                />
+              ) : (
+                <MediaPlaceholder mediaType={item.mediaType} size="compact" />
+              )}
+
+              {MediaTypeIcon && mediaTypeLabel ? (
+                <View
+                  style={{
+                    position: 'absolute',
+                    left: Spacing.one,
+                    bottom: Spacing.one,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 3,
+                    paddingHorizontal: Spacing.oneHalf,
+                    paddingVertical: 2,
+                    borderRadius: Radius.pill,
+                    backgroundColor: 'rgba(20,20,19,0.6)',
+                  }}
+                >
+                  <MediaTypeIcon size={10} color="#FFFFFF" weight="bold" />
+                  <Text
+                    style={[
+                      textStyle('micro'),
+                      {
+                        color: '#FFFFFF',
+                        fontFamily: fontFamily('body', 'medium'),
+                        fontSize: 10,
+                        lineHeight: 13,
+                      },
+                    ]}
+                  >
+                    {mediaTypeLabel}
+                  </Text>
+                </View>
+              ) : null}
             </View>
-          )}
-          <View style={{ padding: Spacing.three, gap: 4 }}>
-            <Text
-              numberOfLines={2}
-              style={[
-                textStyle('caption'),
-                {
-                  color: colors.ink,
-                  fontFamily: fontFamily('body', 'medium'),
-                  fontSize: 13,
-                  lineHeight: 17,
-                },
-              ]}
-            >
-              {item.title}
-            </Text>
+
+            <View style={{ padding: Spacing.two, gap: 3 }}>
+              <Text
+                numberOfLines={1}
+                style={[
+                  textStyle('caption'),
+                  {
+                    color: colors.ink,
+                    fontFamily: fontFamily('body', 'medium'),
+                    fontSize: 12,
+                    lineHeight: 16,
+                  },
+                ]}
+              >
+                {item.title}
+              </Text>
+
+              {item.relatedService || item.description ? (
+                <View
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 3, minWidth: 0 }}
+                >
+                  {item.relatedService ? (
+                    <Briefcase size={10} color={colors.muted} weight="bold" />
+                  ) : null}
+                  <Text
+                    numberOfLines={1}
+                    style={[
+                      textStyle('micro'),
+                      {
+                        color: colors.muted,
+                        fontFamily: fontFamily('body', item.relatedService ? 'medium' : 'regular'),
+                        fontSize: 10,
+                        lineHeight: 13,
+                        flexShrink: 1,
+                      },
+                    ]}
+                  >
+                    {item.relatedService ? item.relatedService.title : item.description}
+                  </Text>
+                </View>
+              ) : null}
+
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                <CalendarBlank size={10} color={colors.muted} />
+                <Text
+                  style={[
+                    textStyle('micro'),
+                    { color: colors.muted, fontSize: 10, lineHeight: 13 },
+                  ]}
+                >
+                  {formatCompactDate(item.createdAt, i18n.language)}
+                </Text>
+              </View>
+            </View>
           </View>
-        </View>
-      </Pressable>
+        </Pressable>
+
+        {hasMiniActions ? (
+          <View
+            style={{
+              position: 'absolute',
+              top: Spacing.one,
+              right: Spacing.one,
+              flexDirection: 'row',
+              gap: Spacing.one,
+            }}
+          >
+            {onEdit ? (
+              <Pressable
+                onPress={onEdit}
+                hitSlop={Spacing.two}
+                accessibilityRole="button"
+                accessibilityLabel={t('portfolio.edit')}
+                style={({ pressed }) => [
+                  { width: MINI_ACTION_SIZE, height: MINI_ACTION_SIZE },
+                  { opacity: pressed ? 0.85 : 1 },
+                ]}
+              >
+                <View
+                  style={{
+                    width: MINI_ACTION_SIZE,
+                    height: MINI_ACTION_SIZE,
+                    borderRadius: MINI_ACTION_SIZE / 2,
+                    backgroundColor: 'rgba(20,20,19,0.55)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <PencilSimple size={12} color="#FFFFFF" weight="bold" />
+                </View>
+              </Pressable>
+            ) : null}
+            {onDelete ? (
+              <Pressable
+                onPress={onDelete}
+                hitSlop={Spacing.two}
+                accessibilityRole="button"
+                accessibilityLabel={t('common.delete')}
+                style={({ pressed }) => [
+                  { width: MINI_ACTION_SIZE, height: MINI_ACTION_SIZE },
+                  { opacity: pressed ? 0.85 : 1 },
+                ]}
+              >
+                <View
+                  style={{
+                    width: MINI_ACTION_SIZE,
+                    height: MINI_ACTION_SIZE,
+                    borderRadius: MINI_ACTION_SIZE / 2,
+                    backgroundColor: 'rgba(225,29,72,0.85)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Trash size={12} color="#FFFFFF" weight="bold" />
+                </View>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
+      </View>
     );
   }
 

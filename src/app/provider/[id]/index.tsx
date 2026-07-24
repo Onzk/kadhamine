@@ -575,6 +575,24 @@ export default function ProviderDetailScreen() {
           </Pressable>
         </Animated.View>
 
+        {data.isPendingPreview ? (
+          <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.two }}>
+            <View
+              style={{
+                backgroundColor: colors.warning + '15',
+                borderRadius: Radius.lg,
+                borderWidth: BorderWidth.default,
+                borderColor: colors.warning + '40',
+                padding: Spacing.four,
+              }}
+            >
+              <Text style={[textStyle('caption'), { color: colors.ink }]}>
+                {t('provider.pendingPreview')}
+              </Text>
+            </View>
+          </View>
+        ) : null}
+
         {/* Hero identity */}
         <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four }}>
           <View style={{ alignItems: 'center', marginBottom: Spacing.five }}>

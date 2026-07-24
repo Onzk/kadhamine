@@ -243,25 +243,35 @@ export default function PortfolioScreen() {
               actionVariant="outline"
             />
           ) : (
-            filtered?.map((item) => (
-              <PortfolioCard
-                key={item._id}
-                item={item}
-                onPress={() => setSelected(item)}
-                onEdit={() =>
-                  openEdit({
-                    itemId: item._id,
-                    title: item.title,
-                    description: item.description,
-                    serviceId: item.serviceId,
-                    mediaUrl: item.mediaUrl,
-                    mediaType: item.mediaType,
-                    storageId: item.storageId,
-                  })
-                }
-                onDelete={() => handleDelete(item._id, item.title)}
-              />
-            ))
+            <View
+              style={{
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                gap: Spacing.two,
+              }}
+            >
+              {filtered?.map((item) => (
+                <View key={item._id} style={{ width: '48%', flexGrow: 1 }}>
+                  <PortfolioCard
+                    item={item}
+                    compact
+                    onPress={() => setSelected(item)}
+                    onEdit={() =>
+                      openEdit({
+                        itemId: item._id,
+                        title: item.title,
+                        description: item.description,
+                        serviceId: item.serviceId,
+                        mediaUrl: item.mediaUrl,
+                        mediaType: item.mediaType,
+                        storageId: item.storageId,
+                      })
+                    }
+                    onDelete={() => handleDelete(item._id, item.title)}
+                  />
+                </View>
+              ))}
+            </View>
           )}
         </View>
       </PageScaffold>

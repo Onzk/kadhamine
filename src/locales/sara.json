@@ -212,6 +212,7 @@
     "servicesFilterEmpty": "Aucun service dans cette catégorie.",
     "notFound": "Prestataire introuvable",
     "notFoundDesc": "Ce profil n'existe pas ou n'est plus disponible.",
+    "pendingPreview": "Aperçu privé : votre compte est en attente de validation, les clients ne voient pas encore cette page.",
     "shareMessage": "Découvrez {{name}} sur TalentTchad",
     "shareRating": "★ {{rating}} ({{count}} avis)",
     "shareServicesCount": "{{count}} service(s)",
