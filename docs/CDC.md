@@ -100,7 +100,7 @@ Un seul opérateur au démarrage (compte seed).
 | Domaine | Contenu |
 |---------|---------|
 | Auth | Inscription / connexion email + mot de passe ; reset email si disponible, sinon contact support |
-| Profils | Client & prestataire ; ville parmi 10 villes ; compétences ; bio ; photo |
+| Profils | Client & prestataire ; ville parmi 10 villes ; **compétences** (page `/skills` pour prestataire) ; bio ; photo |
 | Services | CRUD prestataire ; recherche / filtres ; détail ; position géo (propre ou héritée du profil) |
 | Portfolio | Images uniquement |
 | Commandes | Cycle V1 + stepper création (sans indicateur) + métadonnées optionnelles + fiche détail selon rôle (voir §4.5) |

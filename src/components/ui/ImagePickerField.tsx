@@ -351,33 +351,43 @@ export function ImagePickerField({
                 )}
               </View>
             </Pressable>
-            <Pressable
-              onPress={() => removeAt(0)}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel={t('common.delete')}
-              style={({ pressed }) => ({
+            <View
+              pointerEvents="box-none"
+              style={{
                 position: 'absolute',
-                top: Spacing.two,
-                right: Spacing.two,
-                width: 32,
-                height: 32,
-                opacity: pressed ? 0.85 : 1,
-              })}
+                top: 0,
+                right: 0,
+                bottom: 0,
+                left: 0,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
             >
-              <View
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 16,
-                  backgroundColor: colors.error,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
+              <Pressable
+                onPress={() => removeAt(0)}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={t('common.delete')}
+                style={({ pressed }) => ({
+                  width: 40,
+                  height: 40,
+                  opacity: pressed ? 0.85 : 1,
+                })}
               >
-                <X size={16} color="#FFFFFF" weight="bold" />
-              </View>
-            </Pressable>
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    backgroundColor: colors.error,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <X size={18} color="#FFFFFF" weight="bold" />
+                </View>
+              </Pressable>
+            </View>
           </View>
         ) : (
           <Pressable

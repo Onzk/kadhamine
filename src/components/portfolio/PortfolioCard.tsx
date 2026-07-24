@@ -19,7 +19,6 @@ import { BorderWidth, Radius, Spacing } from '@/theme/tokens';
 import { fontFamily, textStyle } from '@/theme/typography';
 
 const LIST_THUMB = 80;
-const ACTION_SIZE = 44;
 /** Overlay actions on compact (grid) cards. */
 const MINI_ACTION_SIZE = 24;
 
@@ -318,27 +317,22 @@ export function PortfolioCard({
     <View style={{ width: '100%', marginBottom: Spacing.three }}>
       <View
         style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: Spacing.three,
           padding: Spacing.four,
           borderRadius: Radius.lg,
           borderWidth: BorderWidth.default,
           borderColor: colors.borderStrong,
           backgroundColor: colors.surfaceCard,
+          gap: Spacing.three,
         }}
       >
         <Pressable
           onPress={onPress}
-          style={({ pressed }) => [
-            { flex: 1, minWidth: 0 },
-            { opacity: pressed ? 0.96 : 1 },
-          ]}
+          style={({ pressed }) => [{ opacity: pressed ? 0.96 : 1 }]}
         >
           <View
             style={{
               flexDirection: 'row',
-              alignItems: 'center',
+              alignItems: 'flex-start',
               gap: Spacing.three,
             }}
           >
@@ -347,7 +341,7 @@ export function PortfolioCard({
                 width: LIST_THUMB,
                 height: LIST_THUMB,
                 flexShrink: 0,
-                borderRadius: Radius.sm,
+                borderRadius: Radius.md,
                 overflow: 'hidden',
                 backgroundColor: colors.surfaceStrong,
               }}
@@ -363,39 +357,28 @@ export function PortfolioCard({
               )}
             </View>
 
-            <View
-              style={{
-                flex: 1,
-                minWidth: 0,
-                justifyContent: 'space-between',
-                gap: Spacing.one,
-                minHeight: LIST_THUMB,
-                paddingVertical: 2,
-              }}
-            >
-              <View style={{ gap: 4 }}>
+            <View style={{ flex: 1, minWidth: 0, gap: Spacing.one }}>
+              <Text
+                numberOfLines={2}
+                style={{
+                  fontFamily: fontFamily('body', 'medium'),
+                  fontSize: 15,
+                  lineHeight: 20,
+                  letterSpacing: -0.2,
+                  color: colors.ink,
+                }}
+              >
+                {item.title}
+              </Text>
+
+              {item.description ? (
                 <Text
                   numberOfLines={2}
-                  style={{
-                    fontFamily: fontFamily('body', 'medium'),
-                    fontSize: 14,
-                    lineHeight: 18,
-                    letterSpacing: -0.2,
-                    color: colors.ink,
-                  }}
+                  style={[textStyle('caption'), { color: colors.muted, lineHeight: 18 }]}
                 >
-                  {item.title}
+                  {item.description}
                 </Text>
-
-                {item.description ? (
-                  <Text
-                    numberOfLines={2}
-                    style={[textStyle('caption'), { color: colors.muted, lineHeight: 17 }]}
-                  >
-                    {item.description}
-                  </Text>
-                ) : null}
-              </View>
+              ) : null}
 
               <View
                 style={{
@@ -403,6 +386,7 @@ export function PortfolioCard({
                   flexWrap: 'wrap',
                   alignItems: 'center',
                   gap: Spacing.two,
+                  marginTop: Spacing.one,
                 }}
               >
                 {item.relatedService ? (
@@ -447,55 +431,59 @@ export function PortfolioCard({
           <View
             style={{
               flexDirection: 'row',
-              alignItems: 'center',
               gap: Spacing.two,
-              flexShrink: 0,
             }}
           >
             {onEdit ? (
               <Pressable
                 onPress={onEdit}
-                hitSlop={Spacing.one}
                 accessibilityRole="button"
                 accessibilityLabel={t('portfolio.edit')}
-                style={({ pressed }) => [
-                  { width: ACTION_SIZE, height: ACTION_SIZE },
-                  { opacity: pressed ? 0.85 : 1 },
-                ]}
+                style={({ pressed }) => [{ flex: 1 }, { opacity: pressed ? 0.9 : 1 }]}
               >
                 <View
                   style={{
-                    width: ACTION_SIZE,
-                    height: ACTION_SIZE,
-                    borderRadius: Radius.button,
-                    backgroundColor: colors.iconWash,
+                    flexDirection: 'row',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    gap: Spacing.oneHalf,
+                    paddingVertical: Spacing.four,
+                    paddingHorizontal: Spacing.three,
+                    borderRadius: Radius.md,
+                    borderWidth: BorderWidth.default,
+                    borderColor: colors.border,
+                    backgroundColor: colors.surfaceCard,
                   }}
                 >
-                  <PencilSimple size={18} color={colors.ink} weight="bold" />
+                  <PencilSimple size={16} color={colors.ink} weight="bold" />
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontFamily: fontFamily('body', 'medium'),
+                      color: colors.ink,
+                    }}
+                  >
+                    {t('portfolio.edit')}
+                  </Text>
                 </View>
               </Pressable>
             ) : null}
             {onDelete ? (
               <Pressable
                 onPress={onDelete}
-                hitSlop={Spacing.one}
+                hitSlop={6}
                 accessibilityRole="button"
                 accessibilityLabel={t('common.delete')}
-                style={({ pressed }) => [
-                  { width: ACTION_SIZE, height: ACTION_SIZE },
-                  { opacity: pressed ? 0.85 : 1 },
-                ]}
+                style={({ pressed }) => [{ width: 52 }, { opacity: pressed ? 0.85 : 1 }]}
               >
                 <View
                   style={{
-                    width: ACTION_SIZE,
-                    height: ACTION_SIZE,
-                    borderRadius: Radius.button,
-                    backgroundColor: colors.error + '14',
+                    height: 52,
+                    width: 52,
                     alignItems: 'center',
                     justifyContent: 'center',
+                    borderRadius: Radius.md,
+                    backgroundColor: colors.error + '14',
                   }}
                 >
                   <Trash size={18} color={colors.error} weight="bold" />

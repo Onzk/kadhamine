@@ -2,7 +2,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, Pressable, Linking, ActivityIndicator, type LayoutChangeEvent } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { useAction, useMutation } from 'convex/react';
+import { useAction, useMutation, useQuery } from 'convex/react';
 import * as ImagePicker from 'expo-image-picker';
 import {
   User,
@@ -21,6 +21,7 @@ import {
   Crown,
   Wrench,
   Images,
+  Lightning,
   ShoppingBag,
   SquaresFour,
   Camera,
@@ -102,6 +103,57 @@ export default function ProfileScreen() {
   const profile = user?.profile;
   const isProvider = user?.role === 'provider';
   const isAdmin = user?.role === 'admin';
+
+  const myServices = useQuery(api.services.getMine, isProvider ? {} : 'skip');
+  const myPortfolio = useQuery(api.portfolio.listMine, isProvider ? {} : 'skip');
+  const verificationStatus = useQuery(
+    api.verification.getStatus,
+    isProvider ? {} : 'skip',
+  );
+
+  const servicesCount = myServices?.length ?? 0;
+  const skillsCount = profile?.skills?.length ?? 0;
+  const portfolioCount = myPortfolio?.length ?? 0;
+  const isVerified = !!profile?.isVerified;
+  const isPremium = !!profile?.isPremium;
+  const verificationRequestStatus = verificationStatus?.status;
+
+  const servicesBadge =
+    myServices === undefined
+      ? undefined
+      : servicesCount === 0
+        ? { label: t('profile.badgeToComplete'), tone: 'amber' as const }
+        : { label: String(servicesCount), tone: 'orbit' as const };
+
+  const skillsBadge =
+    skillsCount === 0
+      ? { label: t('profile.badgeToComplete'), tone: 'amber' as const }
+      : { label: String(skillsCount), tone: 'orbit' as const };
+
+  const portfolioBadge =
+    myPortfolio === undefined
+      ? undefined
+      : portfolioCount === 0
+        ? { label: t('profile.badgeToComplete'), tone: 'amber' as const }
+        : { label: String(portfolioCount), tone: 'orbit' as const };
+
+  const verificationBadge = (() => {
+    if (isVerified || verificationRequestStatus === 'approved') {
+      return { label: t('profile.badgeVerified'), tone: 'orbit' as const };
+    }
+    if (verificationRequestStatus === 'pending') {
+      return { label: t('profile.badgePending'), tone: 'orbit' as const };
+    }
+    if (verificationRequestStatus === 'rejected') {
+      return { label: t('profile.badgeRetry'), tone: 'amber' as const };
+    }
+    if (verificationStatus === undefined) return undefined;
+    return { label: t('profile.badgeToVerify'), tone: 'amber' as const };
+  })();
+
+  const premiumBadge = isPremium
+    ? { label: t('profile.badgePremiumActive'), tone: 'orbit' as const }
+    : { label: t('profile.badgeGoPremium'), tone: 'amber' as const };
 
   const displayName = profile
     ? `${profile.firstName} ${profile.lastName}`.trim()
@@ -442,12 +494,21 @@ export default function ProfileScreen() {
               <SettingsRow
                 icon={Wrench}
                 title={t('profile.myServices')}
+                badge={servicesBadge}
                 description={t('profile.myServicesDesc')}
                 onPress={() => router.push('/provider/services')}
               />
               <SettingsRow
+                icon={Lightning}
+                title={t('skills.title')}
+                badge={skillsBadge}
+                description={t('profile.skillsDesc')}
+                onPress={() => router.push('/skills')}
+              />
+              <SettingsRow
                 icon={Images}
                 title={t('service.portfolio')}
+                badge={portfolioBadge}
                 description={t('profile.portfolioDesc')}
                 onPress={() => router.push('/portfolio')}
               />
@@ -464,12 +525,14 @@ export default function ProfileScreen() {
               <SettingsRow
                 icon={ShieldCheck}
                 title={t('profile.verification')}
+                badge={verificationBadge}
                 description={t('profile.verificationDesc')}
                 onPress={() => router.push('/verification')}
               />
               <SettingsRow
                 icon={Crown}
                 title={t('profile.premium')}
+                badge={premiumBadge}
                 description={t('profile.premiumDesc')}
                 onPress={() => router.push('/premium')}
               />
