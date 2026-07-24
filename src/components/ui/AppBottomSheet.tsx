@@ -66,8 +66,14 @@ export interface AppBottomSheetProps {
   /**
    * Marge bas en plus de la safe area (défaut `Spacing.twelve`).
    * Passer une valeur plus basse pour alertes / confirmations compactes.
+   * Ignoré pour le contenu scroll si `footer` est fourni (appliqué au footer).
    */
   bottomPadExtra?: number;
+  /**
+   * Zone sticky sous le scroll (actions). Safe-area bas appliquée ici —
+   * ne passe jamais sous la barre système.
+   */
+  footer?: React.ReactNode;
 }
 
 function SheetCloseButton({ onPress }: { onPress: () => void }) {
@@ -210,6 +216,7 @@ export function AppBottomSheet({
   hideHeader = false,
   contentContainerStyle,
   bottomPadExtra = Spacing.twelve,
+  footer,
 }: AppBottomSheetProps) {
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
@@ -423,6 +430,8 @@ export function AppBottomSheet({
   const useSticky = scrollable && stickyHeader && !hideHeader;
   const stickyMode = keyboardOpen ? 'compact' : 'full';
   const sheetBg = colors.canvas;
+  /** Avec footer sticky : safe-area sur le footer, pas sur le scroll. */
+  const bodyBottomPad = footer ? Spacing.four : sheetBottomPad;
 
   const body = (
     <View
@@ -433,13 +442,30 @@ export function AppBottomSheet({
           paddingHorizontal: Spacing.six,
         },
         contentContainerStyle,
-        // Toujours en dernier — safe area + bottomPadExtra (non surchargeable).
-        { paddingBottom: sheetBottomPad },
+        // Toujours en dernier — safe area + bottomPadExtra (sauf si footer).
+        { paddingBottom: bodyBottomPad },
       ]}
     >
       {children}
     </View>
   );
+
+  const footerNode = footer ? (
+    <View
+      style={{
+        alignSelf: 'stretch',
+        width: '100%',
+        paddingHorizontal: Spacing.six,
+        paddingTop: Spacing.four,
+        paddingBottom: sheetBottomPad,
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderTopColor: colors.border,
+        backgroundColor: sheetBg,
+      }}
+    >
+      {footer}
+    </View>
+  ) : null;
 
   const floatingClose = showClose ? (
     <View
@@ -573,7 +599,12 @@ export function AppBottomSheet({
                   showsVerticalScrollIndicator={false}
                   bounces
                   nestedScrollEnabled
-                  style={{ backgroundColor: sheetBg, maxHeight: scrollMaxHeight }}
+                  style={{
+                    backgroundColor: sheetBg,
+                    maxHeight: footer
+                      ? Math.max(scrollMaxHeight - 120, 120)
+                      : scrollMaxHeight,
+                  }}
                   contentContainerStyle={{ flexGrow: 1 }}
                 >
                   {hideHeader ? null : (
@@ -588,6 +619,7 @@ export function AppBottomSheet({
                   )}
                   {body}
                 </Animated.ScrollView>
+                {footerNode}
               </View>
             ) : (
               // Wrap in a View (not Fragment) so Yoga sizes the sheet to content when
@@ -602,6 +634,7 @@ export function AppBottomSheet({
               >
                 {hideHeader ? floatingClose : staticHeader}
                 {body}
+                {footerNode}
               </View>
             )}
           </Animated.View>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text } from 'react-native';
+import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
 import {
@@ -14,9 +14,11 @@ import { AuthField, AuthPrimaryButton } from '@/components/auth/AuthField';
 import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { AppBottomSheet } from '@/components/ui/AppBottomSheet';
 import { SheetActionsFooter } from '@/components/ui/SheetActions';
+import { Text } from '@/components/ui/ThemedText';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { useAppDialog } from '@/providers/AppDialogProvider';
 import { Radius, Spacing } from '@/theme/tokens';
+import { fontFamily } from '@/theme/typography';
 import { api } from '../../../convex/_generated/api';
 
 export default function AdminSettingsScreen() {
@@ -105,7 +107,13 @@ export default function AdminSettingsScreen() {
             gap: Spacing.three,
           }}
         >
-          <Text style={{ fontSize: 15, fontWeight: '600', color: colors.ink }}>
+          <Text
+            style={{
+              fontSize: 15,
+              fontFamily: fontFamily('body', 'bold'),
+              color: colors.ink,
+            }}
+          >
             {platform?.name ?? '—'}
           </Text>
           <Text style={{ fontSize: 13, color: colors.muted }}>
@@ -127,6 +135,7 @@ export default function AdminSettingsScreen() {
 
         <AuthPrimaryButton
           title={t('admin.editSettings')}
+          tone="ink"
           flat
           onPress={openSheet}
           disabled={platform == null}
@@ -138,6 +147,17 @@ export default function AdminSettingsScreen() {
         onClose={() => setSheetOpen(false)}
         title={t('admin.editSettingsTitle')}
         subtitle={t('admin.editSettingsSubtitle')}
+        footer={
+          <SheetActionsFooter>
+            <AuthPrimaryButton
+              title={t('common.save')}
+              tone="ink"
+              flat
+              loading={loading}
+              onPress={handleSave}
+            />
+          </SheetActionsFooter>
+        }
       >
         <AuthField
           label={t('admin.platformName')}
@@ -179,14 +199,6 @@ export default function AdminSettingsScreen() {
           placeholder="10"
           leftIcon={<Percent size={20} />}
         />
-        <SheetActionsFooter>
-          <AuthPrimaryButton
-            title={t('common.save')}
-            flat
-            loading={loading}
-            onPress={handleSave}
-          />
-        </SheetActionsFooter>
       </AppBottomSheet>
     </PageScaffold>
   );

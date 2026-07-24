@@ -1,5 +1,7 @@
 import { v } from 'convex/values';
 import { mutation, query } from './_generated/server';
+import type { Id } from './_generated/dataModel';
+import type { MutationCtx, QueryCtx } from './_generated/server';
 import {
   requireAdmin,
   createNotification,
@@ -192,10 +194,24 @@ export const resolveReport = mutation({
 });
 
 export const listPayments = query({
-  args: { limit: v.optional(v.number()) },
+  args: {
+    limit: v.optional(v.number()),
+    status: v.optional(
+      v.union(
+        v.literal('pending'),
+        v.literal('held'),
+        v.literal('released'),
+        v.literal('refunded'),
+        v.literal('failed'),
+      ),
+    ),
+  },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
-    const payments = await ctx.db.query('payments').order('desc').take(args.limit ?? 50);
+    let payments = await ctx.db.query('payments').order('desc').take(args.limit ?? 50);
+    if (args.status) {
+      payments = payments.filter((p) => p.status === args.status);
+    }
 
     return await Promise.all(
       payments.map(async (payment) => {
@@ -205,6 +221,73 @@ export const listPayments = query({
         return { payment, order, client, provider };
       }),
     );
+  },
+});
+
+export const listOrders = query({
+  args: {
+    limit: v.optional(v.number()),
+    status: v.optional(
+      v.union(
+        v.literal('pending'),
+        v.literal('accepted'),
+        v.literal('completed'),
+        v.literal('cancelled'),
+      ),
+    ),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    let orders = await ctx.db.query('orders').order('desc').take(args.limit ?? 50);
+    if (args.status) {
+      orders = orders.filter((o) => o.status === args.status);
+    }
+
+    return await Promise.all(
+      orders.map(async (order) => {
+        const client = await ctx.db.get(order.clientId);
+        const provider = await ctx.db.get(order.providerId);
+        const service = await ctx.db.get(order.serviceId);
+        return { order, client, provider, service };
+      }),
+    );
+  },
+});
+
+/** Feed dashboard : users pending (max 5) + paiements released (max 10). */
+export const dashboardFeed = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireAdmin(ctx);
+
+    const pendingUsersRaw = await ctx.db.query('users').order('desc').collect();
+    const pendingSlice = pendingUsersRaw
+      .filter((u) => u.status === 'pending')
+      .slice(0, 5);
+    const pendingUsers = await Promise.all(
+      pendingSlice.map(async (user) => {
+        const profile = await ctx.db
+          .query('profiles')
+          .withIndex('by_user', (q) => q.eq('userId', user._id))
+          .first();
+        return { user, profile };
+      }),
+    );
+
+    const releasedPayments = await ctx.db.query('payments').order('desc').take(40);
+    const recentPayments = await Promise.all(
+      releasedPayments
+        .filter((p) => p.status === 'released')
+        .slice(0, 10)
+        .map(async (payment) => {
+          const order = await ctx.db.get(payment.orderId);
+          const client = await ctx.db.get(payment.clientId);
+          const provider = await ctx.db.get(payment.providerId);
+          return { payment, order, client, provider };
+        }),
+    );
+
+    return { pendingUsers, recentPayments };
   },
 });
 
@@ -385,5 +468,252 @@ export const setPremium = mutation({
     });
 
     return { isPremium: args.isPremium };
+  },
+});
+
+async function getProfileForUser(ctx: QueryCtx | MutationCtx, userId: Id<'users'>) {
+  return await ctx.db
+    .query('profiles')
+    .withIndex('by_user', (q) => q.eq('userId', userId))
+    .first();
+}
+
+export const updateUserSkills = mutation({
+  args: {
+    userId: v.id('users'),
+    skills: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    const profile = await getProfileForUser(ctx, args.userId);
+    if (!profile) throw new Error('Profil introuvable');
+    const skills = args.skills.map((s) => s.trim()).filter(Boolean);
+    await ctx.db.patch(profile._id, { skills, updatedAt: now() });
+    return { skills };
+  },
+});
+
+export const listUserServices = query({
+  args: { userId: v.id('users') },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    const services = await ctx.db
+      .query('services')
+      .withIndex('by_provider', (q) => q.eq('providerId', args.userId))
+      .collect();
+
+    return await Promise.all(
+      services
+        .sort((a, b) => b.updatedAt - a.updatedAt)
+        .map(async (service) => {
+          const category = await ctx.db.get(service.categoryId);
+          return { service, category };
+        }),
+    );
+  },
+});
+
+export const upsertUserService = mutation({
+  args: {
+    userId: v.id('users'),
+    serviceId: v.optional(v.id('services')),
+    title: v.string(),
+    description: v.string(),
+    categoryId: v.id('categories'),
+    pricingType: v.optional(v.union(v.literal('fixed'), v.literal('negotiable'))),
+    price: v.optional(v.number()),
+    isActive: v.optional(v.boolean()),
+    photoStorageIds: v.optional(v.array(v.id('_storage'))),
+    photos: v.optional(v.array(v.string())),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error('Utilisateur introuvable');
+    const profile = await getProfileForUser(ctx, args.userId);
+    if (!profile) throw new Error('Profil introuvable');
+
+    const timestamp = now();
+    const pricingType = args.pricingType ?? 'fixed';
+
+    const resolvePhotoPatch = async (
+      existing?: { photoStorageIds?: Id<'_storage'>[]; photos?: string[] } | null,
+    ) => {
+      if (args.photoStorageIds !== undefined) {
+        if (existing?.photoStorageIds?.length) {
+          for (const oldId of existing.photoStorageIds) {
+            if (!args.photoStorageIds.includes(oldId)) {
+              await ctx.storage.delete(oldId);
+            }
+          }
+        }
+        let photos: string[] = [];
+        if (args.photoStorageIds.length) {
+          const urls = await Promise.all(
+            args.photoStorageIds.map((id) => ctx.storage.getUrl(id)),
+          );
+          photos = urls.filter((u): u is string => !!u);
+        }
+        return { photoStorageIds: args.photoStorageIds, photos };
+      }
+      if (args.photos !== undefined) {
+        return { photos: args.photos };
+      }
+      return null;
+    };
+
+    if (args.serviceId) {
+      const service = await ctx.db.get(args.serviceId);
+      if (!service || service.providerId !== args.userId) {
+        throw new Error('Service introuvable');
+      }
+
+      const patch: Record<string, unknown> = {
+        title: args.title.trim(),
+        description: args.description.trim(),
+        categoryId: args.categoryId,
+        pricingType,
+        price: args.price,
+        updatedAt: timestamp,
+      };
+      if (args.isActive !== undefined) patch.isActive = args.isActive;
+
+      const photoPatch = await resolvePhotoPatch(service);
+      if (photoPatch) Object.assign(patch, photoPatch);
+
+      await ctx.db.patch(args.serviceId, patch);
+      return args.serviceId;
+    }
+
+    const photoPatch = await resolvePhotoPatch(null);
+
+    return await ctx.db.insert('services', {
+      providerId: args.userId,
+      profileId: profile._id,
+      title: args.title.trim(),
+      description: args.description.trim(),
+      categoryId: args.categoryId,
+      pricingType,
+      price: args.price,
+      currency: 'XAF',
+      photos: photoPatch?.photos ?? [],
+      photoStorageIds: photoPatch?.photoStorageIds,
+      availability: 'available',
+      isActive: args.isActive ?? true,
+      viewCount: 0,
+      orderCount: 0,
+      averageRating: 0,
+      reviewCount: 0,
+      city: profile.city,
+      region: profile.region,
+      latitude: profile.latitude,
+      longitude: profile.longitude,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+  },
+});
+
+export const deactivateUserService = mutation({
+  args: { serviceId: v.id('services') },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    const service = await ctx.db.get(args.serviceId);
+    if (!service) throw new Error('Service introuvable');
+    await ctx.db.patch(args.serviceId, { isActive: false, updatedAt: now() });
+  },
+});
+
+export const listUserPortfolio = query({
+  args: { userId: v.id('users') },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    const profile = await getProfileForUser(ctx, args.userId);
+    if (!profile) return [];
+
+    const items = await ctx.db
+      .query('portfolio')
+      .withIndex('by_profile', (q) => q.eq('profileId', profile._id))
+      .collect();
+
+    return await Promise.all(
+      items
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .map(async (item) => {
+          const mediaUrl = item.storageId
+            ? await ctx.storage.getUrl(item.storageId)
+            : item.mediaUrl;
+          return { ...item, mediaUrl: mediaUrl ?? item.mediaUrl };
+        }),
+    );
+  },
+});
+
+export const upsertUserPortfolioItem = mutation({
+  args: {
+    userId: v.id('users'),
+    itemId: v.optional(v.id('portfolio')),
+    title: v.string(),
+    description: v.optional(v.string()),
+    storageId: v.optional(v.id('_storage')),
+    sortOrder: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    const profile = await getProfileForUser(ctx, args.userId);
+    if (!profile) throw new Error('Profil introuvable');
+    const timestamp = now();
+
+    if (args.itemId) {
+      const item = await ctx.db.get(args.itemId);
+      if (!item || item.providerId !== args.userId) {
+        throw new Error('Élément introuvable');
+      }
+      const patch: Record<string, unknown> = {
+        title: args.title.trim(),
+        description: args.description,
+        updatedAt: timestamp,
+      };
+      if (args.sortOrder !== undefined) patch.sortOrder = args.sortOrder;
+      if (args.storageId !== undefined) {
+        if (item.storageId && item.storageId !== args.storageId) {
+          await ctx.storage.delete(item.storageId);
+        }
+        patch.storageId = args.storageId;
+        patch.mediaType = 'image';
+      }
+      await ctx.db.patch(args.itemId, patch);
+      return args.itemId;
+    }
+
+    if (!args.storageId) throw new Error('Image requise');
+
+    const existing = await ctx.db
+      .query('portfolio')
+      .withIndex('by_profile', (q) => q.eq('profileId', profile._id))
+      .collect();
+
+    return await ctx.db.insert('portfolio', {
+      profileId: profile._id,
+      providerId: args.userId,
+      title: args.title.trim(),
+      description: args.description,
+      mediaType: 'image',
+      storageId: args.storageId,
+      sortOrder: args.sortOrder ?? existing.length,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+  },
+});
+
+export const removeUserPortfolioItem = mutation({
+  args: { portfolioId: v.id('portfolio') },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    const item = await ctx.db.get(args.portfolioId);
+    if (!item) throw new Error('Élément introuvable');
+    if (item.storageId) await ctx.storage.delete(item.storageId);
+    await ctx.db.delete(args.portfolioId);
   },
 });

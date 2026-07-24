@@ -332,6 +332,7 @@ export function AuthPrimaryButton({
             backgroundColor: bg,
             borderWidth,
             borderColor,
+            paddingHorizontal: fill ? Spacing.three : Spacing.six,
             ...(showShadow ? Shadows.nav : null),
           },
         ]}
@@ -341,11 +342,16 @@ export function AuthPrimaryButton({
         ) : (
           <>
             <Text
+              numberOfLines={1}
+              ellipsizeMode="tail"
               style={[
                 textStyle('button'),
                 {
                   color: fg,
                   fontFamily: fontFamily('body', 'medium'),
+                  flexShrink: 1,
+                  minWidth: 0,
+                  textAlign: 'center',
                 },
               ]}
             >

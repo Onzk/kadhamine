@@ -21,13 +21,13 @@ export default function AdminLayout() {
 
   return (
     <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
-      <Stack.Screen name="index" />
-      <Stack.Screen name="users" />
+      <Stack.Screen name="(tabs)" />
       <Stack.Screen name="reports" />
-      <Stack.Screen name="payments" />
-      <Stack.Screen name="verifications" />
-      <Stack.Screen name="reviews" />
+      <Stack.Screen name="orders" />
       <Stack.Screen name="settings" />
+      <Stack.Screen name="categories" />
+      <Stack.Screen name="user/[userId]/services" />
+      <Stack.Screen name="user/[userId]/portfolio" />
     </Stack>
   );
 }
