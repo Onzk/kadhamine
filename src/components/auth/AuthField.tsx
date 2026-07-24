@@ -151,10 +151,12 @@ export function AuthField({
           </View>
         ) : null}
         <TextInput
+          // Remount au toggle — sinon le 2ᵉ champ password (confirmation) ignore souvent
+          // le changement de secureTextEntry (iOS / Android).
+          key={isPassword ? `pwd-${showPassword ? 'plain' : 'secure'}` : 'field'}
           value={value}
           placeholderTextColor={scheme.placeholder}
           selectionColor={isLight ? colors.orbit : scheme.foreground}
-          secureTextEntry={isPassword && !showPassword}
           multiline={multiline}
           onFocus={(e) => {
             setFocused(true);
@@ -166,6 +168,8 @@ export function AuthField({
           }}
           style={[fieldTextStyle, { color: scheme.foreground }, style]}
           {...props}
+          // Après {...props} pour ne pas être écrasé par secureTextEntry parent.
+          secureTextEntry={Boolean(isPassword && !showPassword)}
         />
         {isPassword ? (
           <Pressable

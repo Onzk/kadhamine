@@ -104,6 +104,8 @@ export function AlertBottomSheet({
           style={[
             textStyle('productDisplay'),
             {
+              alignSelf: 'stretch',
+              width: '100%',
               color: colors.ink,
               textAlign: 'center',
               marginBottom: hasBodyCopy ? Spacing.three : 0,
@@ -117,6 +119,8 @@ export function AlertBottomSheet({
           <Text
             variant="body"
             style={{
+              alignSelf: 'stretch',
+              width: '100%',
               color: colors.muted,
               textAlign: 'center',
               marginBottom: message || detail ? Spacing.two : 0,
@@ -132,9 +136,12 @@ export function AlertBottomSheet({
             variant="body"
             numberOfLines={messageNumberOfLines}
             style={{
+              alignSelf: 'stretch',
+              width: '100%',
               color: colors.body,
               textAlign: 'center',
               marginBottom: detail ? Spacing.three : 0,
+              paddingBottom: detail ? 0 : Spacing.three,
               lineHeight: 22,
               ...(messageNumberOfLines
                 ? { minHeight: 22 * messageNumberOfLines }
@@ -149,6 +156,8 @@ export function AlertBottomSheet({
           <Text
             variant="body"
             style={{
+              alignSelf: 'stretch',
+              width: '100%',
               color: colors.muted,
               textAlign: 'center',
               marginBottom: 0,

@@ -37,7 +37,6 @@ export function getWelcomeAlertOptions(
   return {
     title: t(titleKey),
     message: t(messageKey),
-    messageNumberOfLines: 3,
     buttonLabel: t('auth.welcomeCta'),
     icon: isLogin ? (
       <HandWaving size={36} color={orbit} weight="fill" />

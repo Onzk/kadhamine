@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
   Pressable,
   StyleSheet,
+  BackHandler,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useNavigation, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { useMutation } from 'convex/react';
@@ -45,6 +46,7 @@ export default function RegisterScreen() {
   const { colors } = useAppTheme();
   const { alert } = useAppDialog();
   const router = useRouter();
+  const navigation = useNavigation();
   const { signIn } = useAuthActions();
   const registerProfile = useMutation(api.users.registerProfile);
 
@@ -62,6 +64,8 @@ export default function RegisterScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [touched, setTouched] = useState(false);
+  /** Autorise quitter l’écran même depuis l’étape 2 (ex. après inscription réussie). */
+  const allowLeaveRef = useRef(false);
 
   const emailError = touched && email.length > 0 && !isValidEmail(email);
   const confirmError = confirmPassword.length > 0 && confirmPassword !== password;
@@ -70,14 +74,44 @@ export default function RegisterScreen() {
   const step2Valid =
     password.length >= 6 && password === confirmPassword && agreed;
 
-  const goBack = () => {
+  const goBack = useCallback(() => {
     setError('');
     if (step === 2) {
       setStep(1);
-    } else {
-      router.back();
+      return;
     }
-  };
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+    router.replace('/(auth)/login');
+  }, [router, step]);
+
+  /** Bouton système / geste : étape 2 → étape 1 avant de quitter. */
+  useFocusEffect(
+    useCallback(() => {
+      const onHardwareBack = () => {
+        if (step === 2) {
+          setError('');
+          setStep(1);
+          return true;
+        }
+        return false;
+      };
+      const sub = BackHandler.addEventListener('hardwareBackPress', onHardwareBack);
+      return () => sub.remove();
+    }, [step]),
+  );
+
+  useEffect(() => {
+    const unsub = navigation.addListener('beforeRemove', (e) => {
+      if (allowLeaveRef.current || step !== 2) return;
+      e.preventDefault();
+      setError('');
+      setStep(1);
+    });
+    return unsub;
+  }, [navigation, step]);
 
   const goNext = () => {
     setTouched(true);
@@ -125,6 +159,7 @@ export default function RegisterScreen() {
       );
 
       await setPendingWelcome('register');
+      allowLeaveRef.current = true;
       router.replace('/');
     } catch (err) {
       setError("Erreur lors de l'inscription. Cet email est peut-être déjà utilisé.");
@@ -251,7 +286,8 @@ export default function RegisterScreen() {
             isPassword
             showPassword={showConfirm}
             onTogglePassword={() => setShowConfirm((v) => !v)}
-            textContentType="newPassword"
+            textContentType="password"
+            autoComplete="password-new"
             placeholder="••••••••"
             leftIcon={<Lock size={20} />}
             error={confirmError ? 'Les mots de passe ne correspondent pas.' : undefined}
