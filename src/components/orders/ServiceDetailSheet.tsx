@@ -3,11 +3,13 @@ import { View, Pressable } from 'react-native';
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from 'convex/react';
-import { ArrowRight, MapPin } from 'phosphor-react-native';
+import { ArrowRight, MapPin, PaperPlaneTilt } from 'phosphor-react-native';
 import type { Id } from '../../../convex/_generated/dataModel';
 
+import { AuthPrimaryButton } from '@/components/auth/AuthField';
 import { AppBottomSheet } from '@/components/ui/AppBottomSheet';
 import { Badge } from '@/components/ui/Badge';
+import { SheetActionsFooter, SheetSingleAction } from '@/components/ui/SheetActions';
 import { Text } from '@/components/ui/ThemedText';
 import { ImageZoomModal } from '@/components/chat/ImageZoomModal';
 import { useAppTheme } from '@/providers/ThemeProvider';
@@ -35,6 +37,11 @@ export interface ServiceDetailSheetProps {
   onClose: () => void;
   serviceId: Id<'services'> | null;
   onViewFull?: (serviceId: Id<'services'>) => void;
+  /** When set, shows a primary “send” action (chat attach confirmation). */
+  onSend?: (serviceId: Id<'services'>, title: string) => void;
+  sendLoading?: boolean;
+  /** Override default subtitle (e.g. chat attach copy). */
+  subtitle?: string;
 }
 
 /** Bottom sheet — détails du service uniquement (sans métadonnées de commande). */
@@ -43,6 +50,9 @@ export function ServiceDetailSheet({
   onClose,
   serviceId,
   onViewFull,
+  onSend,
+  sendLoading = false,
+  subtitle,
 }: ServiceDetailSheetProps) {
   const { t, i18n } = useTranslation();
   const { colors } = useAppTheme();
@@ -86,7 +96,12 @@ export function ServiceDetailSheet({
         visible={visible && !!serviceId}
         onClose={onClose}
         title={service?.title ?? t('order.serviceDetailsButton')}
-        subtitle={t('order.serviceDetailsSubtitle')}
+        subtitle={
+          subtitle ??
+          (onSend
+            ? t('messages.attachServiceConfirmDesc')
+            : t('order.serviceDetailsSubtitle'))
+        }
         scrollable
         stickyHeader
         maxHeightRatio={0.88}
@@ -240,7 +255,7 @@ export function ServiceDetailSheet({
               </View>
             ) : null}
 
-            {onViewFull ? (
+            {onViewFull && !onSend ? (
               <Pressable
                 onPress={() => onViewFull(service._id)}
                 style={({ pressed }) => [{ width: '100%' }, { opacity: pressed ? 0.9 : 1 }]}
@@ -273,6 +288,22 @@ export function ServiceDetailSheet({
                   <ArrowRight size={18} color={colors.link} weight="bold" />
                 </View>
               </Pressable>
+            ) : null}
+
+            {onSend ? (
+              <SheetActionsFooter>
+                <SheetSingleAction>
+                  <AuthPrimaryButton
+                    title={t('messages.attachServiceSend')}
+                    onPress={() => onSend(service._id, service.title)}
+                    loading={sendLoading}
+                    disabled={sendLoading}
+                    tone="orbit"
+                    flat
+                    icon={<PaperPlaneTilt size={18} weight="fill" />}
+                  />
+                </SheetSingleAction>
+              </SheetActionsFooter>
             ) : null}
           </View>
         )}

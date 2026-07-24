@@ -4,74 +4,69 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery } from 'convex/react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { Id } from '../../../convex/_generated/dataModel';
+import type { Id } from '../../../../convex/_generated/dataModel';
 
 import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { Text } from '@/components/ui/ThemedText';
-import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { AuthPrimaryButton } from '@/components/auth/AuthField';
-import { StarRating } from '@/components/ui/StarRating';
 import {
   OrderReviewForm,
-  emptyProviderServiceReview,
-  type ProviderServiceReviewValue,
+  emptyClientReview,
+  type ClientReviewValue,
 } from '@/components/reviews/OrderReviewForm';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { useAppDialog } from '@/providers/AppDialogProvider';
+import { useAuth } from '@/providers/AuthProvider';
 import { BorderWidth, Spacing } from '@/theme/tokens';
-import { api } from '../../../convex/_generated/api';
+import { textStyle } from '@/theme/typography';
+import { api } from '../../../../convex/_generated/api';
 
-/**
- * Notation depuis la commande uniquement (pas depuis la fiche service).
- * Bouton de confirmation en zone bottom fixed.
- */
-export default function ReviewScreen() {
+/** Page dédiée — notation d’un client par le prestataire. */
+export default function RateClientScreen() {
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const { t } = useTranslation();
   const { colors } = useAppTheme();
   const { alert } = useAppDialog();
+  const { user } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const [review, setReview] = useState<ProviderServiceReviewValue>(emptyProviderServiceReview);
+  const [value, setValue] = useState<ClientReviewValue>(emptyClientReview);
   const [loading, setLoading] = useState(false);
   const [footerH, setFooterH] = useState(0);
 
-  const existing = useQuery(
-    api.reviews.getByOrder,
-    orderId ? { orderId: orderId as Id<'orders'> } : 'skip',
+  const eligibility = useQuery(
+    api.reviews.getClientReviewEligibility,
+    user && orderId ? { orderId: orderId as Id<'orders'> } : 'skip',
   );
-  const createReview = useMutation(api.reviews.create);
+  const createClientReview = useMutation(api.reviews.createClientReview);
 
   const actionBottomPad = Math.max(insets.bottom, Spacing.two) + Spacing.four;
-  const canSubmit =
-    review.rating >= 1 &&
-    review.rating <= 5 &&
-    (review.providerTagIds.length > 0 || review.serviceTagIds.length > 0);
+  const canSubmit = value.rating >= 1 && value.tagIds.length > 0;
 
   const handleSubmit = async () => {
     if (!orderId) return;
-    if (review.rating < 1 || review.rating > 5) {
+    if (value.rating < 1 || value.rating > 5) {
       alert({ title: t('common.error'), message: t('reviews.ratingRequired') });
       return;
     }
-    if (review.providerTagIds.length < 1 && review.serviceTagIds.length < 1) {
+    if (value.tagIds.length < 1) {
       alert({ title: t('common.error'), message: t('reviews.checkoutRequired') });
       return;
     }
     setLoading(true);
     try {
-      await createReview({
+      await createClientReview({
         orderId: orderId as Id<'orders'>,
-        rating: review.rating,
-        comment: review.comment.trim() || undefined,
-        providerTagIds: review.providerTagIds,
-        serviceTagIds: review.serviceTagIds,
+        rating: value.rating,
+        tagIds: value.tagIds,
+        comment: value.comment || undefined,
       });
       alert({
         title: t('reviews.thanks'),
         buttonLabel: t('common.done'),
-        onPress: () => router.replace('/(tabs)/orders'),
+        onPress: () => router.replace(`/order/${orderId}`),
       });
     } catch (err) {
       alert({
@@ -83,50 +78,67 @@ export default function ReviewScreen() {
     }
   };
 
-  if (existing === undefined) {
+  if (!user) {
     return (
       <PageScaffold
-        title={t('reviews.leaveReview')}
-        subtitle={t('reviews.officialOnly')}
+        title={t('reviews.rateClient')}
+        subtitle={t('reviews.rateClientSubtitle')}
         showBack
       >
-        <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.five }}>
-          <Text style={{ textAlign: 'center', marginTop: Spacing.eight, color: colors.muted }}>
-            {t('common.loading')}
-          </Text>
+        <EmptyState
+          title={t('auth.loginRequiredTitle')}
+          description={t('orders.loginRequired')}
+          actionLabel={t('auth.signIn')}
+          onAction={() => router.push('/(auth)/login')}
+        />
+      </PageScaffold>
+    );
+  }
+
+  if (eligibility === undefined) {
+    return (
+      <PageScaffold
+        title={t('reviews.rateClient')}
+        subtitle={t('reviews.rateClientSubtitle')}
+        showBack
+      >
+        <View style={{ padding: Spacing.eight, alignItems: 'center' }}>
+          <Text style={[textStyle('body'), { color: colors.muted }]}>{t('common.loading')}</Text>
         </View>
       </PageScaffold>
     );
   }
 
-  if (existing && existing.isValid !== false) {
+  if (eligibility.hasRated) {
     return (
       <PageScaffold
-        title={t('reviews.title')}
-        subtitle={t('reviews.officialOnly')}
+        title={t('reviews.rateClient')}
+        subtitle={t('reviews.rateClientSubtitle')}
         showBack
       >
-        <View
-          style={{
-            paddingHorizontal: PAGE_H_PAD,
-            paddingTop: Spacing.five,
-            gap: Spacing.four,
-          }}
-        >
-          <Text style={{ fontSize: 15, color: colors.body }}>{t('reviews.thanks')}</Text>
-          <StarRating rating={existing.rating} size={28} />
-          {existing.comment ? (
-            <Text style={{ fontSize: 14, color: colors.muted, lineHeight: 22 }}>
-              {existing.comment}
-            </Text>
-          ) : null}
-          <Button
-            title={t('orders.title')}
-            onPress={() => router.replace('/(tabs)/orders')}
-            fullWidth
-            style={{ marginTop: Spacing.four }}
-          />
-        </View>
+        <EmptyState
+          title={t('reviews.thanks')}
+          description={t('reviews.clientAlreadyRated')}
+          actionLabel={t('orders.title')}
+          onAction={() => router.replace('/(tabs)/orders')}
+        />
+      </PageScaffold>
+    );
+  }
+
+  if (!eligibility.canRate) {
+    return (
+      <PageScaffold
+        title={t('reviews.rateClient')}
+        subtitle={t('reviews.rateClientSubtitle')}
+        showBack
+      >
+        <EmptyState
+          title={t('reviews.rateClientUnavailable')}
+          description={t('reviews.rateClientUnavailableBody')}
+          actionLabel={t('common.back')}
+          onAction={() => router.back()}
+        />
       </PageScaffold>
     );
   }
@@ -134,8 +146,8 @@ export default function ReviewScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <PageScaffold
-        title={t('reviews.leaveReview')}
-        subtitle={t('reviews.officialOnly')}
+        title={t('reviews.rateClient')}
+        subtitle={t('reviews.rateClientSubtitle')}
         showBack
         bottomInset={false}
         contentContainerStyle={{
@@ -146,15 +158,10 @@ export default function ReviewScreen() {
           style={{
             paddingHorizontal: PAGE_H_PAD,
             paddingTop: Spacing.five,
-            gap: Spacing.five,
+            gap: Spacing.six,
           }}
         >
-          <OrderReviewForm
-            mode="providerService"
-            value={review}
-            onChange={setReview}
-            requiredHint={t('reviews.checkoutRequired')}
-          />
+          <OrderReviewForm mode="client" value={value} onChange={setValue} />
         </View>
       </PageScaffold>
 

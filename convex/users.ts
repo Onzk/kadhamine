@@ -65,6 +65,8 @@ export const registerProfile = mutation({
       isPremium: false,
       averageRating: 0,
       reviewCount: 0,
+      clientAverageRating: 0,
+      clientReviewCount: 0,
       completedOrders: 0,
       cancelledOrders: 0,
       trustScore: 0,

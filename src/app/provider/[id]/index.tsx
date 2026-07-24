@@ -3,7 +3,6 @@ import {
   View,
   Pressable,
   ActivityIndicator,
-  Share,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -47,6 +46,7 @@ import {
 import { OwnAccountSheet } from '@/components/ui/OwnAccountSheet';
 import { PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { Text } from '@/components/ui/ThemedText';
+import { buildProviderShare, shareContent } from '@/lib/shareContent';
 import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { useAppDialog } from '@/providers/AppDialogProvider';
@@ -318,11 +318,28 @@ export default function ProviderDetailScreen() {
 
   const handleShare = async () => {
     if (!data?.profile) return;
-    const name = `${data.profile.firstName} ${data.profile.lastName}`;
+    const { profile, services } = data;
+    const name = `${profile.firstName} ${profile.lastName}`.trim();
     try {
-      await Share.share({
-        message: t('provider.shareMessage', { name }),
-      });
+      await shareContent(
+        buildProviderShare(
+          {
+            profileId: profile._id,
+            name,
+            bio: profile.bio,
+            city: profile.city,
+            region: profile.region,
+            averageRating: profile.averageRating,
+            reviewCount: profile.reviewCount,
+            completedOrders: profile.completedOrders,
+            servicesCount: services?.length ?? 0,
+            skills: profile.skills,
+            isVerified: !!profile.isVerified,
+            isPremium: !!profile.isPremium,
+          },
+          t,
+        ),
+      );
     } catch {
       // dismissed
     }

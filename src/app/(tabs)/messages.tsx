@@ -11,14 +11,12 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { SearchBar } from '@/components/ui/SearchBar';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useAuth } from '@/providers/AuthProvider';
-import { useAppTheme } from '@/providers/ThemeProvider';
 import { Radius, Spacing } from '@/theme/tokens';
 import { api } from '../../../convex/_generated/api';
 
 function ConversationListSkeleton() {
-  const { colors } = useAppTheme();
   return (
-    <View style={{ gap: Spacing.three }}>
+    <View style={{ gap: Spacing.one }}>
       {[0, 1, 2].map((i) => (
         <View
           key={i}
@@ -26,11 +24,7 @@ function ConversationListSkeleton() {
             flexDirection: 'row',
             alignItems: 'center',
             gap: Spacing.three,
-            backgroundColor: colors.surfaceCard,
-            borderRadius: Radius.lg,
-            borderWidth: 0.1,
-            borderColor: colors.border,
-            padding: Spacing.four,
+            paddingVertical: Spacing.two,
           }}
         >
           <Skeleton width={52} height={52} borderRadius={26} />
@@ -46,7 +40,6 @@ function ConversationListSkeleton() {
 
 export default function MessagesScreen() {
   const { t } = useTranslation();
-  const { colors } = useAppTheme();
   const router = useRouter();
   const { user } = useAuth();
   const [query, setQuery] = useState('');
@@ -78,7 +71,7 @@ export default function MessagesScreen() {
         ) : undefined
       }
     >
-      <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four, gap: Spacing.three }}>
+      <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four, gap: Spacing.one }}>
         {!user ? (
           <EmptyState
             icon={Lock}

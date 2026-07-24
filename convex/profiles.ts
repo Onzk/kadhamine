@@ -223,10 +223,13 @@ export const getPublicProvider = query({
       .withIndex('by_provider', (q) => q.eq('providerId', profile.userId))
       .filter((q) => q.eq(q.field('isVisible'), true))
       .order('desc')
-      .take(10);
+      .take(30);
 
     const reviews = await Promise.all(
-      reviewsRaw.map(async (review) => {
+      reviewsRaw
+        .filter((r) => r.isValid !== false)
+        .slice(0, 10)
+        .map(async (review) => {
         const clientProfile = await ctx.db
           .query('profiles')
           .withIndex('by_user', (q) => q.eq('userId', review.clientId))

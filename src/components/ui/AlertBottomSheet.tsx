@@ -71,7 +71,7 @@ export function AlertBottomSheet({
       showHandle={false}
       showClose
       maxHeightRatio={0.62}
-      bottomPadExtra={Spacing.four}
+      bottomPadExtra={Spacing.twelve}
     >
       <View
         style={{

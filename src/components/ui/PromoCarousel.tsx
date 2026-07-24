@@ -504,7 +504,15 @@ export function PromoSearchHero({ slide, searchPlaceholder, onSearchPress }: Pro
   );
 
   return (
-    <View style={{ paddingHorizontal: H_PADDING, marginBottom: Spacing.eight }}>{body}</View>
+    <View
+      style={{
+        paddingHorizontal: H_PADDING,
+        marginTop: Spacing.four,
+        marginBottom: Spacing.eight,
+      }}
+    >
+      {body}
+    </View>
   );
 }
 

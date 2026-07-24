@@ -623,7 +623,7 @@ export default function MapScreen() {
         categories={categories?.slice(0, 12).map((cat) => ({
           id: cat._id,
           label: cat.nameFr,
-          icon: cat.icon,
+          icon: cat.icon || cat.slug,
         }))}
         selectedId={selectedCategory}
         onSelect={setSelectedCategory}

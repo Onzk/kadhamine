@@ -64,6 +64,8 @@ Jeune (cible 18–35 ans) proposant des services.
 - Recevoir, accepter ou annuler des commandes
 - Chatter (texte + images)
 - Encaisser via FedaPay (quand live) ou hors plateforme
+- **Refuser un paiement déclaré hors plateforme** dans un délai de **24 h** à compter de la date du **dernier paiement enregistré** pour la commande
+- **Noter un client** après une commande acceptée puis annulée (note visible au client ; agrégat visible aux prestataires en chat)
 - Demander vérification d’identité (CNI / passeport + selfie)
 - Souscrire / afficher le **Premium** (mise en avant + badge)
 
@@ -73,7 +75,7 @@ Jeune (cible 18–35 ans) proposant des services.
 - Consulter profil, portfolio, avis
 - Commander via un parcours en étapes (métadonnées optionnelles) et suivre le statut sur une fiche détail
 - Payer in-app (FedaPay) ou hors app
-- Noter **uniquement** après paiement in-app
+- **Noter obligatoirement** au paiement in-app (note + tags ; commentaire optionnel) — valide si paiement abouti
 - Chatter (texte + images)
 
 ### 2.3 Administrateur
@@ -143,7 +145,9 @@ Un seul opérateur au démarrage (compte seed).
 | 4 | Ordre FedaPay | Commande d’abord, puis abonnement premium |
 | 5 | Libération fonds | À la validation client “terminé” |
 | 6 | Choix paiement | FedaPay **et** hors plateforme coexistent |
-| 7 | Avis | Uniquement après paiement in-app |
+| 6b | Refus hors plateforme | Prestataire peut refuser un paiement `off_platform` **uniquement dans les 24 h** suivant la date du **dernier paiement enregistré** pour la commande ; au-delà, le refus n’est plus possible |
+| 7 | Avis client→prestataire | **Obligatoire** au paiement in-app (note 1–5 + tags ; commentaire libre optionnel). Valide seulement si paiement abouti. Pas de notation depuis la fiche service. |
+| 7b | Avis prestataire→client | Après commande **terminée** (`completed`), ou **annulée après acceptation** (`acceptedAt`). Refus immédiat sans acceptation → pas d’avis. Commande annulée / refusée → **paiement interdit**. |
 | 8 | Chat | Texte + images (galerie + caméra, JPEG/PNG/WebP, ~5 Mo max) |
 | 9 | Premium | Nécessaire (badge + mise en avant) ; flag admin V1 puis paiement |
 | 10 | Identité | CNI ou passeport + selfie ; settings post-inscription |
@@ -156,7 +160,7 @@ Un seul opérateur au démarrage (compte seed).
 | 16 | Push | Commande + message |
 | 17 | Distribution | APK / tests internes avant Play Store |
 | 18 | Commission | 10 %, paramétrable, pas d’escrow “banque” |
-| 19 | Avis UX | Note globale + commentaire |
+| 19 | Avis UX | Note via expressions à la saisie ; étoiles à la consultation ; tags + commentaire concaténés |
 | 20 | Portfolio | Images seules |
 | 21 | Reset mdp | Email si possible, sinon support |
 
@@ -227,7 +231,7 @@ pending → cancelled
 | `pending` | Demande client, en attente prestataire |
 | `accepted` | Prestataire a accepté (travail en cours implicitement) |
 | `completed` | Client (ou flux convenu) valide la fin |
-| `cancelled` | Annulation par une des parties |
+| `cancelled` | Annulation / refus : **aucun paiement** possible. Si la commande avait été **acceptée** (`acceptedAt`), le prestataire peut noter le client. Un refus immédiat (sans acceptation) n’ouvre pas la notation. |
 
 Pas de statut `in_progress`, `rejected` ou `dispute` dans le parcours utilisateur V1 (le schéma technique peut conserver des littéraux inutilisés jusqu’à nettoyage).
 
@@ -277,6 +281,14 @@ Upload via le flux fichiers existant (`generateUploadUrl` / `useUpload`).
 | `fedapay` / `airtel_money` / `moov_money` | Oui (% settings) | Oui après succès + commande terminée | Via FedaPay |
 | `off_platform` | 0 % affichée / pas prélevée | Non (`canReview = false`) | Accord hors app |
 
+#### Paiement hors plateforme — déclaration & refus
+
+1. Après commande `completed`, le client peut enregistrer un paiement `off_platform` → statut paiement `pending` (pas de commission, pas d’avis). L’horodatage `recordedAt` marque la date de cet enregistrement.
+2. Le **prestataire** peut **refuser** ce paiement **uniquement dans les 24 heures** suivant la date du **dernier paiement enregistré** pour la commande (`recordedAt`, sinon `createdAt`).
+3. Refus → paiement `failed` ; le client peut à nouveau enregistrer un mode de paiement (intégré ou hors plateforme) — un nouvel enregistrement repart un nouveau délai de 24 h.
+4. Au-delà de 24 h : plus de refus possible ; le flux suit la validation client (`validate`) puis libération `released` si applicable.
+5. Un paiement hors plateforme déjà libéré (`released` avec `releasedAt`) n’est plus refusible.
+
 #### FedaPay (obligatoire à préparer)
 
 - Variables : `FEDAPAY_SECRET_KEY`, `FEDAPAY_ENV` (`sandbox` \| `live`), `FEDAPAY_CALLBACK_URL`
@@ -297,12 +309,45 @@ Upload via le flux fichiers existant (`generateUploadUrl` / `useUpload`).
 
 ### 4.7 Notation
 
-- Une note par commande éligible (`canReview` / paiement in-app)
-- Champs V1 : `rating` (1–5), `commentaire` optionnel
-- Moyenne affichée sur profil / service
-- Prestataire peut répondre (si déjà prévu dans le code — à conserver)
+#### Avis client → prestataire / service (paiement in-app)
 
-Règle produit : **pas de paiement in-app ⇒ pas d’avis officiel** (évite les faux scores).
+- **Obligatoire** lors du paiement intégré (FedaPay / mobile money in-app) : le client doit donner une **note 1–5** avant de payer.
+- Cases à cocher (constantes app, séries de **6**) :
+  - **Prestataire** (`PROVIDER_REVIEW_TAG_IDS`)
+  - **Service** (`SERVICE_REVIEW_TAG_IDS`)
+- Commentaire libre **optionnel**.
+- Les tags choisis + le commentaire sont **concaténés** en un bloc texte stocké dans `reviews.comment`.
+- L’avis est lié à la **commande** (`reviews.orderId`) et porté par `isValid` :
+  - créé / mis à jour au moment de l’enregistrement du paiement (`isValid = false`)
+  - passé à `isValid = true` **uniquement** si le paiement aboutit (`held` / succès)
+  - reste invalide si le paiement échoue (n’entre pas dans les moyennes publiques)
+- **Interdit** de noter depuis la page détail service — uniquement via le parcours commande / checkout.
+- Hors plateforme : **pas** d’avis officiel (`canReview = false`).
+- UI saisie : **icônes d’expression** colorées (1–5) ; consultation : **étoiles**.
+- Moyenne affichée sur profil / service **uniquement** à partir des avis `isValid`.
+- Prestataire peut répondre à un avis valide (si déjà prévu — à conserver).
+
+#### Paiement vs annulation / refus
+
+- **Refus** prestataire (`pending` → `cancelled` sans `acceptedAt`) : **paiement interdit** ; **pas** de notation client.
+- **Annulation** après acceptation (`acceptedAt` conservé) : **paiement interdit** ; le **prestataire peut noter** le client.
+- **Commande terminée** (`completed`) : le **prestataire peut aussi noter** le client ; le client peut payer.
+- **Paiement** autorisé seulement si statut `completed` (prestation terminée).
+
+#### Avis prestataire → client
+
+- Après une commande **terminée** (`completed`), **ou** **annulée** alors qu’elle avait été **acceptée** (`acceptedAt`), le prestataire peut noter le client (note 1–5 + tags `CLIENT_REVIEW_TAG_IDS` + commentaire optionnel, concaténés).
+- Une note par commande (`clientReviews`).
+- **Visibilité fiche commande** : **seul le client** concerné voit cette note sur la commande.
+- **Visibilité chat** : tout prestataire en conversation avec ce client voit la **note moyenne** dans le header, et un bouton info ouvre un modal (profil client + note + commentaires **anonymisés** par **catégorie de service** de la commande d’origine).
+
+#### Liste commandes (client)
+
+- Sur une carte commande **terminée non payée**, le client voit une action **Payer** directe (raccourci vers le checkout).
+- Checkout in-app en **stepper (3 étapes max, sans indicateur)** : (1) note + options prestataire, (2) options service + commentaire, (3) paiement.
+- **Noter le client** : écran dédié `/review/client/[orderId]` (pas de bottomsheet).
+
+Règle produit : **pas de paiement in-app abouti ⇒ pas d’avis officiel valide** (évite les faux scores).
 
 ### 4.8 Messagerie
 
@@ -365,7 +410,8 @@ Aligné sur le schéma Convex actuel (`convex/schema.ts`), à ajuster seulement 
 | `portfolio` | Médias prestataire |
 | `orders` | Commandes + flags paiement / review + métadonnées optionnelles (description, géo, photos ≤4, vocal) |
 | `payments` | Montants, commission, méthode, statut FedaPay |
-| `reviews` | Avis |
+| `reviews` | Avis client→prestataire/service ; `isValid` lié au succès paiement ; tags + commentaire concaténé |
+| `clientReviews` | Avis prestataire→client (après annulation post-acceptation) |
 | `conversations` / `messages` | Chat |
 | `notifications` | In-app (+ lien push) |
 | `subscriptions` | Premium |
@@ -625,7 +671,7 @@ Le MVP est **conforme** si :
 3. Le cycle de commande V1 (`pending` → `accepted` → `completed` \| `cancelled`) fonctionne.  
 3bis. Le client peut créer une commande via un stepper **sans indicateur d’étape**, avec métadonnées optionnelles (description, Leaflet, ≤4 photos, vocal) ; la fiche détail affiche ces infos selon le rôle (client / prestataire).  
 
-4. Paiement hors plateforme : pas d’avis ; paiement FedaPay (sandbox ou live) : avis possible après complétion.  
+4. Paiement hors plateforme : pas d’avis ; le prestataire peut le refuser sous 24 h (depuis le dernier paiement enregistré) ; paiement FedaPay (sandbox ou live) : avis **obligatoire** au checkout, valide seulement si paiement abouti.  
 5. Commission paramétrable visible au checkout.  
 6. Prestataire peut uploader CNI/passeport + selfie ; admin peut approuver → badge vérifié.  
 7. Premium : badge + boost ; attribution admin et/ou FedaPay selon disponibilité clés.  
@@ -674,7 +720,10 @@ Le MVP est **conforme** si :
 | 2.0 | 2026-07-19 | CDC aligné stack Expo+Convex + décisions produit/UI verrouillées |
 | 2.1 | 2026-07-22 | Bascule UI vers DESIGN.md (Mastercard cream/ink) — remplace design.png + palette logo UI |
 | 2.2 | 2026-07-24 | Commandes : stepper sans indicateur, métadonnées optionnelles (description, Leaflet, photos ≤4, vocal), fiche détail adaptée au rôle |
+| 2.3 | 2026-07-24 | Paiement hors plateforme : refus prestataire possible uniquement dans les 24 h suivant la date du dernier paiement enregistré pour la commande |
+| 2.4 | 2026-07-24 | Notation : avis obligatoire au paiement in-app (tags + isValid) ; notes prestataire→client ; expressions à la saisie |
+| 2.5 | 2026-07-24 | Annulation/refus : paiement interdit ; avis prestataire→client si terminée ou acceptée puis annulée ; CTA Payer sur card client |
 
 ---
 
-**TalentTchad © 2026 — Document confidentiel — Version 2.2**
+**TalentTchad © 2026 — Document confidentiel — Version 2.5**

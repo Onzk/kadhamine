@@ -87,7 +87,7 @@ export const DarkTheme = {
   canvasGreenWash: '#141413',
   canvasBlueWash: '#141413',
   surface: '#1C1C1B',
-  surfaceCard: '#141413',
+  surfaceCard: '#101010',
   surfaceStrong: '#333332',
   surfaceDark: '#0A0A09',
   surfaceNavy: '#0A0A09',

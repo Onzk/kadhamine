@@ -10,6 +10,7 @@ const messageTypeValidator = v.union(
   v.literal('image'),
   v.literal('audio'),
   v.literal('document'),
+  v.literal('service'),
 );
 
 /** Consider online if heartbeat within this window. */
@@ -40,12 +41,23 @@ async function resolvePeer(
   const isOnline =
     lastActiveAt != null && now() - lastActiveAt < ONLINE_WINDOW_MS;
 
+  const peerServices = await ctx.db
+    .query('services')
+    .withIndex('by_provider', (q) => q.eq('providerId', peerId))
+    .collect();
+  const hasActiveServices = peerServices.some((s) => s.isActive);
+
   return {
     _id: peerId,
     name,
     avatarUrl,
     lastActiveAt,
     isOnline,
+    role: peerUser?.role ?? null,
+    hasServices: hasActiveServices,
+    clientAverageRating: peerProfile?.clientAverageRating ?? 0,
+    clientReviewCount: peerProfile?.clientReviewCount ?? 0,
+    city: peerProfile?.city ?? null,
   };
 }
 
@@ -87,12 +99,13 @@ function sortConversations(conversations: Doc<'conversations'>[]) {
 }
 
 function previewForMessage(
-  type: 'text' | 'image' | 'audio' | 'document',
+  type: 'text' | 'image' | 'audio' | 'document' | 'service',
   content: string,
 ) {
   if (type === 'image') return '[Image]';
   if (type === 'audio') return '[Audio]';
   if (type === 'document') return '[Document]';
+  if (type === 'service') return content.slice(0, 100) || '[Service]';
   return content.slice(0, 100);
 }
 
@@ -125,7 +138,31 @@ export const list = query({
       mine.map(async (conv) => {
         const peer = await resolvePeer(ctx, userId, conv.participantIds);
         const unreadCount = await unreadCountFor(ctx, conv._id, userId);
-        return { ...conv, peer, unreadCount };
+
+        const lastMessage = await ctx.db
+          .query('messages')
+          .withIndex('by_conversation_time', (q) =>
+            q.eq('conversationId', conv._id),
+          )
+          .order('desc')
+          .first();
+
+        const lastMessageMine = Boolean(
+          lastMessage && lastMessage.senderId === userId,
+        );
+        const lastMessageSeenByPeer = Boolean(
+          lastMessageMine &&
+            peer._id &&
+            lastMessage?.readBy.includes(peer._id),
+        );
+
+        return {
+          ...conv,
+          peer,
+          unreadCount,
+          lastMessageMine,
+          lastMessageSeenByPeer,
+        };
       }),
     );
   },
@@ -173,6 +210,7 @@ export const getMessages = query({
               content: string;
               mediaUrl?: string;
               durationMs?: number;
+              serviceId?: Id<'services'>;
             }
           | null = null;
 
@@ -185,11 +223,48 @@ export const getMessages = query({
               content: parent.content,
               mediaUrl: await resolveMediaUrl(ctx, parent),
               durationMs: parent.durationMs,
+              serviceId: parent.serviceId,
             };
           }
         }
 
-        return { ...msg, mediaUrl, replyTo };
+        let servicePreview:
+          | {
+              _id: Id<'services'>;
+              title: string;
+              description?: string;
+              price?: number;
+              pricingType?: string;
+              photoUrl?: string;
+              city?: string;
+              averageRating?: number;
+              reviewCount?: number;
+            }
+          | null = null;
+
+        if (msg.type === 'service' && msg.serviceId) {
+          const service = await ctx.db.get(msg.serviceId);
+          if (service) {
+            let photoUrl: string | undefined = service.photos?.[0];
+            if (!photoUrl && service.photoStorageIds?.[0]) {
+              photoUrl =
+                (await ctx.storage.getUrl(service.photoStorageIds[0])) ?? undefined;
+            }
+            servicePreview = {
+              _id: service._id,
+              title: service.title,
+              description: service.description,
+              price: service.price,
+              pricingType: service.pricingType,
+              photoUrl,
+              city: service.city,
+              averageRating: service.averageRating,
+              reviewCount: service.reviewCount,
+            };
+          }
+        }
+
+        return { ...msg, mediaUrl, replyTo, servicePreview };
       }),
     );
   },
@@ -231,6 +306,7 @@ export const send = mutation({
     mediaUrl: v.optional(v.string()),
     storageId: v.optional(v.id('_storage')),
     durationMs: v.optional(v.number()),
+    serviceId: v.optional(v.id('services')),
     replyToId: v.optional(v.id('messages')),
   },
   handler: async (ctx, args) => {
@@ -253,6 +329,16 @@ export const send = mutation({
       throw new Error('Audio requis');
     }
 
+    let serviceTitle = args.content;
+    if (messageType === 'service') {
+      if (!args.serviceId) throw new Error('Service requis');
+      const service = await ctx.db.get(args.serviceId);
+      if (!service || !service.isActive) {
+        throw new Error('Service introuvable');
+      }
+      serviceTitle = service.title;
+    }
+
     if (args.replyToId) {
       const parent = await ctx.db.get(args.replyToId);
       if (!parent || parent.conversationId !== args.conversationId) {
@@ -268,7 +354,9 @@ export const send = mutation({
           ? 'Audio'
           : messageType === 'document'
             ? 'Document'
-            : '';
+            : messageType === 'service'
+              ? serviceTitle
+              : '';
     const content = args.content || defaultContent;
     const preview = previewForMessage(messageType, content);
 
@@ -280,6 +368,7 @@ export const send = mutation({
       mediaUrl,
       storageId: args.storageId,
       durationMs: messageType === 'audio' ? args.durationMs : undefined,
+      serviceId: messageType === 'service' ? args.serviceId : undefined,
       replyToId: args.replyToId,
       readBy: [userId],
       createdAt: timestamp,

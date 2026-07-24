@@ -1,8 +1,8 @@
-import React from 'react';
-import { View, Text, Pressable, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { PencilSimple, Plus, User } from 'phosphor-react-native';
+import React from 'react';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
 import { Badge } from '@/components/ui/Badge';
 import { useAppTheme } from '@/providers/ThemeProvider';

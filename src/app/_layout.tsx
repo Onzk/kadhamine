@@ -3,7 +3,7 @@ import { ConvexAuthProvider } from '@convex-dev/auth/react';
 import { ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { PortalHost } from '@rn-primitives/portal';
 import { ConvexReactClient } from 'convex/react';
-import { Stack } from 'expo-router';
+import { Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -43,6 +43,15 @@ function ThemedGestureRoot({ children }: { children: React.ReactNode }) {
 function RootContent() {
   const { isDark, colors } = useAppTheme();
   const navTheme = isDark ? NAV_THEME.dark : NAV_THEME.light;
+  const pathname = usePathname();
+  /** Map & service detail are edge-to-edge at the top (hero under status bar). */
+  const isEdgeToEdgeTop =
+    pathname === '/map' ||
+    pathname.startsWith('/map/') ||
+    pathname.startsWith('/service/');
+  const safeEdges = isEdgeToEdgeTop
+    ? (['left', 'right'] as const)
+    : (['top', 'left', 'right'] as const);
 
   return (
     <NavigationThemeProvider value={navTheme}>
@@ -51,7 +60,7 @@ function RootContent() {
       <AuthProvider>
         <AppDialogProvider>
           {/* No bottom edge: canvas must paint under the system nav; tabs pad themselves. */}
-          <AppSafeArea edges={['top', 'left', 'right']}>
+          <AppSafeArea edges={[...safeEdges]}>
             {/*
               Stack (not Slot) so map → service/[id] is a real push: previous screen
               stays mounted in the React tree. freezeOnBlur:false avoids freezing the
@@ -75,6 +84,8 @@ function RootContent() {
               <Stack.Screen name="order/create" options={{ animation: 'slide_from_right' }} />
               <Stack.Screen name="order/[id]" options={{ animation: 'slide_from_right' }} />
               <Stack.Screen name="checkout/[orderId]" options={{ animation: 'slide_from_right' }} />
+              <Stack.Screen name="review/[orderId]" options={{ animation: 'slide_from_right' }} />
+              <Stack.Screen name="review/client/[orderId]" options={{ animation: 'slide_from_right' }} />
             </Stack>
           </AppSafeArea>
         </AppDialogProvider>

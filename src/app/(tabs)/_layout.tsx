@@ -41,6 +41,10 @@ export default function TabsLayout() {
     api.messages.unreadConversationCount,
     isAuthenticated ? {} : 'skip',
   );
+  const pendingOrders = useQuery(
+    api.orders.pendingCount,
+    isAuthenticated && isProvider ? {} : 'skip',
+  );
 
   /** Prestataire non vérifié qui n’a encore soumis aucune demande. */
   const showVerificationBadge =
@@ -53,6 +57,13 @@ export default function TabsLayout() {
       ? unreadConversations > 99
         ? '99+'
         : unreadConversations
+      : undefined;
+
+  const ordersBadge =
+    typeof pendingOrders === 'number' && pendingOrders > 0
+      ? pendingOrders > 99
+        ? '99+'
+        : pendingOrders
       : undefined;
 
   // Canvas fills the full tab bar (including under system nav).
@@ -162,6 +173,19 @@ export default function TabsLayout() {
         options={{
           title: t('tabs.orders'),
           tabBarIcon: renderIcon(ClipboardText),
+          tabBarBadge: ordersBadge,
+          tabBarBadgeStyle: ordersBadge
+            ? {
+                backgroundColor: colors.signal,
+                color: '#FFFFFF',
+                fontSize: 11,
+                fontFamily: fontFamily('body', 'medium'),
+                minWidth: 18,
+                height: 18,
+                lineHeight: 16,
+                borderRadius: 9,
+              }
+            : undefined,
         }}
       />
       <Tabs.Screen

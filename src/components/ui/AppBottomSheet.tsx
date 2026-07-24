@@ -217,7 +217,7 @@ export function AppBottomSheet({
   /** Zone status bar / notch — la sheet ne doit jamais y entrer. */
   const topClearance = Math.max(insets.top, Spacing.three);
   /** Safe area bas — padding interne du contenu (pas de lift du sheet). */
-  const systemBottom = Math.max(insets.bottom, 0);
+  const systemBottom = Math.max(insets.bottom, Platform.OS === 'android' ? Spacing.six : 0);
   const maxSheetHeight = Math.round(
     Math.min(windowHeight * maxHeightRatio, windowHeight - topClearance),
   );

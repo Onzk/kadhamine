@@ -1,18 +1,22 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { useQuery, useMutation, useAction } from 'convex/react';
+import { useQuery, useMutation, useAction, useConvex } from 'convex/react';
 import * as WebBrowser from 'expo-web-browser';
-import { Crown, Check, DeviceMobile } from 'phosphor-react-native';
+import { Crown, Check } from 'phosphor-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
-import { Input } from '@/components/ui/Input';
 import { Text } from '@/components/ui/ThemedText';
 import { AuthPrimaryButton } from '@/components/auth/AuthField';
 import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { useAppDialog } from '@/providers/AppDialogProvider';
+import {
+  delay,
+  getPaymentResultAlertOptions,
+  type PaymentResultKind,
+} from '@/lib/paymentAlert';
 import { formatPrice } from '@/types';
 import { BorderWidth, BrandColors, Radius, Spacing } from '@/theme/tokens';
 import { fontFamily, textStyle } from '@/theme/typography';
@@ -27,9 +31,9 @@ export default function PremiumScreen() {
   const { colors, isDark } = useAppTheme();
   const { alert } = useAppDialog();
   const { user } = useAuth();
+  const convex = useConvex();
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
-  const [phoneNumber, setPhoneNumber] = useState('');
 
   const heroBg = isDark ? colors.surfaceDark : HERO_INK;
   const heroTitle = HERO_CREAM;
@@ -46,23 +50,28 @@ export default function PremiumScreen() {
     if (user?._id) expireCheck({ userId: user._id }).catch(() => {});
   }, [user?._id, expireCheck]);
 
-  const handleSubscribe = async () => {
-    if (!phoneNumber.trim()) {
-      alert({
-        title: t('payment.phoneRequiredTitle'),
-        message: t('premium.phoneRequiredBody'),
-      });
-      return;
-    }
+  const showResult = (kind: PaymentResultKind) => {
+    alert(getPaymentResultAlertOptions(kind, t, colors, { premium: true }));
+  };
 
+  const resolvePremiumResult = async (): Promise<PaymentResultKind> => {
+    for (let i = 0; i < 10; i++) {
+      await delay(700);
+      const sub = await convex.query(api.subscriptions.getActive, {});
+      if (sub && sub.endDate > Date.now()) {
+        return 'success';
+      }
+    }
+    return 'cancelled';
+  };
+
+  const handleSubscribe = async () => {
     setLoading(true);
     try {
       const subscriptionId = await createPending({});
       const result = await createPremiumTx({
         subscriptionId,
         amount: plans?.premium.price ?? 5000,
-        phoneNumber: phoneNumber.trim(),
-        method: 'fedapay',
         customerEmail: user?.email ?? undefined,
         customerName: user?.profile
           ? `${user.profile.firstName} ${user.profile.lastName}`
@@ -71,21 +80,20 @@ export default function PremiumScreen() {
 
       if (result.paymentUrl) {
         await WebBrowser.openBrowserAsync(result.paymentUrl);
-        alert({
-          title: t('payment.inProgressTitle'),
-          message: t('premium.inProgressBody'),
-        });
-      } else if (result.sandbox) {
-        alert({
-          title: t('payment.sandboxTitle'),
-          message: result.message ?? t('premium.sandboxBody'),
-        });
+        const kind = await resolvePremiumResult();
+        showResult(kind);
+        return;
       }
+
+      if (result.sandbox) {
+        showResult('sandbox');
+        return;
+      }
+
+      showResult('failure');
     } catch (err) {
-      alert({
-        title: t('common.error'),
-        message: err instanceof Error ? err.message : t('premium.errorBody'),
-      });
+      console.error(err);
+      showResult('failure');
     } finally {
       setLoading(false);
     }
@@ -103,14 +111,18 @@ export default function PremiumScreen() {
       })
     : '';
 
+  const showSubscribe = user?.role === 'provider' && !isActive;
+  const actionBottomPad = Math.max(insets.bottom, Spacing.two) + Spacing.four + Spacing.four;
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <PageScaffold
         title={t('profile.premium')}
         subtitle={t('premium.subtitle')}
         showBack
+        bottomInset={false}
         contentContainerStyle={{
-          paddingBottom: Math.max(insets.bottom, Spacing.twelve),
+          paddingBottom: showSubscribe ? Spacing.four : actionBottomPad,
         }}
       >
         <View style={{ paddingHorizontal: PAGE_H_PAD, paddingTop: Spacing.four, gap: Spacing.five }}>
@@ -228,12 +240,12 @@ export default function PremiumScreen() {
                     width: 28,
                     height: 28,
                     borderRadius: Radius.sm,
-                    backgroundColor: BrandColors.gold + (isDark ? '33' : '40'),
+                    backgroundColor: BrandColors.gold + '33',
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
                 >
-                  <Check size={16} color={BrandColors.ink} weight="bold" />
+                  <Check size={16} color={BrandColors.gold} weight="bold" />
                 </View>
                 <Text style={[textStyle('body'), { color: colors.body, flex: 1, fontSize: 15 }]}>
                   {benefit}
@@ -246,29 +258,32 @@ export default function PremiumScreen() {
             <Text style={[textStyle('caption'), { color: colors.muted, textAlign: 'center' }]}>
               {t('premium.providersOnly')}
             </Text>
-          ) : !isActive ? (
-            <View style={{ gap: Spacing.four, marginTop: Spacing.two }}>
-              <Input
-                label={t('payment.phoneLabel')}
-                value={phoneNumber}
-                onChangeText={setPhoneNumber}
-                keyboardType="phone-pad"
-                placeholder={t('payment.phonePlaceholder')}
-                leftIcon={<DeviceMobile size={20} />}
-              />
-              <AuthPrimaryButton
-                title={t('premium.subscribe')}
-                onPress={handleSubscribe}
-                loading={loading}
-                tone="ink"
-                backgroundColor={isDark ? '#FFFFFF' : undefined}
-                textColor={isDark ? BrandColors.ink : undefined}
-                flat
-              />
-            </View>
           ) : null}
         </View>
       </PageScaffold>
+
+      {showSubscribe ? (
+        <View
+          style={{
+            paddingHorizontal: PAGE_H_PAD,
+            paddingTop: Spacing.three,
+            paddingBottom: actionBottomPad,
+            borderTopWidth: BorderWidth.default,
+            borderTopColor: colors.borderHairline,
+            backgroundColor: colors.canvas,
+          }}
+        >
+          <AuthPrimaryButton
+            title={t('premium.subscribe')}
+            onPress={handleSubscribe}
+            loading={loading}
+            tone="ink"
+            backgroundColor={isDark ? '#FFFFFF' : undefined}
+            textColor={isDark ? BrandColors.ink : undefined}
+            flat
+          />
+        </View>
+      ) : null}
     </View>
   );
 }

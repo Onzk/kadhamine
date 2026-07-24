@@ -54,7 +54,7 @@ export function FilterChip({
           }}
         >
           {icon ? (
-            <CategoryIcon icon={icon} size={14} color={labelColor} weight="bold" />
+            <CategoryIcon icon={icon} label={label} size={14} color={labelColor} weight="bold" />
           ) : null}
           <Text
             style={[

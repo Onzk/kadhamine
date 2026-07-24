@@ -3,15 +3,19 @@ import { Audio } from 'expo-av';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
+  Briefcase,
   Camera,
   CaretLeft,
   ChatCircleDots,
+  Info,
   Image as ImageIcon,
   Microphone,
   PaperPlaneTilt,
   Paperclip,
+  Star,
   Stop,
   Trash,
+  UserFocus,
   WarningCircle,
   X,
 } from 'phosphor-react-native';
@@ -37,7 +41,11 @@ import {
 import { ImageZoomModal } from '@/components/chat/ImageZoomModal';
 import { AppBottomSheet, CLOSE_MS } from '@/components/ui/AppBottomSheet';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { SearchBar } from '@/components/ui/SearchBar';
 import { SettingsRow } from '@/components/ui/SettingsRow';
+import { ServiceDetailSheet } from '@/components/orders/ServiceDetailSheet';
+import { ClientInfoSheet } from '@/components/reviews/ClientInfoSheet';
+import { formatPrice } from '@/types';
 import { useImagePicker } from '@/hooks/useImagePicker';
 import { useUpload } from '@/hooks/useUpload';
 import { useAppDialog } from '@/providers/AppDialogProvider';
@@ -190,6 +198,9 @@ function replySnippet(msg: ChatMessage, t: (k: string) => string) {
         : '';
     return `${t('messages.audioPreview')}${dur}`;
   }
+  if (msg.type === 'service') {
+    return msg.servicePreview?.title ?? msg.content ?? t('messages.servicePreview');
+  }
   return msg.content;
 }
 
@@ -245,6 +256,12 @@ export default function ChatScreen() {
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   const [zoomUri, setZoomUri] = useState<string | null>(null);
   const [attachSheetOpen, setAttachSheetOpen] = useState(false);
+  const [servicePicker, setServicePicker] = useState<'mine' | 'peer' | null>(null);
+  const [serviceSearch, setServiceSearch] = useState('');
+  const [serviceSheetId, setServiceSheetId] = useState<Id<'services'> | null>(null);
+  /** `send` = confirm attach; `view` = open from a received/sent card. */
+  const [serviceSheetMode, setServiceSheetMode] = useState<'view' | 'send'>('view');
+  const [clientInfoOpen, setClientInfoOpen] = useState(false);
   const [inputHeight, setInputHeight] = useState(INPUT_MIN_H);
   const [inputFocused, setInputFocused] = useState(false);
   const [asTextarea, setAsTextarea] = useState(false);
@@ -265,10 +282,28 @@ export default function ChatScreen() {
   const sendMessage = useMutation(api.messages.send);
   const markRead = useMutation(api.messages.markRead);
 
+  const peerId = conversation?.peer._id;
+  const showMyServicesAttach = user?.role === 'provider';
+  const showPeerServicesAttach = Boolean(conversation?.peer.hasServices);
+
+  const myServices = useQuery(
+    api.services.getMine,
+    showMyServicesAttach && (attachSheetOpen || servicePicker === 'mine') ? {} : 'skip',
+  );
+  const peerServices = useQuery(
+    api.services.listByProvider,
+    peerId && showPeerServicesAttach && (attachSheetOpen || servicePicker === 'peer')
+      ? { providerId: peerId as Id<'users'>, activeOnly: true }
+      : 'skip',
+  );
+
   const peerName =
     conversation?.peer.name?.trim() || t('messages.conversationFallback');
   const peerInitial = peerName.charAt(0).toUpperCase();
-  const peerId = conversation?.peer._id;
+  const showClientRatingInHeader =
+    user?.role === 'provider' && conversation?.peer.role === 'client';
+  const peerClientRating = conversation?.peer.clientAverageRating ?? 0;
+  const peerClientReviewCount = conversation?.peer.clientReviewCount ?? 0;
   const peerPresence = useMemo(
     () =>
       formatPeerPresence(
@@ -469,6 +504,76 @@ export default function ChatScreen() {
     if (!attachSheetOpen) return;
     setAttachSheetOpen(false);
     await waitForModalClose();
+  };
+
+  const openServicePicker = async (mode: 'mine' | 'peer') => {
+    setAttachSheetOpen(false);
+    await waitForModalClose();
+    setServiceSearch('');
+    setServicePicker(mode);
+  };
+
+  const closeServicePicker = () => {
+    setServicePicker(null);
+    setServiceSearch('');
+  };
+
+  const openServiceConfirm = async (serviceId: Id<'services'>) => {
+    closeServicePicker();
+    await waitForModalClose();
+    setServiceSheetMode('send');
+    setServiceSheetId(serviceId);
+  };
+
+  const closeServiceSheet = () => {
+    setServiceSheetId(null);
+    setServiceSheetMode('view');
+  };
+
+  const pickerServices = useMemo(() => {
+    const list =
+      servicePicker === 'mine'
+        ? (myServices ?? []).filter((row) => row.service.isActive)
+        : servicePicker === 'peer'
+          ? (peerServices ?? [])
+          : [];
+    const q = serviceSearch.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter(({ service, category }) => {
+      const hay = [
+        service.title,
+        service.description,
+        service.city,
+        category?.nameFr,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return hay.includes(q);
+    });
+  }, [servicePicker, myServices, peerServices, serviceSearch]);
+
+  const sendServiceCard = async (serviceId: Id<'services'>, title: string) => {
+    if (!conversationId || sending || uploading) return;
+    setSending(true);
+    try {
+      await sendMessage({
+        conversationId: conversationId as Id<'conversations'>,
+        content: title,
+        type: 'service',
+        serviceId,
+        replyToId: replyTo?._id as Id<'messages'> | undefined,
+      });
+      setReplyTo(null);
+      closeServiceSheet();
+    } catch (err) {
+      alert({
+        title: t('common.error'),
+        message: err instanceof Error ? err.message : t('messages.sendError'),
+      });
+    } finally {
+      setSending(false);
+    }
   };
 
   const sendPickedImage = async (
@@ -692,19 +797,79 @@ export default function ChatScreen() {
               >
                 {peerName}
               </Text>
-              <Text
-                numberOfLines={1}
-                style={{
-                  fontFamily: fontFamily('body'),
-                  fontSize: 12,
-                  lineHeight: 16,
-                  color: peerPresence.online ? colors.success : colors.muted,
-                  marginTop: 1,
-                }}
-              >
-                {peerPresence.label}
-              </Text>
+              {showClientRatingInHeader && peerClientReviewCount > 0 ? (
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 4,
+                    marginTop: 2,
+                  }}
+                >
+                  <Star
+                    size={12}
+                    color={colors.rating ?? colors.accentSoft}
+                    weight="fill"
+                  />
+                  <Text
+                    style={{
+                      fontFamily: fontFamily('body', 'medium'),
+                      fontSize: 12,
+                      color: colors.ink,
+                    }}
+                  >
+                    {peerClientRating.toFixed(1)}
+                  </Text>
+                  <Text
+                    style={{
+                      fontFamily: fontFamily('body'),
+                      fontSize: 11,
+                      color: colors.muted,
+                    }}
+                  >
+                    · {peerPresence.label}
+                  </Text>
+                </View>
+              ) : (
+                <Text
+                  numberOfLines={1}
+                  style={{
+                    fontFamily: fontFamily('body'),
+                    fontSize: 12,
+                    lineHeight: 16,
+                    color: peerPresence.online ? colors.success : colors.muted,
+                    marginTop: 1,
+                  }}
+                >
+                  {peerPresence.label}
+                </Text>
+              )}
             </View>
+
+            {showClientRatingInHeader && peerId ? (
+              <Pressable
+                onPress={() => setClientInfoOpen(true)}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={t('reviews.clientInfoTitle')}
+                style={({ pressed }) => [
+                  { width: 36, height: 36, opacity: pressed ? 0.8 : 1 },
+                ]}
+              >
+                <View
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: colors.iconWash,
+                  }}
+                >
+                  <Info size={18} color={colors.ink} weight="bold" />
+                </View>
+              </Pressable>
+            ) : null}
           </View>
         </View>
       </View>
@@ -756,6 +921,10 @@ export default function ChatScreen() {
                     inputRef.current?.focus();
                   }}
                   onImagePress={(uri) => setZoomUri(uri)}
+                  onServicePress={(id) => {
+                    setServiceSheetMode('view');
+                    setServiceSheetId(id as Id<'services'>);
+                  }}
                 />
               );
             }}
@@ -1094,10 +1263,110 @@ export default function ChatScreen() {
             description={t('imagePicker.takePhoto')}
             onPress={() => void pickCamera()}
           />
+          {showMyServicesAttach ? (
+            <SettingsRow
+              icon={Briefcase}
+              title={t('messages.attachMyServices')}
+              description={t('messages.attachMyServicesDesc')}
+              onPress={() => void openServicePicker('mine')}
+            />
+          ) : null}
+          {showPeerServicesAttach ? (
+            <SettingsRow
+              icon={UserFocus}
+              title={t('messages.attachPeerServices')}
+              description={t('messages.attachPeerServicesDesc')}
+              onPress={() => void openServicePicker('peer')}
+            />
+          ) : null}
+        </View>
+      </AppBottomSheet>
+
+      <AppBottomSheet
+        visible={servicePicker != null}
+        onClose={closeServicePicker}
+        title={
+          servicePicker === 'mine'
+            ? t('messages.attachMyServices')
+            : t('messages.attachPeerServices')
+        }
+        subtitle={
+          servicePicker === 'mine'
+            ? t('messages.attachMyServicesSheetDesc')
+            : t('messages.attachPeerServicesSheetDesc')
+        }
+      >
+        <View style={{ gap: Spacing.three, paddingBottom: Spacing.two }}>
+          <SearchBar
+            value={serviceSearch}
+            onChangeText={setServiceSearch}
+            placeholder={t('messages.attachServiceSearch')}
+          />
+
+          {servicePicker &&
+          pickerServices.length === 0 &&
+          (myServices !== undefined || peerServices !== undefined) ? (
+            <EmptyState
+              icon={Briefcase}
+              title={
+                serviceSearch.trim()
+                  ? t('messages.attachServiceNoResults')
+                  : t('messages.attachServiceEmpty')
+              }
+              description={
+                serviceSearch.trim()
+                  ? t('messages.attachServiceNoResultsDesc')
+                  : t('messages.attachServiceEmptyDesc')
+              }
+              compact
+            />
+          ) : (
+            pickerServices.map(({ service }) => (
+              <SettingsRow
+                key={service._id}
+                icon={Briefcase}
+                title={service.title}
+                description={
+                  service.price != null
+                    ? formatPrice(service.price)
+                    : service.city ?? undefined
+                }
+                onPress={() => void openServiceConfirm(service._id)}
+              />
+            ))
+          )}
         </View>
       </AppBottomSheet>
 
       <ImageZoomModal uri={zoomUri} onClose={() => setZoomUri(null)} />
+
+      <ServiceDetailSheet
+        visible={serviceSheetId != null}
+        onClose={closeServiceSheet}
+        serviceId={serviceSheetId}
+        onSend={
+          serviceSheetMode === 'send'
+            ? (id, title) => void sendServiceCard(id, title)
+            : undefined
+        }
+        sendLoading={sending && serviceSheetMode === 'send'}
+        onViewFull={
+          serviceSheetMode === 'view'
+            ? (serviceId) => {
+                closeServiceSheet();
+                router.push(`/service/${serviceId}`);
+              }
+            : undefined
+        }
+      />
+
+      <ClientInfoSheet
+        visible={clientInfoOpen}
+        onClose={() => setClientInfoOpen(false)}
+        clientId={
+          showClientRatingInHeader && peerId ? (peerId as Id<'users'>) : null
+        }
+      />
     </View>
   );
 }

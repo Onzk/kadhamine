@@ -1,11 +1,12 @@
 import React from 'react';
 import { Pressable, Text, useWindowDimensions, View } from 'react-native';
 import { Image } from 'expo-image';
-import { Check, Checks, Image as ImageIcon, Microphone } from 'phosphor-react-native';
+import { Check, Checks, Briefcase, Image as ImageIcon, MapPin, Microphone, Star } from 'phosphor-react-native';
 import { useTranslation } from 'react-i18next';
 
 import { AudioMessagePlayer } from '@/components/chat/AudioMessagePlayer';
 import { useAppTheme } from '@/providers/ThemeProvider';
+import { formatPrice, formatRating } from '@/types';
 import { Radius, Spacing } from '@/theme/tokens';
 import { fontFamily, textStyle } from '@/theme/typography';
 
@@ -14,19 +15,34 @@ const CHAT_H_PAD = Spacing.three;
 
 export type ChatReplyPreview = {
   _id: string;
-  type: 'text' | 'image' | 'audio' | 'document';
+  type: 'text' | 'image' | 'audio' | 'document' | 'service';
   content: string;
   mediaUrl?: string;
   durationMs?: number;
+  serviceId?: string;
+};
+
+export type ChatServicePreview = {
+  _id: string;
+  title: string;
+  description?: string;
+  price?: number;
+  pricingType?: string;
+  photoUrl?: string;
+  city?: string;
+  averageRating?: number;
+  reviewCount?: number;
 };
 
 export type ChatMessage = {
   _id: string;
   senderId?: string;
-  type: 'text' | 'image' | 'audio' | 'document';
+  type: 'text' | 'image' | 'audio' | 'document' | 'service';
   content: string;
   mediaUrl?: string;
   durationMs?: number;
+  serviceId?: string;
+  servicePreview?: ChatServicePreview | null;
   createdAt: number;
   readBy?: string[];
   replyTo?: ChatReplyPreview | null;
@@ -41,6 +57,7 @@ interface ChatBubbleProps {
   clustered?: boolean;
   onReply?: (message: ChatMessage) => void;
   onImagePress?: (uri: string) => void;
+  onServicePress?: (serviceId: string) => void;
 }
 
 function formatDuration(ms?: number) {
@@ -108,6 +125,7 @@ function ReplyQuote({
     const dur = formatDuration(reply.durationMs);
     if (dur) label = `${label} · ${dur}`;
   }
+  if (reply.type === 'service') label = reply.content || t('messages.servicePreview');
 
   return (
     <View
@@ -268,6 +286,7 @@ export function ChatBubble({
   clustered = false,
   onReply,
   onImagePress,
+  onServicePress,
 }: ChatBubbleProps) {
   const { t } = useTranslation();
   const { colors, isDark } = useAppTheme();
@@ -287,8 +306,13 @@ export function ChatBubble({
 
   const isImage = message.type === 'image' && !!message.mediaUrl;
   const isAudio = message.type === 'audio' && !!message.mediaUrl;
+  const isService = message.type === 'service';
+  const service = message.servicePreview;
   const hasReply = !!message.replyTo;
-  const tightPad = isImage && !hasReply;
+  const tightPad = (isImage || isService) && !hasReply;
+  /** Match chat image bubble max width. */
+  const serviceCardW = imageSide;
+  const serviceImageH = Math.round(serviceCardW * 0.56);
 
   return (
     <Pressable
@@ -300,13 +324,17 @@ export function ChatBubble({
         {
           alignSelf: mine ? 'flex-end' : 'flex-start',
           maxWidth: maxBubbleW,
-          // Hug content; only audio needs a usable floor width
+          // Hug content; audio needs a usable floor width
           minWidth: isAudio ? Math.min(220, maxBubbleW) : undefined,
           opacity: pressed ? 0.92 : 1,
         },
       ]}
     >
-      <View style={{ marginBottom: clustered ? Spacing.one : Spacing.three }}>
+      <View
+        style={{
+          marginBottom: clustered && !isService ? Spacing.one : Spacing.three,
+        }}
+      >
         <View
           style={{
             backgroundColor: mine ? sentBg : receivedBg,
@@ -314,7 +342,11 @@ export function ChatBubble({
             borderBottomRightRadius: mine ? Radius.xs : Radius.md,
             borderBottomLeftRadius: mine ? Radius.md : Radius.xs,
             padding: tightPad ? Spacing.one : Spacing.three,
-            paddingBottom: tightPad ? Spacing.one : Spacing.two,
+            paddingBottom: isService
+              ? Spacing.three
+              : tightPad
+                ? Spacing.one
+                : Spacing.two,
             overflow: 'hidden',
             alignSelf: mine ? 'flex-end' : 'flex-start',
             maxWidth: '100%',
@@ -378,6 +410,162 @@ export function ChatBubble({
                 />
               }
             />
+          ) : isService ? (
+            <Pressable
+              onPress={() => {
+                const id = service?._id ?? message.serviceId;
+                if (id) onServicePress?.(id);
+              }}
+              style={({ pressed }) => [
+                {
+                  width: serviceCardW,
+                  opacity: pressed ? 0.92 : 1,
+                },
+              ]}
+            >
+              <View style={{ width: serviceCardW }}>
+                <View
+                  style={{
+                    width: serviceCardW,
+                    height: serviceImageH,
+                    backgroundColor: mine ? 'rgba(255,255,255,0.18)' : colors.iconWash,
+                    borderRadius: hasReply ? Radius.xs : Radius.md - 4,
+                    overflow: 'hidden',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {service?.photoUrl ? (
+                    <Image
+                      source={{ uri: service.photoUrl }}
+                      style={{ width: '100%', height: '100%' }}
+                      contentFit="cover"
+                    />
+                  ) : (
+                    <Briefcase
+                      size={36}
+                      color={mine ? sentFg : colors.orbit}
+                      weight="duotone"
+                    />
+                  )}
+                </View>
+
+                <View
+                  style={{
+                    paddingHorizontal: tightPad ? Spacing.three : 0,
+                    paddingTop: Spacing.three,
+                    paddingBottom: Spacing.one,
+                    gap: Spacing.one,
+                  }}
+                >
+                  <Text
+                    numberOfLines={2}
+                    style={{
+                      fontFamily: fontFamily('body', 'medium'),
+                      fontSize: 16,
+                      lineHeight: 21,
+                      color: mine ? sentFg : receivedFg,
+                    }}
+                  >
+                    {service?.title ?? message.content}
+                  </Text>
+
+                  {service?.description ? (
+                    <Text
+                      numberOfLines={2}
+                      style={[
+                        textStyle('caption'),
+                        {
+                          color: mine ? 'rgba(255,255,255,0.82)' : colors.muted,
+                          lineHeight: 18,
+                        },
+                      ]}
+                    >
+                      {service.description}
+                    </Text>
+                  ) : null}
+
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: Spacing.two,
+                      marginTop: Spacing.one,
+                    }}
+                  >
+                    {service?.price != null || service?.pricingType === 'negotiable' ? (
+                      <Text
+                        style={{
+                          fontFamily: fontFamily('body', 'medium'),
+                          fontSize: 14,
+                          color: mine ? sentFg : colors.orbit,
+                        }}
+                      >
+                        {service?.pricingType === 'negotiable'
+                          ? t('common.negotiable')
+                          : formatPrice(service?.price ?? 0)}
+                      </Text>
+                    ) : null}
+                    {service?.city ? (
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 3,
+                        }}
+                      >
+                        <MapPin
+                          size={12}
+                          color={mine ? 'rgba(255,255,255,0.75)' : colors.muted}
+                          weight="fill"
+                        />
+                        <Text
+                          style={[
+                            textStyle('micro'),
+                            { color: mine ? 'rgba(255,255,255,0.75)' : colors.muted },
+                          ]}
+                        >
+                          {service.city}
+                        </Text>
+                      </View>
+                    ) : null}
+                    {service?.averageRating != null && (service.reviewCount ?? 0) > 0 ? (
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 3,
+                        }}
+                      >
+                        <Star
+                          size={12}
+                          color={mine ? 'rgba(255,255,255,0.85)' : colors.rating ?? colors.accentSoft}
+                          weight="fill"
+                        />
+                        <Text
+                          style={[
+                            textStyle('micro'),
+                            { color: mine ? 'rgba(255,255,255,0.85)' : colors.muted },
+                          ]}
+                        >
+                          {formatRating(service.averageRating)}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
+
+                  <View style={{ alignSelf: 'flex-end', marginTop: Spacing.one }}>
+                    <MetaRow
+                      createdAt={message.createdAt}
+                      mine={mine}
+                      seenByPeer={seenByPeer}
+                      inline
+                    />
+                  </View>
+                </View>
+              </View>
+            </Pressable>
           ) : (
             <View
               style={{

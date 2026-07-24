@@ -1,23 +1,23 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
   StyleSheet,
   Text,
-  TouchableOpacity,
+  Pressable,
   View,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
-import { BrandColors } from '@/theme/tokens';
+import { BrandColors, Shadows } from '@/theme/tokens';
+import { FLUTTER_FAB } from '@/components/ui/FlutterFab';
 
-const FAB_HEIGHT = 56;
-const FAB_ICON_SIZE = 56;
-const EDGE_MARGIN = 16;
-const LABEL_MAX_WIDTH = 140;
-const ANIM_MS = 220;
+const ANIM_MS = 200;
+/** Padding H étendu — plus serré que Flutter 20 pour labels courts. */
+const EXTENDED_PAD_H = 12;
+const EXTENDED_GAP = 6;
 
 export type AnimatedExtendedFabProps = {
   /** Contrôle l’état étendu / réduit. */
@@ -35,9 +35,8 @@ export type AnimatedExtendedFabProps = {
 };
 
 /**
- * Extended FAB animé (API `Animated` native).
- * Le label à côté de l’icône s’étend / se replie en douceur.
- * Position fixe bas-droite.
+ * Extended FAB animé — même forme / position que `FlutterFab` (M3 r16, 56dp),
+ * avec label compact qui se replie au scroll.
  */
 export function AnimatedExtendedFab({
   expanded,
@@ -47,56 +46,86 @@ export function AnimatedExtendedFab({
   accessibilityLabel,
   backgroundColor = BrandColors.orbit,
   foregroundColor = '#FFFFFF',
-  bottom = EDGE_MARGIN,
-  right = EDGE_MARGIN,
+  bottom = FLUTTER_FAB.edgeMargin,
+  right = FLUTTER_FAB.edgeMargin,
   style,
 }: AnimatedExtendedFabProps) {
   const progress = useRef(new Animated.Value(expanded ? 1 : 0)).current;
+  const [pressed, setPressed] = useState(false);
+  const [labelWidthPx, setLabelWidthPx] = useState(0);
 
   useEffect(() => {
     Animated.timing(progress, {
       toValue: expanded ? 1 : 0,
       duration: ANIM_MS,
       easing: Easing.out(Easing.cubic),
-      useNativeDriver: false, // width / padding ne sont pas supportés par le native driver
+      useNativeDriver: false,
     }).start();
   }, [expanded, progress]);
 
   const labelWidth = progress.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, LABEL_MAX_WIDTH],
+    outputRange: [0, Math.max(labelWidthPx, 1)],
   });
 
   const labelOpacity = progress.interpolate({
-    inputRange: [0, 0.35, 1],
+    inputRange: [0, 0.4, 1],
     outputRange: [0, 0, 1],
   });
 
-  const labelPaddingEnd = progress.interpolate({
+  /** Carré 56 collapsed → icône 24 + paddings extended. */
+  const iconSlotWidth = progress.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, 18],
+    outputRange: [FLUTTER_FAB.height, FLUTTER_FAB.iconSize],
+  });
+
+  const paddingH = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, EXTENDED_PAD_H],
+  });
+
+  const gap = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, EXTENDED_GAP],
   });
 
   return (
     <View pointerEvents="box-none" style={[styles.anchor, { bottom, right }, style]}>
-      <TouchableOpacity
-        activeOpacity={0.88}
+      {/* Mesure hors flux pour caler la largeur au texte réel */}
+      <Text
+        style={[styles.label, styles.measure, { color: foregroundColor }]}
+        onLayout={(e) => {
+          const w = Math.ceil(e.nativeEvent.layout.width);
+          if (w > 0 && w !== labelWidthPx) setLabelWidthPx(w);
+        }}
+      >
+        {label}
+      </Text>
+
+      <Pressable
         onPress={onPress}
+        onPressIn={() => setPressed(true)}
+        onPressOut={() => setPressed(false)}
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel ?? label}
         accessibilityState={{ expanded }}
+        style={({ pressed: p }) => [{ opacity: p ? 0.92 : 1 }]}
       >
         <Animated.View
           style={[
             styles.fab,
+            pressed ? Shadows.fabPressed : Shadows.fab,
             {
               backgroundColor,
-              paddingRight: labelPaddingEnd,
+              paddingLeft: paddingH,
+              paddingRight: paddingH,
+              gap,
             },
-            styles.shadow,
           ]}
         >
-          <View style={styles.iconSlot}>{icon}</View>
+          <Animated.View style={[styles.iconSlot, { width: iconSlotWidth }]}>
+            {icon}
+          </Animated.View>
 
           <Animated.View
             style={[
@@ -107,15 +136,12 @@ export function AnimatedExtendedFab({
               },
             ]}
           >
-            <Text
-              numberOfLines={1}
-              style={[styles.label, { color: foregroundColor }]}
-            >
+            <Text numberOfLines={1} style={[styles.label, { color: foregroundColor }]}>
               {label}
             </Text>
           </Animated.View>
         </Animated.View>
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 }
@@ -164,16 +190,15 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   fab: {
-    height: FAB_HEIGHT,
-    minWidth: FAB_ICON_SIZE,
-    borderRadius: 28,
+    height: FLUTTER_FAB.height,
+    minWidth: FLUTTER_FAB.height,
+    borderRadius: FLUTTER_FAB.radius,
     flexDirection: 'row',
     alignItems: 'center',
     overflow: 'hidden',
   },
   iconSlot: {
-    width: FAB_ICON_SIZE,
-    height: FAB_HEIGHT,
+    height: FLUTTER_FAB.height,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -182,15 +207,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   label: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '600',
-    letterSpacing: 0.2,
+    letterSpacing: 0.1,
   },
-  shadow: {
-    shadowColor: '#000000',
-    shadowOpacity: 0.22,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 6,
+  measure: {
+    position: 'absolute',
+    opacity: 0,
+    zIndex: -1,
   },
 });

@@ -80,7 +80,7 @@ export function AudioMessagePlayer({
         });
         const { sound: next } = await Audio.Sound.createAsync(
           { uri },
-          { shouldPlay: false },
+          { shouldPlay: false, isLooping: false },
         );
         if (!mounted) {
           await next.unloadAsync();
@@ -95,9 +95,10 @@ export function AudioMessagePlayer({
             setResolvedDuration(status.durationMillis);
           }
           if (status.didJustFinish) {
+            // Stop only — seeking to 0 here can restart playback on some devices.
             setPlaying(false);
             setPositionMs(0);
-            void next.setPositionAsync(0);
+            void next.stopAsync().catch(() => {});
           }
         });
         setSound(next);
@@ -122,10 +123,11 @@ export function AudioMessagePlayer({
       await sound.pauseAsync();
       return;
     }
-    if (
-      status.durationMillis &&
-      status.positionMillis >= status.durationMillis - 50
-    ) {
+    const atEnd =
+      status.didJustFinish ||
+      (status.durationMillis != null &&
+        status.positionMillis >= status.durationMillis - 50);
+    if (atEnd || positionMs === 0) {
       await sound.setPositionAsync(0);
     }
     await sound.playAsync();

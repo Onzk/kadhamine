@@ -105,6 +105,7 @@ const messageType = v.union(
   v.literal('image'),
   v.literal('audio'),
   v.literal('document'),
+  v.literal('service'),
 );
 
 export default defineSchema({
@@ -165,6 +166,9 @@ export default defineSchema({
     badge: v.optional(badgeType),
     averageRating: v.number(),
     reviewCount: v.number(),
+    /** Notes reçues en tant que client (avis prestataire→client). */
+    clientAverageRating: v.optional(v.number()),
+    clientReviewCount: v.optional(v.number()),
     completedOrders: v.number(),
     cancelledOrders: v.number(),
     responseTimeMinutes: v.optional(v.number()),
@@ -315,6 +319,8 @@ export default defineSchema({
     fedapayReference: v.optional(v.string()),
     phoneNumber: v.optional(v.string()),
     metadata: v.optional(v.any()),
+    /** Horodatage du dernier enregistrement (initiate) — base des 24 h de refus hors plateforme. */
+    recordedAt: v.optional(v.number()),
     heldAt: v.optional(v.number()),
     releasedAt: v.optional(v.number()),
     createdAt: v.number(),
@@ -333,6 +339,11 @@ export default defineSchema({
     providerId: v.id('users'),
     serviceId: v.id('services'),
     rating: v.number(),
+    /** Tags prestataire (ids constantes). */
+    providerTagIds: v.optional(v.array(v.string())),
+    /** Tags service (ids constantes). */
+    serviceTagIds: v.optional(v.array(v.string())),
+    /** Bloc texte concaténé (tags + commentaire libre). */
     comment: v.optional(v.string()),
     photos: v.optional(v.array(v.string())),
     providerResponse: v.optional(v.string()),
@@ -340,6 +351,12 @@ export default defineSchema({
     isOfficial: v.boolean(),
     isModerated: v.boolean(),
     isVisible: v.boolean(),
+    /**
+     * Valide seulement si le paiement in-app a abouti.
+     * Absent / true = legacy traité comme valide ; false = brouillon / paiement échoué.
+     */
+    isValid: v.optional(v.boolean()),
+    paymentId: v.optional(v.id('payments')),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -348,6 +365,22 @@ export default defineSchema({
     .index('by_client', ['clientId'])
     .index('by_order', ['orderId'])
     .index('by_rating', ['rating']),
+
+  /** Avis prestataire → client (après annulation d’une commande acceptée). */
+  clientReviews: defineTable({
+    orderId: v.id('orders'),
+    clientId: v.id('users'),
+    providerId: v.id('users'),
+    serviceId: v.id('services'),
+    rating: v.number(),
+    tagIds: v.array(v.string()),
+    comment: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_order', ['orderId'])
+    .index('by_client', ['clientId'])
+    .index('by_provider', ['providerId']),
 
   conversations: defineTable({
     participantIds: v.array(v.id('users')),
@@ -370,6 +403,8 @@ export default defineSchema({
     storageId: v.optional(v.id('_storage')),
     /** Audio duration in milliseconds */
     durationMs: v.optional(v.number()),
+    /** Shared service card (type === 'service') */
+    serviceId: v.optional(v.id('services')),
     /** Parent message this replies to */
     replyToId: v.optional(v.id('messages')),
     readBy: v.array(v.id('users')),

@@ -39,6 +39,35 @@ export const getMine = query({
   },
 });
 
+/** Active services for a provider — used when attaching a peer service in chat. */
+export const listByProvider = query({
+  args: {
+    providerId: v.id('users'),
+    activeOnly: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    await requireAuth(ctx);
+    const services = await ctx.db
+      .query('services')
+      .withIndex('by_provider', (q) => q.eq('providerId', args.providerId))
+      .collect();
+
+    const filtered =
+      args.activeOnly === false ? services : services.filter((s) => s.isActive);
+
+    return await Promise.all(
+      filtered.map(async (service) => {
+        const category = await ctx.db.get(service.categoryId);
+        const photos = await resolveServicePhotos(ctx, service);
+        return {
+          service: { ...service, photos },
+          category,
+        };
+      }),
+    );
+  },
+});
+
 export const list = query({
   args: {
     categoryId: v.optional(v.id('categories')),
@@ -249,12 +278,13 @@ export const getById = query({
     const category = await ctx.db.get(service.categoryId);
     const provider = await ctx.db.get(service.providerId);
 
-    const reviews = await ctx.db
+    const reviewsRaw = await ctx.db
       .query('reviews')
       .withIndex('by_service', (q) => q.eq('serviceId', args.serviceId))
       .filter((q) => q.eq(q.field('isVisible'), true))
       .order('desc')
-      .take(10);
+      .take(30);
+    const reviews = reviewsRaw.filter((r) => r.isValid !== false).slice(0, 10);
 
     const photos = await resolveServicePhotos(ctx, service);
 

@@ -9,6 +9,7 @@ import {
 } from 'phosphor-react-native';
 
 import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/ThemedText';
 import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
 import { useAppTheme } from '@/providers/ThemeProvider';
@@ -39,6 +40,26 @@ function formatShortDate(ts: number | string, locale: string) {
   }
 }
 
+/** Terminée et encore à payer (aligné fiche détail / checkout). */
+export function orderNeedsPayment(args: {
+  status: string;
+  paymentStatus?: string | null;
+  paymentMethod?: string | null;
+  isOffPlatform?: boolean;
+}) {
+  if (args.status !== 'completed') return false;
+  if (!args.paymentStatus) return true;
+  if (args.paymentStatus === 'failed') return true;
+  if (
+    args.paymentStatus === 'pending' &&
+    args.paymentMethod !== 'off_platform' &&
+    !args.isOffPlatform
+  ) {
+    return true;
+  }
+  return false;
+}
+
 export type OrderCardProps = {
   title: string;
   status: string;
@@ -51,12 +72,15 @@ export type OrderCardProps = {
   deliveryDate?: string | null;
   paymentStatus?: string | null;
   isOffPlatform?: boolean;
+  /** Affiche le bouton Payer (client, commande terminée non payée). */
+  showPay?: boolean;
+  onPay?: () => void;
   onPress?: () => void;
 };
 
 /**
  * Carte commande — qualité list ServiceCard : padding, badges, prix, parties, dates.
- * Actions (accept / pay / …) live on the order detail screen only.
+ * Action Payer possible sur les commandes terminées non payées (client).
  */
 export function OrderCard({
   title,
@@ -70,15 +94,19 @@ export function OrderCard({
   deliveryDate,
   paymentStatus,
   isOffPlatform,
+  showPay,
+  onPay,
   onPress,
 }: OrderCardProps) {
   const { colors } = useAppTheme();
   const { t, i18n } = useTranslation();
   const initial = (counterpartyName || 'T').charAt(0).toUpperCase();
+  /** Never surface “released” before the order is completed. */
+  const displayPaymentStatus =
+    paymentStatus === 'released' && status !== 'completed' ? 'pending' : paymentStatus;
 
   const body = (
     <>
-      {/* Header: title + status */}
       <View
         style={{
           flexDirection: 'row',
@@ -112,7 +140,6 @@ export function OrderCard({
         />
       </View>
 
-      {/* Party + price row */}
       <View
         style={{
           flexDirection: 'row',
@@ -181,7 +208,6 @@ export function OrderCard({
         ) : null}
       </View>
 
-      {/* Meta: dates + payment */}
       <View
         style={{
           flexDirection: 'row',
@@ -226,10 +252,12 @@ export function OrderCard({
           </View>
         ) : null}
 
-        {paymentStatus ? (
+        {displayPaymentStatus ? (
           <Badge
-            label={t(`payment.${paymentStatus}`, { defaultValue: paymentStatus })}
-            variant={PAYMENT_BADGE[paymentStatus] ?? 'default'}
+            label={t(`payment.${displayPaymentStatus}`, {
+              defaultValue: displayPaymentStatus,
+            })}
+            variant={PAYMENT_BADGE[displayPaymentStatus] ?? 'default'}
           />
         ) : null}
       </View>
@@ -242,15 +270,15 @@ export function OrderCard({
             gap: Spacing.two,
             padding: Spacing.three,
             borderRadius: Radius.sm,
-            backgroundColor: colors.error + '12',
+            backgroundColor: colors.warning + '18',
             borderWidth: BorderWidth.default,
-            borderColor: colors.error + '30',
+            borderColor: colors.warning + '40',
           }}
         >
           <View style={{ marginTop: 1 }}>
-            <WarningCircle size={16} color={colors.error} weight="fill" />
+            <WarningCircle size={16} color={colors.warning} weight="fill" />
           </View>
-          <Text style={[textStyle('micro'), { color: colors.error, flex: 1 }]}>
+          <Text style={[textStyle('micro'), { color: colors.body, flex: 1 }]}>
             {t('payment.offPlatformWarning')}
           </Text>
         </View>
@@ -258,32 +286,33 @@ export function OrderCard({
     </>
   );
 
-  const chrome = (pressed: boolean) => (
-    <View
-      style={{
-        borderRadius: Radius.lg,
-        borderWidth: BorderWidth.default,
-        borderColor: colors.borderStrong,
-        backgroundColor: colors.surfaceCard,
-        padding: Spacing.four,
-        gap: Spacing.three,
-        opacity: pressed ? 0.96 : 1,
-        transform: [{ scale: pressed ? 0.99 : 1 }],
-      }}
-    >
-      {body}
+  const cardStyle = {
+    borderRadius: Radius.lg,
+    borderWidth: BorderWidth.default,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.surfaceCard,
+    padding: Spacing.four,
+    gap: Spacing.three,
+  } as const;
+
+  return (
+    <View style={[cardStyle, { width: '100%' }]}>
+      {onPress ? (
+        <Pressable
+          onPress={onPress}
+          style={({ pressed }) => [{ opacity: pressed ? 0.96 : 1 }]}
+        >
+          <View style={{ gap: Spacing.three }}>{body}</View>
+        </Pressable>
+      ) : (
+        <View style={{ gap: Spacing.three }}>{body}</View>
+      )}
+
+      {showPay && onPay ? (
+        <Button title={t('payment.pay')} onPress={onPay} fullWidth />
+      ) : null}
     </View>
   );
-
-  if (onPress) {
-    return (
-      <Pressable onPress={onPress} style={{ width: '100%' }}>
-        {({ pressed }) => chrome(pressed)}
-      </Pressable>
-    );
-  }
-
-  return chrome(false);
 }
 
 /** Skeleton list row matching OrderCard chrome. */
@@ -302,18 +331,67 @@ export function OrderCardSkeleton() {
     >
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: Spacing.three }}>
         <View style={{ flex: 1, gap: Spacing.two }}>
-          <View style={{ height: 18, width: '70%', borderRadius: Radius.sm, backgroundColor: colors.surfaceStrong }} />
-          <View style={{ height: 12, width: '90%', borderRadius: Radius.sm, backgroundColor: colors.surfaceStrong }} />
+          <View
+            style={{
+              height: 18,
+              width: '70%',
+              borderRadius: Radius.sm,
+              backgroundColor: colors.surfaceStrong,
+            }}
+          />
+          <View
+            style={{
+              height: 12,
+              width: '90%',
+              borderRadius: Radius.sm,
+              backgroundColor: colors.surfaceStrong,
+            }}
+          />
         </View>
-        <View style={{ height: 24, width: 72, borderRadius: Radius.pill, backgroundColor: colors.surfaceStrong }} />
+        <View
+          style={{
+            height: 24,
+            width: 72,
+            borderRadius: Radius.pill,
+            backgroundColor: colors.surfaceStrong,
+          }}
+        />
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.two }}>
-        <View style={{ width: AVATAR, height: AVATAR, borderRadius: AVATAR / 2, backgroundColor: colors.surfaceStrong }} />
+        <View
+          style={{
+            width: AVATAR,
+            height: AVATAR,
+            borderRadius: AVATAR / 2,
+            backgroundColor: colors.surfaceStrong,
+          }}
+        />
         <View style={{ flex: 1, gap: 6 }}>
-          <View style={{ height: 10, width: 48, borderRadius: Radius.sm, backgroundColor: colors.surfaceStrong }} />
-          <View style={{ height: 14, width: 100, borderRadius: Radius.sm, backgroundColor: colors.surfaceStrong }} />
+          <View
+            style={{
+              height: 10,
+              width: 48,
+              borderRadius: Radius.sm,
+              backgroundColor: colors.surfaceStrong,
+            }}
+          />
+          <View
+            style={{
+              height: 14,
+              width: 100,
+              borderRadius: Radius.sm,
+              backgroundColor: colors.surfaceStrong,
+            }}
+          />
         </View>
-        <View style={{ height: 28, width: 64, borderRadius: Radius.sm, backgroundColor: colors.surfaceStrong }} />
+        <View
+          style={{
+            height: 28,
+            width: 64,
+            borderRadius: Radius.sm,
+            backgroundColor: colors.surfaceStrong,
+          }}
+        />
       </View>
     </View>
   );

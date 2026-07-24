@@ -26,6 +26,7 @@ import { AuthPrimaryButton } from '@/components/auth/AuthField';
 import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
 import { ServiceDetailSheet } from '@/components/orders/ServiceDetailSheet';
 import { VoiceRecorderField } from '@/components/orders/VoiceRecorderField';
+import { StarRating } from '@/components/ui/StarRating';
 import { ImageZoomModal } from '@/components/chat/ImageZoomModal';
 import { SheetActionRow, SheetActionSlot } from '@/components/ui/SheetActions';
 import {
@@ -48,6 +49,8 @@ const ACTION_BTN_H = 54;
 const TOPBAR_ICON_SIZE = 44;
 /** Extra scroll breathing room above the sticky footer (beyond footer clearance). */
 const SCROLL_FOOTER_EXTRA = Spacing.twelve;
+/** Aligné CDC : 24 h depuis le dernier paiement enregistré pour la commande. */
+const OFF_PLATFORM_REFUSE_MS = 24 * 60 * 60 * 1000;
 
 function formatDate(ts: number, locale: string) {
   try {
@@ -82,6 +85,20 @@ export default function OrderDetailScreen() {
   const complete = useMutation(api.orders.complete);
   const validate = useMutation(api.orders.validate);
   const cancel = useMutation(api.orders.cancel);
+  const refuseOffPlatform = useMutation(api.payments.refuseOffPlatform);
+
+  const clientReviewEligibility = useQuery(
+    api.reviews.getClientReviewEligibility,
+    user && id && detail?.viewerRole === 'provider'
+      ? { orderId: id as Id<'orders'> }
+      : 'skip',
+  );
+  const clientReviewForClient = useQuery(
+    api.reviews.getClientReviewByOrder,
+    user && id && detail?.viewerRole === 'client'
+      ? { orderId: id as Id<'orders'> }
+      : 'skip',
+  );
 
   const mapTheme = useMemo<LeafletMapTheme>(
     () => ({
@@ -164,10 +181,16 @@ export default function OrderDetailScreen() {
     Number.isFinite(order.latitude) &&
     Number.isFinite(order.longitude);
 
+  /**
+   * Paiement (et marquage payé) uniquement une fois la prestation terminée.
+   * Hors plateforme déjà déclaré : pas de re-paiement.
+   */
   const needsPayment =
     isClient &&
-    ['pending', 'accepted'].includes(order.status) &&
-    (!payment || payment.status === 'pending' || payment.status === 'failed');
+    order.status === 'completed' &&
+    (!payment ||
+      payment.status === 'failed' ||
+      (payment.status === 'pending' && payment.method !== 'off_platform'));
 
   const mapHeight = Math.min(220, Math.round(width * 0.55));
 
@@ -187,19 +210,43 @@ export default function OrderDetailScreen() {
   const showReject = showAccept;
   const showComplete = !isClient && order.status === 'accepted';
   const showValidate =
-    isClient && order.status === 'completed' && payment?.status === 'held';
+    isClient &&
+    order.status === 'completed' &&
+    Boolean(
+      payment &&
+        (payment.status === 'held' ||
+          (payment.method === 'off_platform' && payment.status === 'pending')),
+    );
   const showReview =
     isClient && order.status === 'completed' && order.canReview && !hasReview;
   const showCancel = ['pending', 'accepted'].includes(order.status);
+  const showRateClient = Boolean(clientReviewEligibility?.canRate);
+  const showRefuseOffPlatform =
+    !isClient &&
+    Boolean(
+      payment &&
+        payment.method === 'off_platform' &&
+        payment.status === 'pending' &&
+        payment.releasedAt == null &&
+        Date.now() - (payment.recordedAt ?? payment.createdAt) < OFF_PLATFORM_REFUSE_MS,
+    );
+  /** Never show “released / paid” on UI until the order is completed. */
+  const displayPaymentStatus =
+    payment?.status === 'released' && order.status !== 'completed'
+      ? 'pending'
+      : payment?.status;
 
   const footerActionCount =
     (showPay ? 1 : 0) +
     (showAccept ? 1 : 0) +
     (showComplete ? 1 : 0) +
     (showValidate ? 1 : 0) +
-    (showReview ? 1 : 0);
+    (showReview ? 1 : 0) +
+    (showRefuseOffPlatform ? 1 : 0) +
+    (showRateClient ? 1 : 0);
   const hasFooter = footerActionCount > 0;
-  const hasTopbarCritical = showCancel || showReject;
+  /** Reject / cancel stay in the top bar only. */
+  const hasTopbarCritical = showReject || showCancel;
   /** Safe area bas système — toujours, avec ou sans footer d’actions. */
   const safeBottom = Math.max(insets.bottom, Spacing.two);
   const footerPad = safeBottom + Spacing.three;
@@ -263,6 +310,19 @@ export default function OrderDetailScreen() {
       confirmLabel: t('orders.validate'),
       onConfirm: async () => {
         await validate({ orderId: order._id });
+      },
+    });
+  };
+
+  const handleRefuseOffPlatform = () => {
+    if (!payment) return;
+    confirm({
+      title: t('order.refuseOffPlatformConfirmTitle'),
+      message: t('order.refuseOffPlatformConfirmBody'),
+      destructive: true,
+      confirmLabel: t('payment.refuseOffPlatform'),
+      onConfirm: async () => {
+        await refuseOffPlatform({ paymentId: payment._id });
       },
     });
   };
@@ -381,11 +441,14 @@ export default function OrderDetailScreen() {
 
           {payment?.status ? (
             <Badge
-              label={t(`payment.${payment.status}`, { defaultValue: payment.status })}
+              label={t(`payment.${displayPaymentStatus}`, {
+                defaultValue: displayPaymentStatus,
+              })}
               variant={
-                payment.status === 'held'
+                displayPaymentStatus === 'held'
                   ? 'verified'
-                  : payment.status === 'failed' || payment.status === 'refunded'
+                  : displayPaymentStatus === 'failed' ||
+                      displayPaymentStatus === 'refunded'
                     ? 'danger'
                     : 'accent'
               }
@@ -588,6 +651,35 @@ export default function OrderDetailScreen() {
           </Section>
         ) : null}
 
+        {isClient && clientReviewForClient ? (
+          <View
+            style={{
+              padding: Spacing.four,
+              borderRadius: Radius.lg,
+              backgroundColor: colors.surfaceStrong,
+              borderWidth: BorderWidth.default,
+              borderColor: colors.border,
+              gap: Spacing.two,
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: fontFamily('body', 'medium'),
+                fontSize: 14,
+                color: colors.ink,
+              }}
+            >
+              {t('reviews.clientNoteOnOrder')}
+            </Text>
+            <StarRating rating={clientReviewForClient.rating} size={18} />
+            {clientReviewForClient.comment ? (
+              <Text style={[textStyle('caption'), { color: colors.body }]}>
+                {clientReviewForClient.comment}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+
         {order.isOffPlatformPayment ? (
           <View
             style={{
@@ -595,14 +687,16 @@ export default function OrderDetailScreen() {
               gap: Spacing.two,
               padding: Spacing.four,
               borderRadius: Radius.lg,
-              backgroundColor: colors.error + '12',
+              backgroundColor: colors.warning + '18',
               borderWidth: BorderWidth.default,
-              borderColor: colors.error + '30',
+              borderColor: colors.warning + '40',
             }}
           >
-            <WarningCircle size={18} color={colors.error} weight="fill" />
-            <Text style={[textStyle('micro'), { color: colors.error, flex: 1 }]}>
-              {t('payment.offPlatformWarning')}
+            <WarningCircle size={18} color={colors.warning} weight="fill" />
+            <Text style={[textStyle('micro'), { color: colors.body, flex: 1 }]}>
+              {showRefuseOffPlatform
+                ? t('payment.offPlatformProviderRefuseHint')
+                : t('payment.offPlatformWarning')}
             </Text>
           </View>
         ) : null}
@@ -693,6 +787,28 @@ export default function OrderDetailScreen() {
                   title={t('reviews.leaveReview')}
                   variant="outline"
                   onPress={handleReview}
+                  fullWidth
+                />
+              </SheetActionSlot>
+            ) : null}
+
+            {showRefuseOffPlatform ? (
+              <SheetActionSlot>
+                <Button
+                  title={t('payment.refuseOffPlatform')}
+                  variant="danger"
+                  onPress={handleRefuseOffPlatform}
+                  fullWidth
+                />
+              </SheetActionSlot>
+            ) : null}
+
+            {showRateClient ? (
+              <SheetActionSlot>
+                <Button
+                  title={t('reviews.rateClient')}
+                  variant="outline"
+                  onPress={() => router.push(`/review/client/${order._id}`)}
                   fullWidth
                 />
               </SheetActionSlot>

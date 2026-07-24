@@ -63,7 +63,7 @@ export const listMine = query({
           order,
           service,
           payment,
-          hasReview: Boolean(review),
+          hasReview: Boolean(review && review.isValid !== false),
           counterpartyName,
           counterpartyAvatar: counterpartyProfile?.avatarUrl ?? null,
         };
@@ -128,6 +128,7 @@ export const getById = query({
       .query('reviews')
       .withIndex('by_order', (q) => q.eq('orderId', order._id))
       .first();
+    const hasValidReview = Boolean(review && review.isValid !== false);
 
     const counterpartyId = viewerRole === 'client' ? order.providerId : order.clientId;
     const counterpartyUser = await ctx.db.get(counterpartyId);
@@ -153,7 +154,8 @@ export const getById = query({
       order,
       service,
       payment,
-      hasReview: Boolean(review),
+      hasReview: hasValidReview,
+      review: viewerRole === 'client' || hasValidReview ? review : null,
       viewerRole,
       counterpartyName,
       counterpartyAvatar: counterpartyProfile?.avatarUrl ?? null,
@@ -345,7 +347,13 @@ export const validate = mutation({
       .withIndex('by_order', (q) => q.eq('orderId', args.orderId))
       .first();
 
-    if (payment && payment.status === 'held') {
+    /** Release only after completion — held (escrow) or declared off-platform. */
+    const canRelease =
+      payment &&
+      (payment.status === 'held' ||
+        (payment.method === 'off_platform' && payment.status === 'pending'));
+
+    if (canRelease && payment) {
       await ctx.db.patch(payment._id, {
         status: 'released',
         releasedAt: now(),
@@ -408,12 +416,16 @@ export const cancel = mutation({
       throw new Error('Cette commande ne peut plus être annulée');
     }
 
+    const timestamp = now();
+    /** Conserve `acceptedAt` s’il existe → ouvre la notation client pour le prestataire. */
     await ctx.db.patch(args.orderId, {
       status: 'cancelled',
-      cancelledAt: now(),
+      cancelledAt: timestamp,
       clientNotes: args.reason,
-      updatedAt: now(),
+      updatedAt: timestamp,
     });
+
+    const wasAccepted = order.acceptedAt != null || order.status === 'accepted';
 
     if (order.providerId === userId) {
       const profile = await ctx.db
@@ -423,9 +435,44 @@ export const cancel = mutation({
       if (profile) {
         await ctx.db.patch(profile._id, {
           cancelledOrders: profile.cancelledOrders + 1,
-          updatedAt: now(),
+          updatedAt: timestamp,
         });
       }
     }
+
+    if (wasAccepted && order.providerId === userId) {
+      await createNotification(ctx, {
+        userId: order.providerId,
+        type: 'review',
+        title: 'Noter le client',
+        body: 'La commande acceptée a été annulée. Vous pouvez laisser une note sur ce client.',
+        data: { orderId: args.orderId },
+      });
+    } else if (wasAccepted && order.clientId === userId) {
+      await createNotification(ctx, {
+        userId: order.providerId,
+        type: 'review',
+        title: 'Commande annulée',
+        body: 'Le client a annulé une commande acceptée. Vous pouvez laisser une note sur ce client.',
+        data: { orderId: args.orderId },
+      });
+    }
+  },
+});
+
+/** Pending orders awaiting provider action — providers only. */
+export const pendingCount = query({
+  args: {},
+  handler: async (ctx) => {
+    const { userId, user } = await requireAuth(ctx);
+    if (user.role !== 'provider') return 0;
+
+    const pending = await ctx.db
+      .query('orders')
+      .withIndex('by_provider_status', (q) =>
+        q.eq('providerId', userId).eq('status', 'pending'),
+      )
+      .collect();
+    return pending.length;
   },
 });

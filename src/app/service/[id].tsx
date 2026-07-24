@@ -6,7 +6,6 @@ import {
   Dimensions,
   ActivityIndicator,
   AppState,
-  Share,
   ScrollView,
   type NativeSyntheticEvent,
   type NativeScrollEvent,
@@ -59,6 +58,7 @@ import {
   type PortfolioDetailItem,
 } from '@/components/portfolio/PortfolioDetailSheet';
 import { CategoryIcon } from '@/lib/categoryIcons';
+import { buildServiceShare, shareContent } from '@/lib/shareContent';
 import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { useAppDialog } from '@/providers/AppDialogProvider';
@@ -204,6 +204,7 @@ function StickyTopBar({
   shareLabel,
 }: StickyTopBarProps) {
   const { colors } = useAppTheme();
+  const insets = useSafeAreaInsets();
 
   const style = useAnimatedStyle(() => ({
     opacity: interpolate(
@@ -237,7 +238,7 @@ function StickyTopBar({
           backgroundColor: colors.canvas,
           borderBottomWidth: BorderWidth.default,
           borderBottomColor: colors.border,
-          paddingTop: Spacing.two,
+          paddingTop: insets.top + Spacing.two,
           paddingHorizontal: PAGE_PAD,
           paddingBottom: Spacing.two,
           flexDirection: 'row',
@@ -590,10 +591,36 @@ export default function ServiceDetailScreen() {
 
   const handleShare = async () => {
     if (!data?.service) return;
+    const { service, profile, category } = data;
+    const providerName = profile
+      ? `${profile.firstName} ${profile.lastName}`.trim()
+      : null;
+    const catLabel =
+      i18n.language === 'ar' && category?.nameAr
+        ? category.nameAr
+        : i18n.language === 'sara' && category?.nameSara
+          ? category.nameSara
+          : category?.nameFr;
     try {
-      await Share.share({
-        message: t('service.shareMessage', { title: data.service.title }),
-      });
+      await shareContent(
+        buildServiceShare(
+          {
+            serviceId: service._id,
+            title: service.title,
+            description: service.description,
+            price: service.price,
+            pricingType: service.pricingType,
+            currency: service.currency,
+            city: service.city,
+            region: service.region,
+            categoryLabel: catLabel ?? null,
+            providerName,
+            averageRating: service.averageRating,
+            reviewCount: service.reviewCount,
+          },
+          t,
+        ),
+      );
     } catch {
       // user dismissed
     }
@@ -689,13 +716,6 @@ export default function ServiceDetailScreen() {
     }
   };
 
-  const handleWriteReview = () => {
-    alert({
-      title: t('service.writeReview'),
-      message: t('service.writeReviewHint'),
-    });
-  };
-
   const syncPhotoIndex = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_W);
     if (index !== photoIndexRef.current) {
@@ -785,7 +805,7 @@ export default function ServiceDetailScreen() {
             style={[
               {
                 position: 'absolute',
-                top: Spacing.four,
+                top: insets.top + Spacing.four,
                 left: PAGE_PAD,
                 right: PAGE_PAD,
                 flexDirection: 'row',
@@ -924,30 +944,6 @@ export default function ServiceDetailScreen() {
                 ({service.reviewCount} {t('service.reviews').toLowerCase()})
               </Text>
             </View>
-            <Pressable
-              onPress={handleWriteReview}
-              hitSlop={8}
-              style={({ pressed }) => ({
-                alignSelf: 'flex-start',
-                opacity: pressed ? 0.7 : 1,
-                marginTop: Spacing.oneHalf,
-              })}
-            >
-              <View>
-                <Text
-                  style={[
-                    textStyle('caption'),
-                    {
-                      color: colors.link,
-                      fontFamily: fontFamily('body', 'medium'),
-                      textDecorationLine: 'underline',
-                    },
-                  ]}
-                >
-                  {t('service.writeReview')}
-                </Text>
-              </View>
-            </Pressable>
           </View>
 
           {/* Price */}

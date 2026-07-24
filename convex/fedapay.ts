@@ -3,6 +3,7 @@ import { action, internalMutation } from './_generated/server';
 import { internal } from './_generated/api';
 import { Doc, Id } from './_generated/dataModel';
 import { activatePremiumSubscription } from './subscriptions';
+import { validateReviewForOrder } from './reviews';
 
 const FEDAPAY_API =
   process.env.FEDAPAY_ENV === 'live'
@@ -30,38 +31,35 @@ type CreateTxResult = {
 async function createFedapayTransactionApi(args: {
   amount: number;
   description: string;
-  phoneNumber: string;
-  method: 'airtel_money' | 'moov_money' | 'fedapay';
+  phoneNumber?: string;
   customerEmail?: string;
   customerName?: string;
   metadata: Record<string, string>;
   reference: string;
 }): Promise<{ transactionId: number; reference: string; paymentUrl: string | null }> {
-  const mode =
-    args.method === 'airtel_money'
-      ? 'airtel'
-      : args.method === 'moov_money'
-        ? 'moov'
-        : 'mtn_open';
+  const customer: Record<string, unknown> = {
+    firstname: args.customerName?.split(' ')[0] ?? 'Client',
+    lastname: args.customerName?.split(' ').slice(1).join(' ') || 'TalentTchad',
+    email: args.customerEmail ?? 'client@talenttchad.com',
+  };
+
+  // Le numéro est saisi sur la page FedaPay ; on ne l’envoie que s’il est déjà connu.
+  if (args.phoneNumber?.trim()) {
+    customer.phone_number = {
+      number: args.phoneNumber.trim(),
+      country: 'td',
+    };
+  }
 
   const body = {
     description: args.description,
     amount: args.amount,
     currency: { iso: 'XAF' },
     callback_url: process.env.FEDAPAY_CALLBACK_URL,
-    customer: {
-      firstname: args.customerName?.split(' ')[0] ?? 'Client',
-      lastname: args.customerName?.split(' ').slice(1).join(' ') || 'TalentTchad',
-      email: args.customerEmail ?? 'client@talenttchad.com',
-      phone_number: {
-        number: args.phoneNumber,
-        country: 'td',
-      },
-    },
+    customer,
     custom_metadata: {
       ...args.metadata,
       reference: args.reference,
-      mode,
     },
   };
 
@@ -110,12 +108,7 @@ export const createTransaction = action({
     paymentId: v.id('payments'),
     amount: v.number(),
     description: v.string(),
-    phoneNumber: v.string(),
-    method: v.union(
-      v.literal('airtel_money'),
-      v.literal('moov_money'),
-      v.literal('fedapay'),
-    ),
+    phoneNumber: v.optional(v.string()),
     customerEmail: v.optional(v.string()),
     customerName: v.optional(v.string()),
   },
@@ -124,7 +117,7 @@ export const createTransaction = action({
     const reference = `TT-ORDER-${args.paymentId}-${Date.now()}`;
 
     if (!secret) {
-      await ctx.runMutation(internal.fedapay.linkTransaction, {
+      await ctx.runMutation(internal.fedapay.approveSandboxPayment, {
         paymentId: args.paymentId,
         fedapayTransactionId: `sandbox-${Date.now()}`,
         fedapayReference: reference,
@@ -141,7 +134,6 @@ export const createTransaction = action({
       amount: args.amount,
       description: args.description,
       phoneNumber: args.phoneNumber,
-      method: args.method,
       customerEmail: args.customerEmail,
       customerName: args.customerName,
       reference,
@@ -170,12 +162,7 @@ export const createPremiumTransaction = action({
   args: {
     subscriptionId: v.id('subscriptions'),
     amount: v.number(),
-    phoneNumber: v.string(),
-    method: v.union(
-      v.literal('airtel_money'),
-      v.literal('moov_money'),
-      v.literal('fedapay'),
-    ),
+    phoneNumber: v.optional(v.string()),
     customerEmail: v.optional(v.string()),
     customerName: v.optional(v.string()),
   },
@@ -207,7 +194,6 @@ export const createPremiumTransaction = action({
       amount: args.amount,
       description: 'Abonnement TalentTchad Premium',
       phoneNumber: args.phoneNumber,
-      method: args.method,
       customerEmail: args.customerEmail,
       customerName: args.customerName,
       reference,
@@ -244,6 +230,36 @@ export const linkTransaction = internalMutation({
       fedapayReference: args.fedapayReference,
       updatedAt: Date.now(),
     });
+  },
+});
+
+/** Sandbox local : paiement tenu + avis validé. */
+export const approveSandboxPayment = internalMutation({
+  args: {
+    paymentId: v.id('payments'),
+    fedapayTransactionId: v.string(),
+    fedapayReference: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const payment = await ctx.db.get(args.paymentId);
+    if (!payment) throw new Error('Paiement introuvable');
+    const order = await ctx.db.get(payment.orderId);
+    if (!order || order.status !== 'completed') {
+      throw new Error('Commande non terminée');
+    }
+    const timestamp = Date.now();
+    await ctx.db.patch(args.paymentId, {
+      status: 'held',
+      fedapayTransactionId: args.fedapayTransactionId,
+      fedapayReference: args.fedapayReference,
+      heldAt: timestamp,
+      updatedAt: timestamp,
+    });
+    await ctx.db.patch(payment.orderId, {
+      canReview: true,
+      updatedAt: timestamp,
+    });
+    await validateReviewForOrder(ctx, payment.orderId, args.paymentId);
   },
 });
 
@@ -346,18 +362,27 @@ export const handleWebhook = internalMutation({
     const timestamp = Date.now();
 
     if (approved) {
+      const order = await ctx.db.get(payment.orderId);
+      if (!order || order.status !== 'completed') {
+        return { ok: false, reason: 'order_not_completed' };
+      }
       await ctx.db.patch(payment._id, {
         status: 'held',
         fedapayTransactionId: args.transactionId ?? payment.fedapayTransactionId,
         heldAt: timestamp,
         updatedAt: timestamp,
       });
-      await ctx.db.patch(payment.orderId, { canReview: true, updatedAt: timestamp });
+      await ctx.db.patch(payment.orderId, {
+        canReview: true,
+        updatedAt: timestamp,
+      });
+      await validateReviewForOrder(ctx, payment.orderId, payment._id);
     } else if (declined) {
       await ctx.db.patch(payment._id, {
         status: 'failed',
         updatedAt: timestamp,
       });
+      /** Avis reste isValid=false — ne compte pas dans les moyennes. */
     }
 
     return { ok: true, paymentId: payment._id, status: approved ? 'held' : 'failed' };

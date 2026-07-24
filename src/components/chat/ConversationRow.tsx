@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
+import { Check, Checks } from 'phosphor-react-native';
 
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { Radius, Spacing } from '@/theme/tokens';
@@ -11,6 +12,8 @@ export type ConversationPeer = {
   _id: string;
   name: string | null;
   avatarUrl?: string;
+  isOnline?: boolean;
+  lastActiveAt?: number | null;
 };
 
 export type ConversationListItem = {
@@ -20,6 +23,10 @@ export type ConversationListItem = {
   updatedAt: number;
   peer: ConversationPeer;
   unreadCount: number;
+  /** True when the latest message was sent by the current user. */
+  lastMessageMine?: boolean;
+  /** True when the peer has read that latest outbound message. */
+  lastMessageSeenByPeer?: boolean;
 };
 
 function formatConversationTime(
@@ -60,7 +67,9 @@ export function ConversationRow({ conversation, onPress }: ConversationRowProps)
       ? t('messages.imagePreview')
       : preview === '[Audio]'
         ? t('messages.audioPreview')
-        : preview || t('messages.noPreview');
+        : preview === '[Service]'
+          ? t('messages.servicePreview')
+          : preview || t('messages.noPreview');
 
   return (
     <Pressable
@@ -74,41 +83,55 @@ export function ConversationRow({ conversation, onPress }: ConversationRowProps)
           flexDirection: 'row',
           alignItems: 'center',
           gap: Spacing.three,
-          backgroundColor: unread ? colors.orbitWash : colors.surfaceCard,
-          borderRadius: Radius.lg,
-          borderWidth: 0.1,
-          borderColor: colors.border,
-          padding: Spacing.four,
+          paddingVertical: Spacing.two,
         }}
       >
-        <View
-          style={{
-            width: 52,
-            height: 52,
-            borderRadius: 26,
-            overflow: 'hidden',
-            backgroundColor: colors.iconWash,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          {conversation.peer.avatarUrl ? (
-            <Image
-              source={{ uri: conversation.peer.avatarUrl }}
-              style={{ width: '100%', height: '100%' }}
-              contentFit="cover"
-            />
-          ) : (
-            <Text
+        <View style={{ width: 52, height: 52 }}>
+          <View
+            style={{
+              width: 52,
+              height: 52,
+              borderRadius: 26,
+              overflow: 'hidden',
+              backgroundColor: colors.iconWash,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {conversation.peer.avatarUrl ? (
+              <Image
+                source={{ uri: conversation.peer.avatarUrl }}
+                style={{ width: '100%', height: '100%' }}
+                contentFit="cover"
+              />
+            ) : (
+              <Text
+                style={{
+                  fontFamily: fontFamily('body', 'medium'),
+                  fontSize: 20,
+                  color: colors.ink,
+                }}
+              >
+                {initial}
+              </Text>
+            )}
+          </View>
+          {conversation.peer.isOnline ? (
+            <View
+              accessibilityLabel={t('messages.online')}
               style={{
-                fontFamily: fontFamily('body', 'medium'),
-                fontSize: 20,
-                color: colors.ink,
+                position: 'absolute',
+                right: 1,
+                bottom: 1,
+                width: 14,
+                height: 14,
+                borderRadius: 7,
+                backgroundColor: colors.success,
+                borderWidth: 2,
+                borderColor: colors.canvas,
               }}
-            >
-              {initial}
-            </Text>
-          )}
+            />
+          ) : null}
         </View>
 
         <View style={{ flex: 1, minWidth: 0 }}>
@@ -145,6 +168,22 @@ export function ConversationRow({ conversation, onPress }: ConversationRowProps)
               gap: Spacing.two,
             }}
           >
+            {conversation.lastMessageMine ? (
+              <View
+                accessibilityLabel={
+                  conversation.lastMessageSeenByPeer
+                    ? t('messages.readReceiptSeen')
+                    : t('messages.readReceiptSent')
+                }
+                style={{ marginTop: 1 }}
+              >
+                {conversation.lastMessageSeenByPeer ? (
+                  <Checks size={16} color={colors.orbit} weight="bold" />
+                ) : (
+                  <Check size={16} color={colors.muted} weight="bold" />
+                )}
+              </View>
+            ) : null}
             <Text
               numberOfLines={1}
               style={[
