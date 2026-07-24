@@ -76,13 +76,13 @@
       [
         "expo-av",
         {
-          "microphonePermission": "TalentTchad utilise le micro pour les messages vocaux de commande."
+          "microphonePermission": "TalentTchad utilise le micro pour les messages vocaux."
         }
       ],
       [
         "expo-audio",
         {
-          "microphonePermission": "TalentTchad utilise le micro pour les messages vocaux de commande."
+          "microphonePermission": "TalentTchad utilise le micro pour les messages vocaux."
         }
       ]
     ],

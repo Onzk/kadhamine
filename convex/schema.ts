@@ -103,6 +103,7 @@ const mediaType = v.union(
 const messageType = v.union(
   v.literal('text'),
   v.literal('image'),
+  v.literal('audio'),
   v.literal('document'),
 );
 
@@ -365,6 +366,10 @@ export default defineSchema({
     content: v.string(),
     mediaUrl: v.optional(v.string()),
     storageId: v.optional(v.id('_storage')),
+    /** Audio duration in milliseconds */
+    durationMs: v.optional(v.number()),
+    /** Parent message this replies to */
+    replyToId: v.optional(v.id('messages')),
     readBy: v.array(v.id('users')),
     createdAt: v.number(),
   })

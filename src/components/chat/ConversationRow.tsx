@@ -56,7 +56,11 @@ export function ConversationRow({ conversation, onPress }: ConversationRowProps)
   const timeTs = conversation.lastMessageAt ?? conversation.updatedAt;
   const preview = conversation.lastMessagePreview?.trim();
   const displayPreview =
-    preview === '[Image]' ? t('messages.imagePreview') : preview || t('messages.noPreview');
+    preview === '[Image]'
+      ? t('messages.imagePreview')
+      : preview === '[Audio]'
+        ? t('messages.audioPreview')
+        : preview || t('messages.noPreview');
 
   return (
     <Pressable

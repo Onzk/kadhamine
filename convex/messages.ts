@@ -5,6 +5,13 @@ import type { QueryCtx } from './_generated/server';
 import { requireAuth, createNotification, now } from './lib';
 import { internal } from './_generated/api';
 
+const messageTypeValidator = v.union(
+  v.literal('text'),
+  v.literal('image'),
+  v.literal('audio'),
+  v.literal('document'),
+);
+
 async function resolvePeer(
   ctx: QueryCtx,
   userId: Id<'users'>,
@@ -53,6 +60,27 @@ function sortConversations(conversations: Doc<'conversations'>[]) {
     (a, b) =>
       (b.lastMessageAt ?? b.updatedAt) - (a.lastMessageAt ?? a.updatedAt),
   );
+}
+
+function previewForMessage(
+  type: 'text' | 'image' | 'audio' | 'document',
+  content: string,
+) {
+  if (type === 'image') return '[Image]';
+  if (type === 'audio') return '[Audio]';
+  if (type === 'document') return '[Document]';
+  return content.slice(0, 100);
+}
+
+async function resolveMediaUrl(
+  ctx: QueryCtx,
+  msg: Pick<Doc<'messages'>, 'mediaUrl' | 'storageId'>,
+) {
+  if (msg.mediaUrl) return msg.mediaUrl;
+  if (msg.storageId) {
+    return (await ctx.storage.getUrl(msg.storageId)) ?? undefined;
+  }
+  return undefined;
 }
 
 export const list = query({
@@ -112,11 +140,32 @@ export const getMessages = query({
 
     return await Promise.all(
       messages.map(async (msg) => {
-        let mediaUrl = msg.mediaUrl;
-        if (!mediaUrl && msg.storageId) {
-          mediaUrl = (await ctx.storage.getUrl(msg.storageId)) ?? undefined;
+        const mediaUrl = await resolveMediaUrl(ctx, msg);
+
+        let replyTo:
+          | {
+              _id: Id<'messages'>;
+              type: Doc<'messages'>['type'];
+              content: string;
+              mediaUrl?: string;
+              durationMs?: number;
+            }
+          | null = null;
+
+        if (msg.replyToId) {
+          const parent = await ctx.db.get(msg.replyToId);
+          if (parent) {
+            replyTo = {
+              _id: parent._id,
+              type: parent.type,
+              content: parent.content,
+              mediaUrl: await resolveMediaUrl(ctx, parent),
+              durationMs: parent.durationMs,
+            };
+          }
         }
-        return { ...msg, mediaUrl };
+
+        return { ...msg, mediaUrl, replyTo };
       }),
     );
   },
@@ -154,11 +203,11 @@ export const send = mutation({
   args: {
     conversationId: v.id('conversations'),
     content: v.string(),
-    type: v.optional(
-      v.union(v.literal('text'), v.literal('image'), v.literal('document')),
-    ),
+    type: v.optional(messageTypeValidator),
     mediaUrl: v.optional(v.string()),
     storageId: v.optional(v.id('_storage')),
+    durationMs: v.optional(v.number()),
+    replyToId: v.optional(v.id('messages')),
   },
   handler: async (ctx, args) => {
     const { userId } = await requireAuth(ctx);
@@ -176,18 +225,38 @@ export const send = mutation({
     if (messageType === 'image' && !args.storageId && !mediaUrl) {
       throw new Error('Image requise');
     }
+    if (messageType === 'audio' && !args.storageId && !mediaUrl) {
+      throw new Error('Audio requis');
+    }
+
+    if (args.replyToId) {
+      const parent = await ctx.db.get(args.replyToId);
+      if (!parent || parent.conversationId !== args.conversationId) {
+        throw new Error('Message parent introuvable');
+      }
+    }
 
     const timestamp = now();
-    const preview =
-      messageType === 'image' ? '[Image]' : args.content.slice(0, 100);
+    const defaultContent =
+      messageType === 'image'
+        ? 'Image'
+        : messageType === 'audio'
+          ? 'Audio'
+          : messageType === 'document'
+            ? 'Document'
+            : '';
+    const content = args.content || defaultContent;
+    const preview = previewForMessage(messageType, content);
 
     const messageId = await ctx.db.insert('messages', {
       conversationId: args.conversationId,
       senderId: userId,
       type: messageType,
-      content: args.content || (messageType === 'image' ? 'Image' : ''),
+      content,
       mediaUrl,
       storageId: args.storageId,
+      durationMs: messageType === 'audio' ? args.durationMs : undefined,
+      replyToId: args.replyToId,
       readBy: [userId],
       createdAt: timestamp,
     });
@@ -227,6 +296,11 @@ export const markRead = mutation({
   args: { conversationId: v.id('conversations') },
   handler: async (ctx, args) => {
     const { userId } = await requireAuth(ctx);
+    const conversation = await ctx.db.get(args.conversationId);
+    if (!conversation || !conversation.participantIds.includes(userId)) {
+      throw new Error('Conversation introuvable');
+    }
+
     const messages = await ctx.db
       .query('messages')
       .withIndex('by_conversation', (q) =>
@@ -235,7 +309,8 @@ export const markRead = mutation({
       .collect();
 
     for (const msg of messages) {
-      if (!msg.readBy.includes(userId)) {
+      // Mark incoming messages as read by the current user (drives peer read receipts)
+      if (msg.senderId !== userId && !msg.readBy.includes(userId)) {
         await ctx.db.patch(msg._id, {
           readBy: [...msg.readBy, userId],
         });
