@@ -40,12 +40,18 @@ export type ReviewFormPart =
   | 'comment'
   | 'clientTags';
 
+/** Erreurs de saisie affichées sous le groupe concerné (pas de dialogue). */
+export type ReviewFormErrors = Partial<
+  Record<'rating' | 'providerTags' | 'serviceTags' | 'clientTags', string | null>
+>;
+
 type ProviderServiceProps = {
   mode: 'providerService';
   value: ProviderServiceReviewValue;
   onChange: (next: ProviderServiceReviewValue) => void;
   parts?: ReviewFormPart[];
   requiredHint?: string;
+  errors?: ReviewFormErrors;
 };
 
 type ClientProps = {
@@ -54,6 +60,7 @@ type ClientProps = {
   onChange: (next: ClientReviewValue) => void;
   parts?: ReviewFormPart[];
   requiredHint?: string;
+  errors?: ReviewFormErrors;
 };
 
 type Props = ProviderServiceProps | ClientProps;
@@ -69,9 +76,11 @@ function resolveOptionLabel(
 function SectionCard({
   children,
   paddingBottom,
+  error,
 }: {
   children: React.ReactNode;
   paddingBottom?: number;
+  error?: string | null;
 }) {
   const { colors } = useAppTheme();
   return (
@@ -80,13 +89,23 @@ function SectionCard({
         backgroundColor: colors.surfaceCard,
         borderRadius: Radius.lg,
         borderWidth: BorderWidth.default,
-        borderColor: colors.borderStrong,
+        borderColor: error ? colors.error : colors.borderStrong,
         padding: Spacing.five,
         paddingBottom: paddingBottom ?? Spacing.five,
         gap: Spacing.four,
       }}
     >
       {children}
+      {error ? (
+        <Text
+          style={[
+            textStyle('micro'),
+            { color: colors.error, textAlign: 'center' },
+          ]}
+        >
+          {error}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -150,7 +169,7 @@ export function OrderReviewForm(props: Props) {
     return (
       <View style={{ gap: Spacing.five }}>
         {parts.includes('rating') ? (
-          <SectionCard paddingBottom={Spacing.three}>
+          <SectionCard paddingBottom={Spacing.three} error={props.errors?.rating}>
             <Text
               style={{
                 fontFamily: fontFamily('body', 'medium'),
@@ -170,7 +189,7 @@ export function OrderReviewForm(props: Props) {
         ) : null}
 
         {parts.includes('clientTags') ? (
-          <SectionCard>
+          <SectionCard error={props.errors?.clientTags}>
             <ReviewTagPicker
               title={t('reviews.clientTagsTitle')}
               subtitle={t('reviews.tagsPickHint')}
@@ -238,7 +257,7 @@ export function OrderReviewForm(props: Props) {
   return (
     <View style={{ gap: Spacing.five }}>
       {parts.includes('rating') ? (
-        <SectionCard paddingBottom={Spacing.three}>
+        <SectionCard paddingBottom={Spacing.three} error={props.errors?.rating}>
           <Text
             style={{
               fontFamily: fontFamily('body', 'medium'),
@@ -258,7 +277,7 @@ export function OrderReviewForm(props: Props) {
       ) : null}
 
       {parts.includes('providerTags') ? (
-        <SectionCard>
+        <SectionCard error={props.errors?.providerTags}>
           <ReviewTagPicker
             title={t('reviews.providerTagsTitle')}
             subtitle={t('reviews.tagsPickHint')}
@@ -270,7 +289,7 @@ export function OrderReviewForm(props: Props) {
       ) : null}
 
       {parts.includes('serviceTags') ? (
-        <SectionCard>
+        <SectionCard error={props.errors?.serviceTags}>
           <ReviewTagPicker
             title={t('reviews.serviceTagsTitle')}
             subtitle={t('reviews.tagsPickHint')}

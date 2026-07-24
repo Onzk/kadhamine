@@ -173,6 +173,8 @@ export const RATING_EXPRESSIONS: {
 
 /**
  * Concatène tags + commentaire libre en un bloc texte stocké en `comment`.
+ * Format : sections « À propos de… » puis, s’il y a un texte libre, une ligne
+ * séparatrice puis le commentaire en bas.
  */
 export function buildReviewCommentBlock(parts: {
   providerHeading?: string;
@@ -194,10 +196,12 @@ export function buildReviewCommentBlock(parts: {
   if (parts.clientLabels?.length && parts.clientHeading) {
     blocks.push(`${parts.clientHeading}\n• ${parts.clientLabels.join('\n• ')}`);
   }
-  const free = parts.freeText?.trim();
-  if (free) blocks.push(free);
 
-  return blocks.join('\n\n').trim();
+  const free = parts.freeText?.trim();
+  if (!free) return blocks.join('\n\n').trim();
+
+  if (blocks.length === 0) return free;
+  return `${blocks.join('\n\n')}\n\n———\n${free}`.trim();
 }
 
 export function isProviderReviewTagId(id: string): id is ProviderReviewTagId {

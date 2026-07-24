@@ -11,7 +11,7 @@ import {
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/ThemedText';
-import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
+import { OrderStatusBadge, orderDisplayStatus } from '@/components/orders/OrderStatusBadge';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { BorderWidth, Radius, Spacing } from '@/theme/tokens';
 import { fontFamily, textStyle } from '@/theme/typography';
@@ -104,6 +104,7 @@ export function OrderCard({
   /** Never surface “released” before the order is completed. */
   const displayPaymentStatus =
     paymentStatus === 'released' && status !== 'completed' ? 'pending' : paymentStatus;
+  const displayStatus = orderDisplayStatus(status, displayPaymentStatus);
 
   const body = (
     <>
@@ -135,8 +136,8 @@ export function OrderCard({
           ) : null}
         </View>
         <OrderStatusBadge
-          label={t(`orders.${status}`, { defaultValue: status })}
-          status={status}
+          label={t(`orders.${displayStatus}`, { defaultValue: displayStatus })}
+          status={displayStatus}
         />
       </View>
 

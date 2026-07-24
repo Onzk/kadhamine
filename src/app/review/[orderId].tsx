@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
+import { CheckCircle } from 'phosphor-react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery } from 'convex/react';
@@ -15,6 +16,7 @@ import {
   OrderReviewForm,
   emptyProviderServiceReview,
   type ProviderServiceReviewValue,
+  type ReviewFormErrors,
 } from '@/components/reviews/OrderReviewForm';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { useAppDialog } from '@/providers/AppDialogProvider';
@@ -34,6 +36,7 @@ export default function ReviewScreen() {
   const insets = useSafeAreaInsets();
 
   const [review, setReview] = useState<ProviderServiceReviewValue>(emptyProviderServiceReview);
+  const [errors, setErrors] = useState<ReviewFormErrors>({});
   const [loading, setLoading] = useState(false);
   const [footerH, setFooterH] = useState(0);
 
@@ -44,21 +47,33 @@ export default function ReviewScreen() {
   const createReview = useMutation(api.reviews.create);
 
   const actionBottomPad = Math.max(insets.bottom, Spacing.two) + Spacing.four;
-  const canSubmit =
-    review.rating >= 1 &&
-    review.rating <= 5 &&
-    (review.providerTagIds.length > 0 || review.serviceTagIds.length > 0);
+
+  /** Saisie corrigée : l’erreur du champ concerné disparaît immédiatement. */
+  const handleChange = (next: ProviderServiceReviewValue) => {
+    setReview(next);
+    setErrors((prev) => ({
+      rating: next.rating >= 1 && next.rating <= 5 ? null : prev.rating,
+      providerTags:
+        next.providerTagIds.length > 0 || next.serviceTagIds.length > 0
+          ? null
+          : prev.providerTags,
+    }));
+  };
 
   const handleSubmit = async () => {
     if (!orderId) return;
-    if (review.rating < 1 || review.rating > 5) {
-      alert({ title: t('common.error'), message: t('reviews.ratingRequired') });
-      return;
-    }
-    if (review.providerTagIds.length < 1 && review.serviceTagIds.length < 1) {
-      alert({ title: t('common.error'), message: t('reviews.checkoutRequired') });
-      return;
-    }
+
+    const nextErrors: ReviewFormErrors = {
+      rating:
+        review.rating < 1 || review.rating > 5 ? t('reviews.ratingMissing') : null,
+      providerTags:
+        review.providerTagIds.length < 1 && review.serviceTagIds.length < 1
+          ? t('reviews.tagsMissing')
+          : null,
+    };
+    setErrors(nextErrors);
+    if (nextErrors.rating || nextErrors.providerTags) return;
+
     setLoading(true);
     try {
       await createReview({
@@ -70,7 +85,8 @@ export default function ReviewScreen() {
       });
       alert({
         title: t('reviews.thanks'),
-        buttonLabel: t('common.done'),
+        message: t('reviews.thanksBody'),
+        icon: <CheckCircle size={40} color={colors.orbit} weight="fill" />,
         onPress: () => router.replace('/(tabs)/orders'),
       });
     } catch (err) {
@@ -152,8 +168,9 @@ export default function ReviewScreen() {
           <OrderReviewForm
             mode="providerService"
             value={review}
-            onChange={setReview}
+            onChange={handleChange}
             requiredHint={t('reviews.checkoutRequired')}
+            errors={errors}
           />
         </View>
       </PageScaffold>
@@ -180,7 +197,6 @@ export default function ReviewScreen() {
           title={t('reviews.submit')}
           onPress={handleSubmit}
           loading={loading}
-          disabled={!canSubmit}
           tone="orbit"
           flat
           fill

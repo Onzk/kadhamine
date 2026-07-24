@@ -419,8 +419,8 @@ export const getClientReviewByOrder = query({
     const { userId } = await requireAuth(ctx);
     const order = await ctx.db.get(args.orderId);
     if (!order) return null;
-    /** Seul le client destinataire voit la note sur la commande. */
-    if (order.clientId !== userId) return null;
+    /** Note visible sur la commande par le client noté et le prestataire auteur. */
+    if (order.clientId !== userId && order.providerId !== userId) return null;
     return await ctx.db
       .query('clientReviews')
       .withIndex('by_order', (q) => q.eq('orderId', args.orderId))

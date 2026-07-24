@@ -5,13 +5,37 @@ import { useAppTheme } from '@/providers/ThemeProvider';
 import { BrandColors, Radius } from '@/theme/tokens';
 import { fontFamily, textStyle } from '@/theme/typography';
 
-export type OrderStatus = 'pending' | 'accepted' | 'completed' | 'cancelled' | string;
+export type OrderStatus =
+  | 'pending'
+  | 'accepted'
+  | 'completed'
+  | 'cancelled'
+  | 'paid'
+  | string;
+
+/**
+ * Statut d’affichage — `paid` est dérivé du paiement, pas stocké en base :
+ * commande terminée + paiement encaissé (`held` / `released`).
+ */
+export function orderDisplayStatus(
+  status: OrderStatus,
+  paymentStatus?: string | null,
+): OrderStatus {
+  if (
+    status === 'completed' &&
+    (paymentStatus === 'held' || paymentStatus === 'released')
+  ) {
+    return 'paid';
+  }
+  return status;
+}
 
 /**
  * Couleurs solides (sans alpha), distinctes par statut, adaptées jour / nuit.
  * - pending   → ambre (attente)
  * - accepted  → bleu orbit (en cours)
  * - completed → vert (terminé)
+ * - paid      → vert foncé (payée, statut final)
  * - cancelled → rouge (annulé)
  */
 export function orderStatusColors(
@@ -31,6 +55,10 @@ export function orderStatusColors(
       return isDark
         ? { bg: '#12B76A', text: '#FFFFFF' }
         : { bg: '#027A48', text: '#FFFFFF' };
+    case 'paid':
+      return isDark
+        ? { bg: '#039855', text: '#FFFFFF' }
+        : { bg: '#054F31', text: '#FFFFFF' };
     case 'cancelled':
       return { bg: BrandColors.crimson, text: '#FFFFFF' };
     default:

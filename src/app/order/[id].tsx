@@ -23,7 +23,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { AuthPrimaryButton } from '@/components/auth/AuthField';
-import { OrderStatusBadge } from '@/components/orders/OrderStatusBadge';
+import { OrderStatusBadge, orderDisplayStatus } from '@/components/orders/OrderStatusBadge';
 import { ServiceDetailSheet } from '@/components/orders/ServiceDetailSheet';
 import { VoiceRecorderField } from '@/components/orders/VoiceRecorderField';
 import { StarRating } from '@/components/ui/StarRating';
@@ -93,11 +93,9 @@ export default function OrderDetailScreen() {
       ? { orderId: id as Id<'orders'> }
       : 'skip',
   );
-  const clientReviewForClient = useQuery(
+  const clientReview = useQuery(
     api.reviews.getClientReviewByOrder,
-    user && id && detail?.viewerRole === 'client'
-      ? { orderId: id as Id<'orders'> }
-      : 'skip',
+    user && id ? { orderId: id as Id<'orders'> } : 'skip',
   );
 
   const mapTheme = useMemo<LeafletMapTheme>(
@@ -163,6 +161,7 @@ export default function OrderDetailScreen() {
     service,
     payment,
     hasReview,
+    review: providerReview,
     viewerRole,
     counterpartyName,
     counterpartyAvatar,
@@ -221,6 +220,8 @@ export default function OrderDetailScreen() {
     isClient && order.status === 'completed' && order.canReview && !hasReview;
   const showCancel = ['pending', 'accepted'].includes(order.status);
   const showRateClient = Boolean(clientReviewEligibility?.canRate);
+  /** Avis client→prestataire : masqué tant qu’il n’est pas validé par le paiement. */
+  const showProviderNote = Boolean(providerReview && providerReview.isValid !== false);
   const showRefuseOffPlatform =
     !isClient &&
     Boolean(
@@ -235,6 +236,7 @@ export default function OrderDetailScreen() {
     payment?.status === 'released' && order.status !== 'completed'
       ? 'pending'
       : payment?.status;
+  const displayStatus = orderDisplayStatus(order.status, displayPaymentStatus);
 
   const footerActionCount =
     (showPay ? 1 : 0) +
@@ -418,8 +420,8 @@ export default function OrderDetailScreen() {
               {order.title}
             </Text>
             <OrderStatusBadge
-              label={t(`orders.${order.status}`)}
-              status={order.status}
+              label={t(`orders.${displayStatus}`, { defaultValue: displayStatus })}
+              status={displayStatus}
             />
           </View>
 
@@ -651,33 +653,23 @@ export default function OrderDetailScreen() {
           </Section>
         ) : null}
 
-        {isClient && clientReviewForClient ? (
-          <View
-            style={{
-              padding: Spacing.four,
-              borderRadius: Radius.lg,
-              backgroundColor: colors.surfaceStrong,
-              borderWidth: BorderWidth.default,
-              borderColor: colors.border,
-              gap: Spacing.two,
-            }}
-          >
-            <Text
-              style={{
-                fontFamily: fontFamily('body', 'medium'),
-                fontSize: 14,
-                color: colors.ink,
-              }}
-            >
-              {t('reviews.clientNoteOnOrder')}
-            </Text>
-            <StarRating rating={clientReviewForClient.rating} size={18} />
-            {clientReviewForClient.comment ? (
-              <Text style={[textStyle('caption'), { color: colors.body }]}>
-                {clientReviewForClient.comment}
-              </Text>
+        {showProviderNote || clientReview ? (
+          <Section title={t('reviews.orderNotesTitle')}>
+            {providerReview && showProviderNote ? (
+              <OrderNoteCard
+                label={t('reviews.providerNoteOnOrder')}
+                rating={providerReview.rating}
+                comment={providerReview.comment}
+              />
             ) : null}
-          </View>
+            {clientReview ? (
+              <OrderNoteCard
+                label={t('reviews.clientNoteOnOrder')}
+                rating={clientReview.rating}
+                comment={clientReview.comment}
+              />
+            ) : null}
+          </Section>
         ) : null}
 
         {order.isOffPlatformPayment ? (
@@ -872,6 +864,47 @@ function TopBarCriticalButton({
         <IconComponent size={20} color={colors.error} weight="bold" />
       </View>
     </Pressable>
+  );
+}
+
+/** Note portée par la commande (client→prestataire ou prestataire→client). */
+function OrderNoteCard({
+  label,
+  rating,
+  comment,
+}: {
+  label: string;
+  rating: number;
+  comment?: string | null;
+}) {
+  const { colors } = useAppTheme();
+  return (
+    <View
+      style={{
+        padding: Spacing.four,
+        borderRadius: Radius.lg,
+        backgroundColor: colors.surfaceStrong,
+        borderWidth: BorderWidth.default,
+        borderColor: colors.border,
+        gap: Spacing.two,
+      }}
+    >
+      <Text
+        style={{
+          fontFamily: fontFamily('body', 'medium'),
+          fontSize: 14,
+          color: colors.ink,
+        }}
+      >
+        {label}
+      </Text>
+      <StarRating rating={rating} size={18} />
+      {comment ? (
+        <Text style={[textStyle('caption'), { color: colors.body, lineHeight: 20 }]}>
+          {comment}
+        </Text>
+      ) : null}
+    </View>
   );
 }
 

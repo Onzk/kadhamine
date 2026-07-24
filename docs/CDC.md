@@ -233,6 +233,8 @@ pending → cancelled
 | `completed` | Client (ou flux convenu) valide la fin |
 | `cancelled` | Annulation / refus : **aucun paiement** possible. Si la commande avait été **acceptée** (`acceptedAt`), le prestataire peut noter le client. Un refus immédiat (sans acceptation) n’ouvre pas la notation. |
 
+**Payée** est un statut **d’affichage** (pas stocké) : commande `completed` dont le paiement est `held` / `released`. Le badge devient « Payée » (vert foncé) sur la liste et la fiche commande ; c’est le dernier état du parcours.
+
 Pas de statut `in_progress`, `rejected` ou `dispute` dans le parcours utilisateur V1 (le schéma technique peut conserver des littéraux inutilisés jusqu’à nettoyage).
 
 #### Parcours de création (demandeur / client)
@@ -338,14 +340,15 @@ Upload via le flux fichiers existant (`generateUploadUrl` / `useUpload`).
 
 - Après une commande **terminée** (`completed`), **ou** **annulée** alors qu’elle avait été **acceptée** (`acceptedAt`), le prestataire peut noter le client (note 1–5 + tags `CLIENT_REVIEW_TAG_IDS` + commentaire optionnel, concaténés).
 - Une note par commande (`clientReviews`).
-- **Visibilité fiche commande** : **seul le client** concerné voit cette note sur la commande.
+- **Visibilité fiche commande** : le **client noté** et le **prestataire auteur** voient cette note dans le bloc **« Notes de la commande »**, qui regroupe la **note du prestataire** (client → prestataire, une fois validée par le paiement) et la **note du client** (prestataire → client). Aucun tiers n’y a accès.
 - **Visibilité chat** : tout prestataire en conversation avec ce client voit la **note moyenne** dans le header, et un bouton info ouvre un modal (profil client + note + commentaires **anonymisés** par **catégorie de service** de la commande d’origine).
 
 #### Liste commandes (client)
 
 - Sur une carte commande **terminée non payée**, le client voit une action **Payer** directe (raccourci vers le checkout).
 - Checkout in-app en **stepper (3 étapes max, sans indicateur)** : (1) note + options prestataire, (2) options service + commentaire, (3) paiement.
-- **Noter le client** : écran dédié `/review/client/[orderId]` (pas de bottomsheet).
+- **Noter le client** : écran dédié `/review/client/[orderId]` (pas de bottomsheet). Après envoi, retour sur le **détail de la commande** puis bottomsheet de confirmation par-dessus.
+- **Champs obligatoires** (note, options) : erreur **inline** sous le groupe concerné (bordure rouge + message), jamais de bottomsheet d’erreur.
 
 Règle produit : **pas de paiement in-app abouti ⇒ pas d’avis officiel valide** (évite les faux scores).
 

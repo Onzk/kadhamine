@@ -37,6 +37,7 @@ import {
   OrderReviewForm,
   emptyProviderServiceReview,
   type ProviderServiceReviewValue,
+  type ReviewFormErrors,
 } from '@/components/reviews/OrderReviewForm';
 import { formatPrice } from '@/types';
 import { BorderWidth, BrandColors, Radius, Spacing } from '@/theme/tokens';
@@ -145,6 +146,7 @@ export default function CheckoutScreen() {
   const [loading, setLoading] = useState(false);
   const [footerH, setFooterH] = useState(0);
   const [review, setReview] = useState<ProviderServiceReviewValue>(emptyProviderServiceReview);
+  const [reviewErrors, setReviewErrors] = useState<ReviewFormErrors>({});
 
   const orderData = useQuery(api.orders.listMine, { role: 'client' });
   const order = orderData?.find((o) => o.order._id === orderId);
@@ -217,24 +219,36 @@ export default function CheckoutScreen() {
     router.back();
   };
 
+  /** Saisie corrigée : l’erreur du champ concerné disparaît immédiatement. */
+  const handleReviewChange = (next: ProviderServiceReviewValue) => {
+    setReview(next);
+    setReviewErrors((prev) => ({
+      rating: next.rating >= 1 && next.rating <= 5 ? null : prev.rating,
+      providerTags: next.providerTagIds.length > 0 ? null : prev.providerTags,
+      serviceTags: next.serviceTagIds.length > 0 ? null : prev.serviceTags,
+    }));
+  };
+
   const goNext = () => {
     if (step === 1) {
-      if (review.rating < 1 || review.rating > 5) {
-        alert({ title: t('common.error'), message: t('reviews.ratingRequired') });
-        return;
-      }
-      if (review.providerTagIds.length < 1) {
-        alert({ title: t('common.error'), message: t('payment.stepProviderTagsRequired') });
-        return;
-      }
+      const nextErrors: ReviewFormErrors = {
+        rating:
+          review.rating < 1 || review.rating > 5 ? t('reviews.ratingMissing') : null,
+        providerTags:
+          review.providerTagIds.length < 1
+            ? t('payment.stepProviderTagsRequired')
+            : null,
+      };
+      setReviewErrors(nextErrors);
+      if (nextErrors.rating || nextErrors.providerTags) return;
       setStep(2);
       return;
     }
     if (step === 2) {
-      if (review.serviceTagIds.length < 1) {
-        alert({ title: t('common.error'), message: t('payment.stepServiceTagsRequired') });
-        return;
-      }
+      const serviceTags =
+        review.serviceTagIds.length < 1 ? t('payment.stepServiceTagsRequired') : null;
+      setReviewErrors((prev) => ({ ...prev, serviceTags }));
+      if (serviceTags) return;
       setStep(3);
     }
   };
@@ -243,12 +257,22 @@ export default function CheckoutScreen() {
     if (!orderId || !canCheckout) return;
 
     if (method !== 'off_platform') {
-      if (review.rating < 1 || review.rating > 5) {
-        alert({ title: t('common.error'), message: t('reviews.ratingRequired') });
+      // Champ manquant : on ramène l’utilisateur à l’étape concernée, erreur inline.
+      if (review.rating < 1 || review.rating > 5 || review.providerTagIds.length < 1) {
+        setReviewErrors({
+          rating:
+            review.rating < 1 || review.rating > 5 ? t('reviews.ratingMissing') : null,
+          providerTags:
+            review.providerTagIds.length < 1
+              ? t('payment.stepProviderTagsRequired')
+              : null,
+        });
+        setStep(1);
         return;
       }
-      if (review.providerTagIds.length < 1 || review.serviceTagIds.length < 1) {
-        alert({ title: t('common.error'), message: t('reviews.checkoutRequired') });
+      if (review.serviceTagIds.length < 1) {
+        setReviewErrors({ serviceTags: t('payment.stepServiceTagsRequired') });
+        setStep(2);
         return;
       }
     }
@@ -365,8 +389,9 @@ export default function CheckoutScreen() {
             <OrderReviewForm
               mode="providerService"
               value={review}
-              onChange={setReview}
+              onChange={handleReviewChange}
               parts={['rating', 'providerTags']}
+              errors={reviewErrors}
             />
           ) : null}
 
@@ -374,8 +399,9 @@ export default function CheckoutScreen() {
             <OrderReviewForm
               mode="providerService"
               value={review}
-              onChange={setReview}
+              onChange={handleReviewChange}
               parts={['serviceTags', 'comment']}
+              errors={reviewErrors}
             />
           ) : null}
 
@@ -830,49 +856,59 @@ export default function CheckoutScreen() {
           paddingBottom: actionBottomPad,
           borderTopWidth: BorderWidth.default,
           borderTopColor: colors.borderStrong,
-          backgroundColor: colors.surfaceCard,
-          gap: Spacing.two,
+          // Zone d’action toujours blanche en jour (surfaceCard reste crème).
+          backgroundColor: isDark ? colors.surfaceCard : '#FFFFFF',
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: Spacing.three,
         }}
       >
-        {step < TOTAL_STEPS ? (
-          <AuthPrimaryButton
-            title={t('common.continue')}
-            onPress={goNext}
-            tone="orbit"
-            flat
-            fill
-            icon={<ArrowRight size={18} weight="bold" />}
-          />
-        ) : (
-          <AuthPrimaryButton
-            title={isOffPlatform ? t('payment.offPlatformConfirm') : t('payment.pay')}
-            onPress={handlePay}
-            loading={loading}
-            tone={isOffPlatform ? 'ink' : 'orbit'}
-            flat
-            fill
-          />
-        )}
-
         {step > 1 ? (
           <Pressable
             onPress={goBack}
-            style={({ pressed }) => [{ minHeight: 44, opacity: pressed ? 0.7 : 1 }]}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.back')}
+            style={({ pressed }) => [{ width: 54, height: 54, opacity: pressed ? 0.8 : 1 }]}
           >
             <View
               style={{
-                flexDirection: 'row',
+                width: 54,
+                height: 54,
+                borderRadius: Radius.pill,
+                backgroundColor: colors.iconWash,
+                borderWidth: BorderWidth.default,
+                borderColor: colors.border,
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: Spacing.two,
-                paddingVertical: Spacing.two,
               }}
             >
-              <ArrowLeft size={16} color={colors.muted} weight="bold" />
-              <Text style={[textStyle('button'), { color: colors.muted }]}>{t('common.back')}</Text>
+              <ArrowLeft size={20} color={colors.ink} weight="bold" />
             </View>
           </Pressable>
         ) : null}
+
+        <View style={{ flex: 1 }}>
+          {step < TOTAL_STEPS ? (
+            <AuthPrimaryButton
+              title={t('common.continue')}
+              onPress={goNext}
+              tone="orbit"
+              flat
+              fill
+              icon={<ArrowRight size={18} weight="bold" />}
+            />
+          ) : (
+            <AuthPrimaryButton
+              title={isOffPlatform ? t('payment.offPlatformConfirm') : t('payment.pay')}
+              onPress={handlePay}
+              loading={loading}
+              tone={isOffPlatform ? 'ink' : 'orbit'}
+              flat
+              fill
+            />
+          )}
+        </View>
       </View>
     </View>
   );

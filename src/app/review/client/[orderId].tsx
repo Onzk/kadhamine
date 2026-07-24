@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
+import { CheckCircle } from 'phosphor-react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery } from 'convex/react';
@@ -14,6 +15,7 @@ import {
   OrderReviewForm,
   emptyClientReview,
   type ClientReviewValue,
+  type ReviewFormErrors,
 } from '@/components/reviews/OrderReviewForm';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { useAppDialog } from '@/providers/AppDialogProvider';
@@ -33,6 +35,7 @@ export default function RateClientScreen() {
   const insets = useSafeAreaInsets();
 
   const [value, setValue] = useState<ClientReviewValue>(emptyClientReview);
+  const [errors, setErrors] = useState<ReviewFormErrors>({});
   const [loading, setLoading] = useState(false);
   const [footerH, setFooterH] = useState(0);
 
@@ -43,18 +46,26 @@ export default function RateClientScreen() {
   const createClientReview = useMutation(api.reviews.createClientReview);
 
   const actionBottomPad = Math.max(insets.bottom, Spacing.two) + Spacing.four;
-  const canSubmit = value.rating >= 1 && value.tagIds.length > 0;
+
+  /** Saisie corrigée : l’erreur du champ concerné disparaît immédiatement. */
+  const handleChange = (next: ClientReviewValue) => {
+    setValue(next);
+    setErrors((prev) => ({
+      rating: next.rating >= 1 && next.rating <= 5 ? null : prev.rating,
+      clientTags: next.tagIds.length > 0 ? null : prev.clientTags,
+    }));
+  };
 
   const handleSubmit = async () => {
     if (!orderId) return;
-    if (value.rating < 1 || value.rating > 5) {
-      alert({ title: t('common.error'), message: t('reviews.ratingRequired') });
-      return;
-    }
-    if (value.tagIds.length < 1) {
-      alert({ title: t('common.error'), message: t('reviews.checkoutRequired') });
-      return;
-    }
+
+    const nextErrors: ReviewFormErrors = {
+      rating: value.rating < 1 || value.rating > 5 ? t('reviews.ratingMissing') : null,
+      clientTags: value.tagIds.length < 1 ? t('reviews.tagsMissing') : null,
+    };
+    setErrors(nextErrors);
+    if (nextErrors.rating || nextErrors.clientTags) return;
+
     setLoading(true);
     try {
       await createClientReview({
@@ -63,10 +74,12 @@ export default function RateClientScreen() {
         tagIds: value.tagIds,
         comment: value.comment || undefined,
       });
+      // Retour sur la commande d’abord : le bottomsheet s’affiche par-dessus le détail.
+      router.replace(`/order/${orderId}`);
       alert({
         title: t('reviews.thanks'),
-        buttonLabel: t('common.done'),
-        onPress: () => router.replace(`/order/${orderId}`),
+        message: t('reviews.clientThanksBody'),
+        icon: <CheckCircle size={40} color={colors.orbit} weight="fill" />,
       });
     } catch (err) {
       alert({
@@ -161,7 +174,12 @@ export default function RateClientScreen() {
             gap: Spacing.six,
           }}
         >
-          <OrderReviewForm mode="client" value={value} onChange={setValue} />
+          <OrderReviewForm
+            mode="client"
+            value={value}
+            onChange={handleChange}
+            errors={errors}
+          />
         </View>
       </PageScaffold>
 
@@ -187,7 +205,6 @@ export default function RateClientScreen() {
           title={t('reviews.submit')}
           onPress={handleSubmit}
           loading={loading}
-          disabled={!canSubmit}
           tone="orbit"
           flat
           fill

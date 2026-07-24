@@ -58,7 +58,7 @@ export function ReviewTagPicker({ title, subtitle, options, selected, onChange }
               <View
                 style={{
                   flexDirection: 'row',
-                  alignItems: 'flex-start',
+                  alignItems: 'center',
                   gap: Spacing.three,
                 }}
               >
@@ -66,7 +66,6 @@ export function ReviewTagPicker({ title, subtitle, options, selected, onChange }
                   style={{
                     width: 22,
                     height: 22,
-                    marginTop: 2,
                     borderRadius: Radius.xs,
                     borderWidth: BorderWidth.default,
                     borderColor: on ? colors.orbit : colors.borderStrong,
