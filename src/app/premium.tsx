@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { useQuery, useMutation, useAction, useConvex } from 'convex/react';
-import * as WebBrowser from 'expo-web-browser';
+import { useQuery, useMutation, useAction } from 'convex/react';
 import { Crown, Check } from 'phosphor-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -13,10 +13,11 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { useAppDialog } from '@/providers/AppDialogProvider';
 import {
-  delay,
-  getPaymentResultAlertOptions,
-  type PaymentResultKind,
-} from '@/lib/paymentAlert';
+  getFedapayReturnUrl,
+  openFedapayCheckout,
+} from '@/lib/fedapayBrowser';
+import { setPendingPayment } from '@/lib/pendingPayment';
+import { getPaymentResultAlertOptions } from '@/lib/paymentAlert';
 import { formatPrice } from '@/types';
 import { BorderWidth, BrandColors, Radius, Spacing } from '@/theme/tokens';
 import { fontFamily, textStyle } from '@/theme/typography';
@@ -31,7 +32,7 @@ export default function PremiumScreen() {
   const { colors, isDark } = useAppTheme();
   const { alert } = useAppDialog();
   const { user } = useAuth();
-  const convex = useConvex();
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
 
@@ -50,25 +51,11 @@ export default function PremiumScreen() {
     if (user?._id) expireCheck({ userId: user._id }).catch(() => {});
   }, [user?._id, expireCheck]);
 
-  const showResult = (kind: PaymentResultKind) => {
-    alert(getPaymentResultAlertOptions(kind, t, colors, { premium: true }));
-  };
-
-  const resolvePremiumResult = async (): Promise<PaymentResultKind> => {
-    for (let i = 0; i < 10; i++) {
-      await delay(700);
-      const sub = await convex.query(api.subscriptions.getActive, {});
-      if (sub && sub.endDate > Date.now()) {
-        return 'success';
-      }
-    }
-    return 'cancelled';
-  };
-
   const handleSubscribe = async () => {
     setLoading(true);
     try {
       const subscriptionId = await createPending({});
+      const returnUrl = getFedapayReturnUrl();
       const result = await createPremiumTx({
         subscriptionId,
         amount: plans?.premium.price ?? 5000,
@@ -76,24 +63,19 @@ export default function PremiumScreen() {
         customerName: user?.profile
           ? `${user.profile.firstName} ${user.profile.lastName}`
           : user?.name ?? undefined,
+        returnUrl,
       });
 
+      setPendingPayment({ purpose: 'premium' });
+
       if (result.paymentUrl) {
-        await WebBrowser.openBrowserAsync(result.paymentUrl);
-        const kind = await resolvePremiumResult();
-        showResult(kind);
-        return;
+        await openFedapayCheckout(result.paymentUrl);
       }
 
-      if (result.sandbox) {
-        showResult('sandbox');
-        return;
-      }
-
-      showResult('failure');
+      router.replace('/payment/callback');
     } catch (err) {
       console.error(err);
-      showResult('failure');
+      alert(getPaymentResultAlertOptions('failure', t, colors, { premium: true }));
     } finally {
       setLoading(false);
     }

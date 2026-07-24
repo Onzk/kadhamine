@@ -81,6 +81,7 @@ function RootContent() {
               <Stack.Screen name="talents" options={{ animation: 'slide_from_right' }} />
               <Stack.Screen name="service/[id]" options={{ animation: 'slide_from_right' }} />
               <Stack.Screen name="provider/[id]" options={{ animation: 'slide_from_right' }} />
+              <Stack.Screen name="payment/callback" options={{ animation: 'fade' }} />
               <Stack.Screen name="order/create" options={{ animation: 'slide_from_right' }} />
               <Stack.Screen name="order/[id]" options={{ animation: 'slide_from_right' }} />
               <Stack.Screen name="checkout/[orderId]" options={{ animation: 'slide_from_right' }} />

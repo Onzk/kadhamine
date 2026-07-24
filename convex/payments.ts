@@ -1,5 +1,8 @@
 import { v } from 'convex/values';
-import { mutation, query } from './_generated/server';
+import { internalMutation, mutation, query } from './_generated/server';
+import type { MutationCtx } from './_generated/server';
+import type { Id } from './_generated/dataModel';
+import { internal } from './_generated/api';
 import { requireAuth, createNotification, now } from './lib';
 import { readCommissionRate } from './settings';
 import { validateReviewForOrder } from './reviews';
@@ -15,6 +18,87 @@ function lastPaymentRecordedAt(payment: {
 }) {
   return payment.recordedAt ?? payment.createdAt;
 }
+
+/**
+ * Libère un paiement vers le prestataire (status `released`).
+ * Garde-fou : si déjà `released`, no-op (pas de double incrément `completedOrders`).
+ * `held` reste dans le schéma pour legacy / filtres admin — les nouveaux succès
+ * passent directement à `released`.
+ */
+export async function releasePaymentForOrder(
+  ctx: MutationCtx,
+  paymentId: Id<'payments'>,
+  opts?: {
+    fedapayTransactionId?: string;
+    fedapayReference?: string;
+  },
+): Promise<boolean> {
+  const payment = await ctx.db.get(paymentId);
+  if (!payment) throw new Error('Paiement introuvable');
+  if (payment.status === 'released') return false;
+
+  const timestamp = now();
+  await ctx.db.patch(paymentId, {
+    status: 'released',
+    releasedAt: timestamp,
+    heldAt: payment.heldAt ?? timestamp,
+    updatedAt: timestamp,
+    ...(opts?.fedapayTransactionId != null
+      ? { fedapayTransactionId: opts.fedapayTransactionId }
+      : {}),
+    ...(opts?.fedapayReference != null
+      ? { fedapayReference: opts.fedapayReference }
+      : {}),
+  });
+
+  const profile = await ctx.db
+    .query('profiles')
+    .withIndex('by_user', (q) => q.eq('userId', payment.providerId))
+    .first();
+
+  if (profile) {
+    await ctx.db.patch(profile._id, {
+      completedOrders: profile.completedOrders + 1,
+      updatedAt: timestamp,
+    });
+  }
+
+  await createNotification(ctx, {
+    userId: payment.providerId,
+    type: 'payment',
+    title: 'Paiement libéré',
+    body: 'Le paiement de votre prestation a été libéré.',
+    data: { orderId: payment.orderId, paymentId },
+  });
+
+  await ctx.scheduler.runAfter(0, internal.notifications.sendPush, {
+    userId: payment.providerId,
+    title: 'Paiement libéré',
+    body: 'Le paiement de votre prestation a été libéré.',
+    data: { orderId: payment.orderId, type: 'payment' },
+  });
+
+  return true;
+}
+
+/** Après 24 h sans refus : libère un paiement hors plateforme encore `pending`. */
+export const releaseOffPlatformIfPending = internalMutation({
+  args: { paymentId: v.id('payments') },
+  handler: async (ctx, args) => {
+    const payment = await ctx.db.get(args.paymentId);
+    if (!payment) return;
+    const order = await ctx.db.get(payment.orderId);
+    const isOffPlatform =
+      payment.method === 'off_platform' || order?.isOffPlatformPayment === true;
+    if (!isOffPlatform) return;
+    if (payment.status !== 'pending') return;
+
+    const recordedAt = lastPaymentRecordedAt(payment);
+    if (now() - recordedAt < OFF_PLATFORM_REFUSE_WINDOW_MS) return;
+
+    await releasePaymentForOrder(ctx, args.paymentId);
+  },
+});
 
 export const initiate = mutation({
   args: {
@@ -57,7 +141,7 @@ export const initiate = mutation({
         await ctx.db.patch(existing._id, {
           method: args.method,
           phoneNumber: args.phoneNumber,
-          /** Off-platform stays pending until client validate or provider refuse. */
+          /** Off-platform stays pending for the 24 h refuse window, then auto-released. */
           status: 'pending',
           commission,
           providerAmount,
@@ -80,6 +164,11 @@ export const initiate = mutation({
             body: 'Le client a enregistré un paiement hors plateforme. Vous pouvez le refuser sous 24 h.',
             data: { orderId: args.orderId, paymentId: existing._id },
           });
+          await ctx.scheduler.runAfter(
+            OFF_PLATFORM_REFUSE_WINDOW_MS,
+            internal.payments.releaseOffPlatformIfPending,
+            { paymentId: existing._id },
+          );
         } else {
           await createNotification(ctx, {
             userId: order.providerId,
@@ -104,7 +193,7 @@ export const initiate = mutation({
       providerAmount,
       currency: 'XAF',
       method: args.method,
-      /** Off-platform: pending until validate/refuse. Integrated: held after FedaPay. */
+      /** Off-platform: pending 24 h then auto-released. Integrated: released after FedaPay success. */
       status: 'pending',
       phoneNumber: args.phoneNumber,
       recordedAt: timestamp,
@@ -127,6 +216,11 @@ export const initiate = mutation({
         body: 'Le client a enregistré un paiement hors plateforme. Vous pouvez le refuser sous 24 h.',
         data: { orderId: args.orderId, paymentId },
       });
+      await ctx.scheduler.runAfter(
+        OFF_PLATFORM_REFUSE_WINDOW_MS,
+        internal.payments.releaseOffPlatformIfPending,
+        { paymentId },
+      );
     } else {
       await createNotification(ctx, {
         userId: order.providerId,
@@ -149,7 +243,10 @@ export const refuseOffPlatform = mutation({
     const payment = await ctx.db.get(args.paymentId);
     if (!payment) throw new Error('Paiement introuvable');
     if (payment.providerId !== userId) throw new Error('Non autorisé');
-    if (payment.method !== 'off_platform') {
+    const order = await ctx.db.get(payment.orderId);
+    const isOffPlatform =
+      payment.method === 'off_platform' || order?.isOffPlatformPayment === true;
+    if (!isOffPlatform) {
       throw new Error('Seuls les paiements hors plateforme peuvent être refusés');
     }
     if (payment.status !== 'pending') {
@@ -189,6 +286,7 @@ export const refuseOffPlatform = mutation({
   },
 });
 
+/** Succès paiement intégré → libération immédiate (`released`) + avis. */
 export const confirm = mutation({
   args: {
     paymentId: v.id('payments'),
@@ -211,12 +309,9 @@ export const confirm = mutation({
     }
 
     const timestamp = now();
-    await ctx.db.patch(args.paymentId, {
-      status: 'held',
+    await releasePaymentForOrder(ctx, args.paymentId, {
       fedapayTransactionId: args.fedapayTransactionId,
       fedapayReference: args.fedapayReference,
-      heldAt: timestamp,
-      updatedAt: timestamp,
     });
 
     await ctx.db.patch(payment.orderId, {
@@ -225,14 +320,6 @@ export const confirm = mutation({
     });
 
     await validateReviewForOrder(ctx, payment.orderId, args.paymentId);
-
-    await createNotification(ctx, {
-      userId: payment.providerId,
-      type: 'payment',
-      title: 'Paiement reçu',
-      body: 'Le paiement est conservé jusqu\'à validation de la prestation.',
-      data: { paymentId: args.paymentId },
-    });
   },
 });
 

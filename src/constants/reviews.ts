@@ -204,6 +204,16 @@ export function buildReviewCommentBlock(parts: {
   return `${blocks.join('\n\n')}\n\n———\n${free}`.trim();
 }
 
+const FREE_TEXT_SEP = '\n\n———\n';
+
+/** Extrait le commentaire libre d’un bloc concaténé (après la ligne séparatrice). */
+export function extractFreeTextFromReviewComment(comment?: string | null): string {
+  if (!comment) return '';
+  const idx = comment.indexOf(FREE_TEXT_SEP);
+  if (idx === -1) return '';
+  return comment.slice(idx + FREE_TEXT_SEP.length).trim();
+}
+
 export function isProviderReviewTagId(id: string): id is ProviderReviewTagId {
   return (PROVIDER_REVIEW_TAG_IDS as readonly string[]).includes(id);
 }

@@ -1,9 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Pressable, Image, type ImageSourcePropType } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { useQuery, useMutation, useAction, useConvex } from 'convex/react';
-import * as WebBrowser from 'expo-web-browser';
+import { useQuery, useMutation, useAction } from 'convex/react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -29,16 +28,18 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { useAppDialog } from '@/providers/AppDialogProvider';
 import {
-  delay,
-  getPaymentResultAlertOptions,
-  type PaymentResultKind,
-} from '@/lib/paymentAlert';
+  getFedapayReturnUrl,
+  openFedapayCheckout,
+} from '@/lib/fedapayBrowser';
+import { setPendingPayment } from '@/lib/pendingPayment';
+import { getPaymentResultAlertOptions } from '@/lib/paymentAlert';
 import {
   OrderReviewForm,
   emptyProviderServiceReview,
   type ProviderServiceReviewValue,
   type ReviewFormErrors,
 } from '@/components/reviews/OrderReviewForm';
+import { extractFreeTextFromReviewComment } from '@/constants/reviews';
 import { formatPrice } from '@/types';
 import { BorderWidth, BrandColors, Radius, Spacing } from '@/theme/tokens';
 import { fontFamily, textStyle } from '@/theme/typography';
@@ -138,7 +139,6 @@ export default function CheckoutScreen() {
   const { alert } = useAppDialog();
   const { user } = useAuth();
   const router = useRouter();
-  const convex = useConvex();
   const insets = useSafeAreaInsets();
 
   const [step, setStep] = useState<Step>(1);
@@ -147,13 +147,47 @@ export default function CheckoutScreen() {
   const [footerH, setFooterH] = useState(0);
   const [review, setReview] = useState<ProviderServiceReviewValue>(emptyProviderServiceReview);
   const [reviewErrors, setReviewErrors] = useState<ReviewFormErrors>({});
+  const reviewHydratedRef = useRef(false);
 
   const orderData = useQuery(api.orders.listMine, { role: 'client' });
   const order = orderData?.find((o) => o.order._id === orderId);
+  const existingReview = useQuery(
+    api.reviews.getByOrder,
+    user && orderId ? { orderId: orderId as Id<'orders'> } : 'skip',
+  );
   const commissionRate = useQuery(api.settings.getCommissionRate) ?? 0.1;
   const initiatePayment = useMutation(api.payments.initiate);
   const upsertReviewDraft = useMutation(api.reviews.upsertCheckoutDraft);
   const createFedapayTransaction = useAction(api.fedapay.createTransaction);
+
+  /**
+   * Reprend le brouillon d’avis du dernier paiement (isValid === false).
+   * Complet → étape paiement ; sinon préremplit le formulaire.
+   */
+  useEffect(() => {
+    if (reviewHydratedRef.current || existingReview === undefined) return;
+    reviewHydratedRef.current = true;
+
+    if (!existingReview || existingReview.isValid !== false) return;
+
+    const providerTagIds = existingReview.providerTagIds ?? [];
+    const serviceTagIds = existingReview.serviceTagIds ?? [];
+    const freeText = extractFreeTextFromReviewComment(existingReview.comment);
+    setReview({
+      rating: existingReview.rating,
+      providerTagIds,
+      serviceTagIds,
+      freeText,
+      comment: existingReview.comment ?? '',
+    });
+
+    const complete =
+      existingReview.rating >= 1 &&
+      existingReview.rating <= 5 &&
+      providerTagIds.length > 0 &&
+      serviceTagIds.length > 0;
+    if (complete) setStep(3);
+  }, [existingReview]);
 
   const amount = order?.order.agreedPrice ?? 0;
   const commission = method === 'off_platform' ? 0 : Math.round(amount * commissionRate);
@@ -186,30 +220,6 @@ export default function CheckoutScreen() {
     }),
     [t],
   );
-
-  const showResult = (kind: PaymentResultKind) => {
-    alert(
-      getPaymentResultAlertOptions(kind, t, colors, {
-        onPress: () => router.replace('/(tabs)/orders'),
-      }),
-    );
-  };
-
-  const resolvePaymentResult = async (
-    oid: Id<'orders'>,
-  ): Promise<PaymentResultKind> => {
-    for (let i = 0; i < 10; i++) {
-      await delay(700);
-      const payment = await convex.query(api.payments.getByOrder, { orderId: oid });
-      if (payment?.status === 'held' || payment?.status === 'released') {
-        return 'success';
-      }
-      if (payment?.status === 'failed') {
-        return 'failure';
-      }
-    }
-    return 'cancelled';
-  };
 
   const goBack = () => {
     if (step > 1) {
@@ -298,6 +308,7 @@ export default function CheckoutScreen() {
         comment: review.comment || undefined,
       });
 
+      const returnUrl = getFedapayReturnUrl();
       const result = await createFedapayTransaction({
         paymentId,
         amount,
@@ -306,24 +317,20 @@ export default function CheckoutScreen() {
         customerName: user?.profile
           ? `${user.profile.firstName} ${user.profile.lastName}`
           : user?.name ?? undefined,
+        returnUrl,
       });
 
+      setPendingPayment({ purpose: 'order', orderId });
+
       if (result.paymentUrl) {
-        await WebBrowser.openBrowserAsync(result.paymentUrl);
-        const kind = await resolvePaymentResult(orderId as Id<'orders'>);
-        showResult(kind);
-        return;
+        await openFedapayCheckout(result.paymentUrl);
       }
 
-      if (result.sandbox) {
-        showResult('sandbox');
-        return;
-      }
-
-      showResult('failure');
+      // Deep link ou fallback : l’écran callback affiche l’attente + bottomsheet.
+      router.replace('/payment/callback');
     } catch (err) {
       console.error(err);
-      showResult('failure');
+      alert(getPaymentResultAlertOptions('failure', t, colors));
     } finally {
       setLoading(false);
     }

@@ -592,7 +592,14 @@ export function AppBottomSheet({
             ) : (
               // Wrap in a View (not Fragment) so Yoga sizes the sheet to content when
               // hideHeader + scrollable=false — Fragment children can collapse to 0 height.
-              <View style={{ width: '100%', flexShrink: 0 }}>
+              // Avec snapHeight : remplir la sheet pour permettre justifyContent: 'flex-end'
+              // (alertes : contenu en bas, seul le X reste en haut).
+              <View
+                style={{
+                  width: '100%',
+                  ...(snapHeight ? { flex: 1 } : { flexShrink: 0 }),
+                }}
+              >
                 {hideHeader ? floatingClose : staticHeader}
                 {body}
               </View>

@@ -150,6 +150,17 @@ export const getById = query({
       ? await ctx.storage.getUrl(order.voiceStorageId)
       : null;
 
+    const OFF_PLATFORM_REFUSE_MS = 24 * 60 * 60 * 1000;
+    const recordedAt = payment?.recordedAt ?? payment?.createdAt;
+    const canRefuseOffPlatform =
+      viewerRole === 'provider' &&
+      payment != null &&
+      (payment.method === 'off_platform' || order.isOffPlatformPayment === true) &&
+      payment.status === 'pending' &&
+      payment.releasedAt == null &&
+      recordedAt != null &&
+      Date.now() - recordedAt < OFF_PLATFORM_REFUSE_MS;
+
     return {
       order,
       service,
@@ -157,6 +168,7 @@ export const getById = query({
       hasReview: hasValidReview,
       review: viewerRole === 'client' || hasValidReview ? review : null,
       viewerRole,
+      canRefuseOffPlatform,
       counterpartyName,
       counterpartyAvatar: counterpartyProfile?.avatarUrl ?? null,
       photoUrls,
@@ -315,88 +327,16 @@ export const complete = mutation({
       userId: order.clientId,
       type: 'order',
       title: 'Prestation terminée',
-      body: 'Le prestataire a marqué la prestation comme terminée. Validez pour finaliser.',
+      body: 'Le prestataire a marqué la prestation comme terminée. Vous pouvez maintenant procéder au paiement.',
       data: { orderId: args.orderId },
     });
 
     await ctx.scheduler.runAfter(0, internal.notifications.sendPush, {
       userId: order.clientId,
       title: 'Prestation terminée',
-      body: 'Validez la prestation pour finaliser la commande.',
+      body: 'Vous pouvez maintenant procéder au paiement.',
       data: { orderId: args.orderId, type: 'order' },
     });
-  },
-});
-
-export const validate = mutation({
-  args: { orderId: v.id('orders') },
-  handler: async (ctx, args) => {
-    const { userId } = await requireAuth(ctx);
-    const order = await ctx.db.get(args.orderId);
-    if (!order || order.clientId !== userId) throw new Error('Commande introuvable');
-    if (order.status !== 'completed') throw new Error('La prestation doit être terminée');
-
-    const canReview = !order.isOffPlatformPayment;
-    await ctx.db.patch(args.orderId, {
-      canReview,
-      updatedAt: now(),
-    });
-
-    const payment = await ctx.db
-      .query('payments')
-      .withIndex('by_order', (q) => q.eq('orderId', args.orderId))
-      .first();
-
-    /** Release only after completion — held (escrow) or declared off-platform. */
-    const canRelease =
-      payment &&
-      (payment.status === 'held' ||
-        (payment.method === 'off_platform' && payment.status === 'pending'));
-
-    if (canRelease && payment) {
-      await ctx.db.patch(payment._id, {
-        status: 'released',
-        releasedAt: now(),
-        updatedAt: now(),
-      });
-
-      const profile = await ctx.db
-        .query('profiles')
-        .withIndex('by_user', (q) => q.eq('userId', order.providerId))
-        .first();
-
-      if (profile) {
-        await ctx.db.patch(profile._id, {
-          completedOrders: profile.completedOrders + 1,
-          updatedAt: now(),
-        });
-      }
-
-      await createNotification(ctx, {
-        userId: order.providerId,
-        type: 'payment',
-        title: 'Paiement libéré',
-        body: 'Le paiement de votre prestation a été libéré.',
-        data: { orderId: args.orderId, paymentId: payment._id },
-      });
-
-      await ctx.scheduler.runAfter(0, internal.notifications.sendPush, {
-        userId: order.providerId,
-        title: 'Paiement libéré',
-        body: 'Le paiement de votre prestation a été libéré.',
-        data: { orderId: args.orderId, type: 'payment' },
-      });
-    }
-
-    if (canReview) {
-      await createNotification(ctx, {
-        userId: order.clientId,
-        type: 'review',
-        title: 'Laissez un avis',
-        body: 'Votre paiement intégré vous permet de noter ce prestataire.',
-        data: { orderId: args.orderId },
-      });
-    }
   },
 });
 

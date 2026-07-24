@@ -28,7 +28,7 @@ import { ServiceDetailSheet } from '@/components/orders/ServiceDetailSheet';
 import { VoiceRecorderField } from '@/components/orders/VoiceRecorderField';
 import { StarRating } from '@/components/ui/StarRating';
 import { ImageZoomModal } from '@/components/chat/ImageZoomModal';
-import { SheetActionRow, SheetActionSlot } from '@/components/ui/SheetActions';
+import { SheetActionsFooter, SheetSingleAction } from '@/components/ui/SheetActions';
 import {
   LeafletMapView,
   MAP_PICKER_ZOOM,
@@ -49,9 +49,6 @@ const ACTION_BTN_H = 54;
 const TOPBAR_ICON_SIZE = 44;
 /** Extra scroll breathing room above the sticky footer (beyond footer clearance). */
 const SCROLL_FOOTER_EXTRA = Spacing.twelve;
-/** Aligné CDC : 24 h depuis le dernier paiement enregistré pour la commande. */
-const OFF_PLATFORM_REFUSE_MS = 24 * 60 * 60 * 1000;
-
 function formatDate(ts: number, locale: string) {
   try {
     return new Date(ts).toLocaleDateString(locale === 'ar' ? 'ar' : 'fr-FR', {
@@ -65,7 +62,10 @@ function formatDate(ts: number, locale: string) {
 }
 
 export default function OrderDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, fromPayment } = useLocalSearchParams<{
+    id: string;
+    fromPayment?: string;
+  }>();
   const { t, i18n } = useTranslation();
   const { colors, isDark } = useAppTheme();
   const { confirm } = useAppDialog();
@@ -76,6 +76,20 @@ export default function OrderDetailScreen() {
   const [zoomUri, setZoomUri] = useState<string | null>(null);
   const [serviceSheetOpen, setServiceSheetOpen] = useState(false);
 
+  /** Après checkout : back → listing commandes (pile vidé). */
+  const backToOrdersAfterPayment = fromPayment === '1';
+
+  const goBack = () => {
+    if (backToOrdersAfterPayment) {
+      if (router.canDismiss()) {
+        router.dismissAll();
+      }
+      router.replace('/(tabs)/orders');
+      return;
+    }
+    router.back();
+  };
+
   const detail = useQuery(
     api.orders.getById,
     user && id ? { orderId: id as Id<'orders'> } : 'skip',
@@ -83,7 +97,6 @@ export default function OrderDetailScreen() {
 
   const respond = useMutation(api.orders.respond);
   const complete = useMutation(api.orders.complete);
-  const validate = useMutation(api.orders.validate);
   const cancel = useMutation(api.orders.cancel);
   const refuseOffPlatform = useMutation(api.payments.refuseOffPlatform);
 
@@ -121,7 +134,12 @@ export default function OrderDetailScreen() {
 
   if (!user) {
     return (
-      <PageScaffold title={t('order.detailTitle')} subtitle={t('order.detailSubtitle')} showBack>
+      <PageScaffold
+        title={t('order.detailTitle')}
+        subtitle={t('order.detailSubtitle')}
+        showBack
+        onBack={goBack}
+      >
         <EmptyState
           title={t('auth.loginRequiredTitle')}
           description={t('orders.loginRequired')}
@@ -134,7 +152,12 @@ export default function OrderDetailScreen() {
 
   if (detail === undefined) {
     return (
-      <PageScaffold title={t('order.detailTitle')} subtitle={t('order.detailSubtitle')} showBack>
+      <PageScaffold
+        title={t('order.detailTitle')}
+        subtitle={t('order.detailSubtitle')}
+        showBack
+        onBack={goBack}
+      >
         <View style={{ padding: Spacing.eight, alignItems: 'center' }}>
           <Text style={{ color: colors.muted }}>{t('common.loading')}</Text>
         </View>
@@ -144,7 +167,12 @@ export default function OrderDetailScreen() {
 
   if (detail === null) {
     return (
-      <PageScaffold title={t('order.detailTitle')} subtitle={t('order.detailSubtitle')} showBack>
+      <PageScaffold
+        title={t('order.detailTitle')}
+        subtitle={t('order.detailSubtitle')}
+        showBack
+        onBack={goBack}
+      >
         <EmptyState
           icon={WarningCircle}
           title={t('orders.empty')}
@@ -163,6 +191,7 @@ export default function OrderDetailScreen() {
     hasReview,
     review: providerReview,
     viewerRole,
+    canRefuseOffPlatform,
     counterpartyName,
     counterpartyAvatar,
     photoUrls: rawPhotoUrls,
@@ -208,29 +237,14 @@ export default function OrderDetailScreen() {
   const showAccept = !isClient && order.status === 'pending';
   const showReject = showAccept;
   const showComplete = !isClient && order.status === 'accepted';
-  const showValidate =
-    isClient &&
-    order.status === 'completed' &&
-    Boolean(
-      payment &&
-        (payment.status === 'held' ||
-          (payment.method === 'off_platform' && payment.status === 'pending')),
-    );
   const showReview =
     isClient && order.status === 'completed' && order.canReview && !hasReview;
   const showCancel = ['pending', 'accepted'].includes(order.status);
   const showRateClient = Boolean(clientReviewEligibility?.canRate);
   /** Avis client→prestataire : masqué tant qu’il n’est pas validé par le paiement. */
   const showProviderNote = Boolean(providerReview && providerReview.isValid !== false);
-  const showRefuseOffPlatform =
-    !isClient &&
-    Boolean(
-      payment &&
-        payment.method === 'off_platform' &&
-        payment.status === 'pending' &&
-        payment.releasedAt == null &&
-        Date.now() - (payment.recordedAt ?? payment.createdAt) < OFF_PLATFORM_REFUSE_MS,
-    );
+  /** Source de vérité Convex (24 h / pending / hors plateforme). */
+  const showRefuseOffPlatform = Boolean(canRefuseOffPlatform);
   /** Never show “released / paid” on UI until the order is completed. */
   const displayPaymentStatus =
     payment?.status === 'released' && order.status !== 'completed'
@@ -242,7 +256,6 @@ export default function OrderDetailScreen() {
     (showPay ? 1 : 0) +
     (showAccept ? 1 : 0) +
     (showComplete ? 1 : 0) +
-    (showValidate ? 1 : 0) +
     (showReview ? 1 : 0) +
     (showRefuseOffPlatform ? 1 : 0) +
     (showRateClient ? 1 : 0);
@@ -301,17 +314,6 @@ export default function OrderDetailScreen() {
       confirmLabel: t('orders.complete'),
       onConfirm: async () => {
         await complete({ orderId: order._id });
-      },
-    });
-  };
-
-  const handleValidate = () => {
-    confirm({
-      title: t('order.validateConfirmTitle'),
-      message: t('order.validateConfirmBody'),
-      confirmLabel: t('orders.validate'),
-      onConfirm: async () => {
-        await validate({ orderId: order._id });
       },
     });
   };
@@ -384,6 +386,7 @@ export default function OrderDetailScreen() {
           isClient ? t('order.detailSubtitleClient') : t('order.detailSubtitleProvider')
         }
         showBack
+        onBack={goBack}
         rightAction={topbarCriticalActions}
         bottomInset={false}
         contentContainerStyle={{ paddingBottom: scrollBottomPad }}
@@ -721,9 +724,9 @@ export default function OrderDetailScreen() {
             borderTopColor: colors.borderStrong,
           }}
         >
-          <SheetActionRow>
+          <SheetActionsFooter>
             {showPay ? (
-              <SheetActionSlot>
+              <SheetSingleAction>
                 <AuthPrimaryButton
                   title={t('payment.pay')}
                   onPress={handlePay}
@@ -733,11 +736,11 @@ export default function OrderDetailScreen() {
                   flat
                   fill
                 />
-              </SheetActionSlot>
+              </SheetSingleAction>
             ) : null}
 
             {showAccept ? (
-              <SheetActionSlot>
+              <SheetSingleAction>
                 <AuthPrimaryButton
                   title={t('orders.accept')}
                   onPress={handleAccept}
@@ -745,11 +748,11 @@ export default function OrderDetailScreen() {
                   flat
                   fill
                 />
-              </SheetActionSlot>
+              </SheetSingleAction>
             ) : null}
 
             {showComplete ? (
-              <SheetActionSlot>
+              <SheetSingleAction>
                 <AuthPrimaryButton
                   title={t('orders.complete')}
                   onPress={handleComplete}
@@ -758,54 +761,43 @@ export default function OrderDetailScreen() {
                   fill
                   icon={<CheckCircle size={18} weight="bold" />}
                 />
-              </SheetActionSlot>
+              </SheetSingleAction>
             ) : null}
 
-            {showValidate ? (
-              <SheetActionSlot>
+            {showRefuseOffPlatform ? (
+              <SheetSingleAction>
                 <AuthPrimaryButton
-                  title={t('orders.validate')}
-                  onPress={handleValidate}
-                  tone="orbit"
+                  title={t('payment.refuseOffPlatform')}
+                  onPress={handleRefuseOffPlatform}
+                  tone="danger"
                   flat
                   fill
                 />
-              </SheetActionSlot>
+              </SheetSingleAction>
             ) : null}
 
             {showReview ? (
-              <SheetActionSlot>
+              <SheetSingleAction>
                 <Button
                   title={t('reviews.leaveReview')}
                   variant="outline"
                   onPress={handleReview}
                   fullWidth
                 />
-              </SheetActionSlot>
-            ) : null}
-
-            {showRefuseOffPlatform ? (
-              <SheetActionSlot>
-                <Button
-                  title={t('payment.refuseOffPlatform')}
-                  variant="danger"
-                  onPress={handleRefuseOffPlatform}
-                  fullWidth
-                />
-              </SheetActionSlot>
+              </SheetSingleAction>
             ) : null}
 
             {showRateClient ? (
-              <SheetActionSlot>
+              <SheetSingleAction>
                 <Button
                   title={t('reviews.rateClient')}
                   variant="outline"
                   onPress={() => router.push(`/review/client/${order._id}`)}
                   fullWidth
                 />
-              </SheetActionSlot>
+              </SheetSingleAction>
             ) : null}
-          </SheetActionRow>
+          </SheetActionsFooter>
         </View>
       ) : null}
 

@@ -28,8 +28,9 @@ export interface AlertBottomSheetProps {
 }
 
 /**
- * Alerte post-action — contenu centré :
- * icône → titre → description → bouton (X en haut à droite).
+ * Alerte post-action — hauteur au contenu :
+ * X en haut, puis ≥ Spacing.fourteen au-dessus de l’icône, contenu, bouton,
+ * puis Spacing.twelve sous le bouton (+ safe area via AppBottomSheet).
  */
 export function AlertBottomSheet({
   visible,
@@ -77,10 +78,9 @@ export function AlertBottomSheet({
         style={{
           alignSelf: 'stretch',
           width: '100%',
-          minHeight: 160,
           alignItems: 'center',
-          // Laisse de la place au X flottant quand il n’y a pas d’icône.
-          paddingTop: icon ? Spacing.two : Spacing.eight,
+          // Au moins Spacing.fourteen au-dessus de l’icône (ou du titre).
+          paddingTop: Spacing.fourteen,
         }}
       >
         {icon ? (
@@ -106,7 +106,7 @@ export function AlertBottomSheet({
             {
               color: colors.ink,
               textAlign: 'center',
-              marginBottom: hasBodyCopy ? Spacing.three : Spacing.four,
+              marginBottom: hasBodyCopy ? Spacing.three : 0,
             },
           ]}
         >
@@ -119,7 +119,7 @@ export function AlertBottomSheet({
             style={{
               color: colors.muted,
               textAlign: 'center',
-              marginBottom: message || detail ? Spacing.two : Spacing.four,
+              marginBottom: message || detail ? Spacing.two : 0,
               lineHeight: 22,
             }}
           >
@@ -134,7 +134,7 @@ export function AlertBottomSheet({
             style={{
               color: colors.body,
               textAlign: 'center',
-              marginBottom: detail ? Spacing.three : Spacing.four,
+              marginBottom: detail ? Spacing.three : 0,
               lineHeight: 22,
               ...(messageNumberOfLines
                 ? { minHeight: 22 * messageNumberOfLines }
@@ -151,15 +151,13 @@ export function AlertBottomSheet({
             style={{
               color: colors.muted,
               textAlign: 'center',
-              marginBottom: Spacing.four,
+              marginBottom: 0,
               lineHeight: 22,
             }}
           >
             {detail}
           </Text>
         ) : null}
-
-        {!hasBodyCopy ? <View style={{ height: Spacing.two }} /> : null}
 
         <SheetActionsFooter>
           <SheetSingleAction>

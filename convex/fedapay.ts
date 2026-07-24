@@ -3,6 +3,7 @@ import { action, internalMutation } from './_generated/server';
 import { internal } from './_generated/api';
 import { Doc, Id } from './_generated/dataModel';
 import { activatePremiumSubscription } from './subscriptions';
+import { releasePaymentForOrder } from './payments';
 import { validateReviewForOrder } from './reviews';
 
 const FEDAPAY_API =
@@ -36,6 +37,7 @@ async function createFedapayTransactionApi(args: {
   customerName?: string;
   metadata: Record<string, string>;
   reference: string;
+  returnUrl?: string;
 }): Promise<{ transactionId: number; reference: string; paymentUrl: string | null }> {
   const customer: Record<string, unknown> = {
     firstname: args.customerName?.split(' ')[0] ?? 'Client',
@@ -51,11 +53,24 @@ async function createFedapayTransactionApi(args: {
     };
   }
 
+  // FedaPay exige une URL http(s) — les deep links (tchadtalent://…) sont rejetés.
+  // Préférer le proxy Convex `/fedapay/callback?to=…` quand returnUrl + CONVEX_SITE_URL.
+  const siteUrl = process.env.CONVEX_SITE_URL?.trim()?.replace(/\/$/, '');
+  const dynamicCallback =
+    args.returnUrl && siteUrl
+      ? `${siteUrl}/fedapay/callback?to=${encodeURIComponent(args.returnUrl)}`
+      : undefined;
+  const callbackUrl =
+    dynamicCallback ?? process.env.FEDAPAY_CALLBACK_URL?.trim();
+  const hasHttpCallback =
+    !!callbackUrl && /^https?:\/\//i.test(callbackUrl);
+
   const body = {
     description: args.description,
     amount: args.amount,
-    currency: { iso: 'XAF' },
-    callback_url: process.env.FEDAPAY_CALLBACK_URL,
+    // FedaPay n'accepte que XOF (CFA UEMOA). L'app reste en XAF (CFA BEAC) côté métier.
+    currency: { iso: 'XOF' },
+    ...(hasHttpCallback ? { callback_url: callbackUrl } : {}),
     customer,
     custom_metadata: {
       ...args.metadata,
@@ -74,31 +89,55 @@ async function createFedapayTransactionApi(args: {
     throw new Error(`FedaPay: ${response.status} — ${errorText}`);
   }
 
-  const data = (await response.json()) as {
-    v1?: { transaction?: { id: number; reference: string } };
-    transaction?: { id: number; reference: string };
-  };
+  const data = (await response.json()) as Record<string, unknown>;
 
-  const transaction = data.v1?.transaction ?? data.transaction;
-  if (!transaction) throw new Error('Réponse FedaPay invalide');
+  const nested =
+    (data['v1/transaction'] as
+      | { id?: number; reference?: string; payment_url?: string }
+      | undefined) ??
+    (data.transaction as
+      | { id?: number; reference?: string; payment_url?: string }
+      | undefined) ??
+    (
+      data.v1 as
+        | { transaction?: { id?: number; reference?: string; payment_url?: string } }
+        | undefined
+    )?.transaction;
 
-  const tokenResponse = await fetch(
-    `${FEDAPAY_API}/transactions/${transaction.id}/token`,
-    { method: 'POST', headers: fedapayHeaders() },
-  );
+  const transactionId =
+    nested?.id ?? (typeof data.id === 'number' ? data.id : undefined);
+  const reference =
+    nested?.reference ??
+    (typeof data.reference === 'string' ? data.reference : args.reference);
+  let paymentUrl =
+    nested?.payment_url ??
+    (typeof data.payment_url === 'string' ? data.payment_url : null);
 
-  let paymentUrl: string | null = null;
-  if (tokenResponse.ok) {
-    const tokenData = (await tokenResponse.json()) as {
-      url?: string;
-      v1?: { token?: { url?: string } };
-    };
-    paymentUrl = tokenData.url ?? tokenData.v1?.token?.url ?? null;
+  if (typeof transactionId !== 'number') {
+    throw new Error(`Réponse FedaPay invalide: ${JSON.stringify(data)}`);
+  }
+
+  if (!paymentUrl) {
+    const tokenResponse = await fetch(
+      `${FEDAPAY_API}/transactions/${transactionId}/token`,
+      { method: 'POST', headers: fedapayHeaders() },
+    );
+
+    if (tokenResponse.ok) {
+      const tokenData = (await tokenResponse.json()) as Record<string, unknown>;
+      const tokenNested =
+        (tokenData['v1/token'] as { url?: string } | undefined) ??
+        (tokenData.v1 as { token?: { url?: string } } | undefined)?.token;
+      paymentUrl =
+        (typeof tokenData.url === 'string' ? tokenData.url : null) ??
+        tokenNested?.url ??
+        null;
+    }
   }
 
   return {
-    transactionId: transaction.id,
-    reference: transaction.reference ?? args.reference,
+    transactionId,
+    reference,
     paymentUrl,
   };
 }
@@ -111,6 +150,7 @@ export const createTransaction = action({
     phoneNumber: v.optional(v.string()),
     customerEmail: v.optional(v.string()),
     customerName: v.optional(v.string()),
+    returnUrl: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<CreateTxResult> => {
     const secret = process.env.FEDAPAY_SECRET_KEY;
@@ -137,6 +177,7 @@ export const createTransaction = action({
       customerEmail: args.customerEmail,
       customerName: args.customerName,
       reference,
+      returnUrl: args.returnUrl,
       metadata: {
         purpose: 'order',
         payment_id: args.paymentId,
@@ -165,6 +206,7 @@ export const createPremiumTransaction = action({
     phoneNumber: v.optional(v.string()),
     customerEmail: v.optional(v.string()),
     customerName: v.optional(v.string()),
+    returnUrl: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<CreateTxResult> => {
     const secret = process.env.FEDAPAY_SECRET_KEY;
@@ -197,6 +239,7 @@ export const createPremiumTransaction = action({
       customerEmail: args.customerEmail,
       customerName: args.customerName,
       reference,
+      returnUrl: args.returnUrl,
       metadata: {
         purpose: 'premium',
         subscription_id: args.subscriptionId,
@@ -233,7 +276,7 @@ export const linkTransaction = internalMutation({
   },
 });
 
-/** Sandbox local : paiement tenu + avis validé. */
+/** Sandbox local : paiement libéré (`released`) + avis validé. */
 export const approveSandboxPayment = internalMutation({
   args: {
     paymentId: v.id('payments'),
@@ -248,12 +291,9 @@ export const approveSandboxPayment = internalMutation({
       throw new Error('Commande non terminée');
     }
     const timestamp = Date.now();
-    await ctx.db.patch(args.paymentId, {
-      status: 'held',
+    await releasePaymentForOrder(ctx, args.paymentId, {
       fedapayTransactionId: args.fedapayTransactionId,
       fedapayReference: args.fedapayReference,
-      heldAt: timestamp,
-      updatedAt: timestamp,
     });
     await ctx.db.patch(payment.orderId, {
       canReview: true,
@@ -366,11 +406,9 @@ export const handleWebhook = internalMutation({
       if (!order || order.status !== 'completed') {
         return { ok: false, reason: 'order_not_completed' };
       }
-      await ctx.db.patch(payment._id, {
-        status: 'held',
-        fedapayTransactionId: args.transactionId ?? payment.fedapayTransactionId,
-        heldAt: timestamp,
-        updatedAt: timestamp,
+      await releasePaymentForOrder(ctx, payment._id, {
+        fedapayTransactionId:
+          args.transactionId ?? payment.fedapayTransactionId,
       });
       await ctx.db.patch(payment.orderId, {
         canReview: true,
@@ -385,6 +423,10 @@ export const handleWebhook = internalMutation({
       /** Avis reste isValid=false — ne compte pas dans les moyennes. */
     }
 
-    return { ok: true, paymentId: payment._id, status: approved ? 'held' : 'failed' };
+    return {
+      ok: true,
+      paymentId: payment._id,
+      status: approved ? 'released' : 'failed',
+    };
   },
 });

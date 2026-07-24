@@ -123,7 +123,7 @@ Un seul opérateur au démarrage (compte seed).
 | Élément | Statut |
 |---------|--------|
 | OTP SMS réel | Exclu (pas de Twilio etc.) |
-| Escrow bancaire complexe | Non — libération logique à “terminé” |
+| Escrow bancaire complexe | Non — libération automatique au succès paiement (ou après 24 h hors plateforme) |
 | Litige comme statut dédié | Exclu du cycle V1 |
 | Statut “en cours” séparé | Exclu (voir §5) |
 | Sous-critères d’avis (ponctualité…) | V1.1 |
@@ -143,7 +143,7 @@ Un seul opérateur au démarrage (compte seed).
 | 2 | Validation prestataire à l’inscription | Auto-actif |
 | 3 | Paiement | Hors app + FedaPay préparé et branché |
 | 4 | Ordre FedaPay | Commande d’abord, puis abonnement premium |
-| 5 | Libération fonds | À la validation client “terminé” |
+| 5 | Libération fonds | Automatique au succès du paiement intégré (FedaPay) → `released` ; hors plateforme : après 24 h sans refus |
 | 6 | Choix paiement | FedaPay **et** hors plateforme coexistent |
 | 6b | Refus hors plateforme | Prestataire peut refuser un paiement `off_platform` **uniquement dans les 24 h** suivant la date du **dernier paiement enregistré** pour la commande ; au-delà, le refus n’est plus possible |
 | 7 | Avis client→prestataire | **Obligatoire** au paiement in-app (note 1–5 + tags ; commentaire libre optionnel). Valide seulement si paiement abouti. Pas de notation depuis la fiche service. |
@@ -230,7 +230,7 @@ pending → cancelled
 |--------|----------------|
 | `pending` | Demande client, en attente prestataire |
 | `accepted` | Prestataire a accepté (travail en cours implicitement) |
-| `completed` | Client (ou flux convenu) valide la fin |
+| `completed` | Prestataire a marqué la prestation comme terminée |
 | `cancelled` | Annulation / refus : **aucun paiement** possible. Si la commande avait été **acceptée** (`acceptedAt`), le prestataire peut noter le client. Un refus immédiat (sans acceptation) n’ouvre pas la notation. |
 
 **Payée** est un statut **d’affichage** (pas stocké) : commande `completed` dont le paiement est `held` / `released`. Le badge devient « Payée » (vert foncé) sur la liste et la fiche commande ; c’est le dernier état du parcours.
@@ -288,7 +288,7 @@ Upload via le flux fichiers existant (`generateUploadUrl` / `useUpload`).
 1. Après commande `completed`, le client peut enregistrer un paiement `off_platform` → statut paiement `pending` (pas de commission, pas d’avis). L’horodatage `recordedAt` marque la date de cet enregistrement.
 2. Le **prestataire** peut **refuser** ce paiement **uniquement dans les 24 heures** suivant la date du **dernier paiement enregistré** pour la commande (`recordedAt`, sinon `createdAt`).
 3. Refus → paiement `failed` ; le client peut à nouveau enregistrer un mode de paiement (intégré ou hors plateforme) — un nouvel enregistrement repart un nouveau délai de 24 h.
-4. Au-delà de 24 h : plus de refus possible ; le flux suit la validation client (`validate`) puis libération `released` si applicable.
+4. Au-delà de 24 h sans refus : libération automatique `released` (job planifié à l’enregistrement du paiement hors plateforme).
 5. Un paiement hors plateforme déjà libéré (`released` avec `releasedAt`) n’est plus refusible.
 
 #### FedaPay (obligatoire à préparer)
@@ -296,8 +296,8 @@ Upload via le flux fichiers existant (`generateUploadUrl` / `useUpload`).
 - Variables : `FEDAPAY_SECRET_KEY`, `FEDAPAY_ENV` (`sandbox` \| `live`), `FEDAPAY_CALLBACK_URL`
 - Création transaction, webhook HTTP Convex, mise à jour `payments`
 - Flux métier :
-  1. Client paie → statut paiement `held` (ou équivalent)
-  2. Commande `completed` → libération `released` vers prestataire (logique métier)
+  1. Commande déjà `completed` (prestataire a terminé)
+  2. Client paie → statut paiement `released` (libération immédiate vers prestataire ; `held` conservé en schéma pour legacy / filtres admin)
 - **Premier flux à finaliser** : paiement de **commande**
 - **Second** : paiement **abonnement premium**
 - Sans clés : mode sandbox local (référence factice, pas de blocage du reste de l’app)
@@ -321,7 +321,7 @@ Upload via le flux fichiers existant (`generateUploadUrl` / `useUpload`).
 - Les tags choisis + le commentaire sont **concaténés** en un bloc texte stocké dans `reviews.comment`.
 - L’avis est lié à la **commande** (`reviews.orderId`) et porté par `isValid` :
   - créé / mis à jour au moment de l’enregistrement du paiement (`isValid = false`)
-  - passé à `isValid = true` **uniquement** si le paiement aboutit (`held` / succès)
+  - passé à `isValid = true` **uniquement** si le paiement aboutit (`released` / succès)
   - reste invalide si le paiement échoue (n’entre pas dans les moyennes publiques)
 - **Interdit** de noter depuis la page détail service — uniquement via le parcours commande / checkout.
 - Hors plateforme : **pas** d’avis officiel (`canReview = false`).
@@ -726,7 +726,8 @@ Le MVP est **conforme** si :
 | 2.3 | 2026-07-24 | Paiement hors plateforme : refus prestataire possible uniquement dans les 24 h suivant la date du dernier paiement enregistré pour la commande |
 | 2.4 | 2026-07-24 | Notation : avis obligatoire au paiement in-app (tags + isValid) ; notes prestataire→client ; expressions à la saisie |
 | 2.5 | 2026-07-24 | Annulation/refus : paiement interdit ; avis prestataire→client si terminée ou acceptée puis annulée ; CTA Payer sur card client |
+| 2.6 | 2026-07-24 | Libération fonds automatique : succès FedaPay → `released` ; hors plateforme auto-`released` après 24 h ; suppression validation client (`orders.validate`) |
 
 ---
 
-**TalentTchad © 2026 — Document confidentiel — Version 2.5**
+**TalentTchad © 2026 — Document confidentiel — Version 2.6**

@@ -27,7 +27,7 @@ Référence : [CDC.md](./CDC.md) §13. À cocher avant build / déploiement inte
 2. **Commande & avis**
    - [ ] Publier un service (prestataire)
    - [ ] Commander (client) → accepter (prestataire)
-   - [ ] Payer **sandbox FedaPay** → compléter → valider → bouton **Laisser un avis** → moyenne visible
+   - [ ] Terminer (prestataire) → Payer **sandbox FedaPay** → statut `released` → bouton **Laisser un avis** → moyenne visible
    - [ ] Parcours **hors plateforme** : pas de bouton avis
 
 3. **Chat**
