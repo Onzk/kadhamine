@@ -30,10 +30,12 @@ import { AuthPrimaryButton } from '@/components/auth/AuthField';
 import { SheetActionRow, SheetActionSlot } from '@/components/ui/SheetActions';
 import { StarRating } from '@/components/ui/StarRating';
 import { ServiceCard } from '@/components/cards/ServiceCard';
+import { PortfolioCard } from '@/components/portfolio/PortfolioCard';
 import {
   PortfolioDetailSheet,
   type PortfolioDetailItem,
 } from '@/components/portfolio/PortfolioDetailSheet';
+import { OwnAccountSheet } from '@/components/ui/OwnAccountSheet';
 import { PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { Text } from '@/components/ui/ThemedText';
 import { useAuth } from '@/providers/AuthProvider';
@@ -110,6 +112,8 @@ export default function ProviderDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [contactLoading, setContactLoading] = useState(false);
+  const [orderLoading, setOrderLoading] = useState(false);
+  const [ownAccountSheet, setOwnAccountSheet] = useState(false);
   const [selectedPortfolio, setSelectedPortfolio] = useState<PortfolioDetailItem | null>(null);
 
   const data = useQuery(
@@ -118,6 +122,7 @@ export default function ProviderDetailScreen() {
   );
   const incrementView = useMutation(api.profiles.incrementView);
   const getOrCreateConversation = useMutation(api.messages.getOrCreate);
+  const createOrder = useMutation(api.orders.create);
 
   useEffect(() => {
     if (id) incrementView({ profileId: id as Id<'profiles'> }).catch(() => {});
@@ -150,6 +155,10 @@ export default function ProviderDetailScreen() {
 
   const handleContact = async () => {
     if (!data?.userId) return;
+    if (user?._id && data.userId === user._id) {
+      setOwnAccountSheet(true);
+      return;
+    }
     if (!user?._id) {
       requireLogin(t('service.contact'));
       return;
@@ -169,6 +178,40 @@ export default function ProviderDetailScreen() {
       }
     } finally {
       setContactLoading(false);
+    }
+  };
+
+  const handleOrder = async () => {
+    if (!data) return;
+    if (user?._id && data.userId === user._id) {
+      setOwnAccountSheet(true);
+      return;
+    }
+    if (!user?._id) {
+      requireLogin(t('service.order'));
+      return;
+    }
+    const firstService = data.services[0];
+    if (!firstService) {
+      alert({
+        title: t('common.error'),
+        message: t('provider.noServices'),
+      });
+      return;
+    }
+    setOrderLoading(true);
+    try {
+      const orderId = await createOrder({ serviceId: firstService._id });
+      router.push(`/checkout/${orderId}`);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : t('common.error');
+      if (/non authentifié/i.test(message)) {
+        requireLogin(t('service.order'));
+      } else {
+        alert({ title: t('common.error'), message });
+      }
+    } finally {
+      setOrderLoading(false);
     }
   };
 
@@ -598,45 +641,13 @@ export default function ProviderDetailScreen() {
                 }}
               >
                 {portfolioItems.map((item) => (
-                  <Pressable
-                    key={item._id}
-                    onPress={() => setSelectedPortfolio(item)}
-                    style={({ pressed }) => [
-                      { width: '48%', flexGrow: 1 },
-                      { opacity: pressed ? 0.92 : 1 },
-                    ]}
-                  >
-                    <View
-                      style={{
-                        borderRadius: Radius.sm,
-                        overflow: 'hidden',
-                        backgroundColor: colors.surfaceCard,
-                        borderWidth: BorderWidth.default,
-                        borderColor: colors.border,
-                      }}
-                    >
-                      <Image
-                        source={{ uri: item.thumbnailUrl || item.mediaUrl! }}
-                        style={{ width: '100%', aspectRatio: 1 }}
-                        contentFit="cover"
-                      />
-                      <View style={{ padding: Spacing.two }}>
-                        <Text
-                          style={[
-                            textStyle('caption'),
-                            {
-                              color: colors.ink,
-                              fontFamily: fontFamily('body', 'medium'),
-                              fontSize: 12,
-                            },
-                          ]}
-                          numberOfLines={2}
-                        >
-                          {item.title}
-                        </Text>
-                      </View>
-                    </View>
-                  </Pressable>
+                  <View key={item._id} style={{ width: '48%', flexGrow: 1 }}>
+                    <PortfolioCard
+                      item={item}
+                      compact
+                      onPress={() => setSelectedPortfolio(item)}
+                    />
+                  </View>
                 ))}
               </View>
             </View>
@@ -728,19 +739,24 @@ export default function ProviderDetailScreen() {
               icon={<ChatCircleDots size={18} weight="fill" />}
             />
           </SheetActionSlot>
-          {services[0] ? (
-            <SheetActionSlot>
-              <AuthPrimaryButton
-                title={t('provider.seeServices')}
-                onPress={() => router.push(`/service/${services[0]!._id}`)}
-                tone="orbit"
-                flat
-                fill
-              />
-            </SheetActionSlot>
-          ) : null}
+          <SheetActionSlot>
+            <AuthPrimaryButton
+              title={t('service.order')}
+              onPress={handleOrder}
+              loading={orderLoading}
+              tone="orbit"
+              flat
+              fill
+            />
+          </SheetActionSlot>
         </SheetActionRow>
       </View>
+
+      <OwnAccountSheet
+        visible={ownAccountSheet}
+        onClose={() => setOwnAccountSheet(false)}
+        message={t('common.ownAccountBody')}
+      />
 
       <PortfolioDetailSheet
         visible={!!selectedPortfolio}

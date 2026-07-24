@@ -110,7 +110,7 @@ export default function VerificationScreen() {
               gap: Spacing.two,
               backgroundColor: colors.error + '12',
               borderRadius: Radius.lg,
-              padding: Spacing.three,
+              padding: Spacing.four,
               marginBottom: Spacing.four,
               borderWidth: 0.1,
               borderColor: colors.error + '30',

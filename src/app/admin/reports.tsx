@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
-import { Check, NotePencil, Scales } from 'phosphor-react-native';
+import { Check, Scales } from 'phosphor-react-native';
 
 import { AuthField, AuthPrimaryButton } from '@/components/auth/AuthField';
 import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
@@ -192,8 +192,8 @@ export default function AdminReportsScreen() {
                 key={report._id}
                 style={{
                   backgroundColor: colors.surfaceCard,
-                  borderRadius: 20,
-                  padding: 16,
+                  borderRadius: Radius.lg,
+                  padding: Spacing.five,
                   borderWidth: 0.1,
                   borderColor: colors.border,
                   gap: Spacing.two,
@@ -253,7 +253,6 @@ export default function AdminReportsScreen() {
           placeholder={t('admin.resolutionPlaceholder')}
           multiline
           numberOfLines={3}
-          leftIcon={<NotePencil size={20} />}
         />
 
         {selected?.report.targetType === 'user' ? (
@@ -266,7 +265,7 @@ export default function AdminReportsScreen() {
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: Spacing.three,
-                paddingVertical: Spacing.three,
+                paddingVertical: Spacing.four,
                 marginBottom: Spacing.three,
               }}
             >

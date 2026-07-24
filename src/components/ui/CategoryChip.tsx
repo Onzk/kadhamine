@@ -11,7 +11,10 @@ interface CategoryChipProps {
   onPress?: () => void;
 }
 
-/** Pill catégorie — actif = ink / texte cream (DESIGN.md). */
+/** White on brand blue — `onPrimary` flips dark in dark theme. */
+const ON_ORBIT = '#FFFFFF';
+
+/** Pill catégorie — actif = orbit (bleu logo / cyan nuit). */
 export function CategoryChip({ label, selected, onPress }: CategoryChipProps) {
   const { colors } = useAppTheme();
 
@@ -29,9 +32,9 @@ export function CategoryChip({ label, selected, onPress }: CategoryChipProps) {
           paddingHorizontal: Spacing.five,
           paddingVertical: Spacing.two,
           borderRadius: Radius.pill,
-          backgroundColor: selected ? colors.ink : colors.surfaceCard,
+          backgroundColor: selected ? colors.orbit : colors.surfaceCard,
           borderWidth: 0.1,
-          borderColor: colors.ink,
+          borderColor: selected ? colors.orbit : colors.border,
           marginRight: Spacing.two,
         }}
       >
@@ -40,7 +43,7 @@ export function CategoryChip({ label, selected, onPress }: CategoryChipProps) {
             textStyle('caption'),
             {
               fontFamily: fontFamily('body', 'medium'),
-              color: selected ? colors.onPrimary : colors.ink,
+              color: selected ? ON_ORBIT : colors.ink,
             },
           ]}
         >

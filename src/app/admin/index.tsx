@@ -16,7 +16,7 @@ import {
 import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { formatPrice } from '@/types';
-import { BrandColors, Spacing } from '@/theme/tokens';
+import { BrandColors, Radius, Spacing } from '@/theme/tokens';
 import { api } from '../../../convex/_generated/api';
 
 export default function AdminDashboard() {
@@ -44,21 +44,41 @@ export default function AdminDashboard() {
         <View
           style={{
             backgroundColor: BrandColors.ink,
-            borderRadius: 24,
-            padding: 20,
-            marginBottom: 20,
+            borderRadius: Radius.lg,
+            padding: Spacing.five,
+            marginBottom: Spacing.five,
           }}
         >
           <Text style={{ color: '#FFFFFF99', fontSize: 13 }}>{t('admin.revenue')}</Text>
-          <Text style={{ color: '#FFFFFF', fontSize: 28, fontWeight: '700', marginTop: 4 }}>
+          <Text
+            style={{
+              color: '#FFFFFF',
+              fontSize: 28,
+              fontWeight: '700',
+              marginTop: Spacing.one,
+            }}
+          >
             {formatPrice(stats?.totalRevenue ?? 0)}
           </Text>
-          <Text style={{ color: BrandColors.gold, fontSize: 13, marginTop: 8 }}>
+          <Text
+            style={{
+              color: BrandColors.gold,
+              fontSize: 13,
+              marginTop: Spacing.two,
+            }}
+          >
             {t('admin.volume')}: {formatPrice(stats?.totalVolume ?? 0)}
           </Text>
         </View>
 
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            gap: Spacing.twoHalf,
+            marginBottom: Spacing.six,
+          }}
+        >
           {[
             { label: t('admin.statUsers'), value: stats?.totalUsers ?? 0 },
             { label: t('admin.statProviders'), value: stats?.totalProviders ?? 0 },
@@ -70,14 +90,22 @@ export default function AdminDashboard() {
               style={{
                 width: '47%',
                 backgroundColor: colors.surfaceCard,
-                borderRadius: 20,
-                padding: 16,
+                borderRadius: Radius.lg,
+                padding: Spacing.five,
                 borderWidth: 0.1,
                 borderColor: colors.border,
               }}
             >
               <Text style={{ fontSize: 22, fontWeight: '700', color: colors.primary }}>{s.value}</Text>
-              <Text style={{ fontSize: 12, color: colors.muted, marginTop: 4 }}>{s.label}</Text>
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: colors.muted,
+                  marginTop: Spacing.one,
+                }}
+              >
+                {s.label}
+              </Text>
             </View>
           ))}
         </View>
@@ -93,9 +121,9 @@ export default function AdminDashboard() {
                 flexDirection: 'row',
                 alignItems: 'center',
                 backgroundColor: colors.surfaceCard,
-                borderRadius: 20,
-                padding: 16,
-                marginBottom: 8,
+                borderRadius: Radius.lg,
+                padding: Spacing.five,
+                marginBottom: Spacing.two,
                 borderWidth: 0.1,
                 borderColor: colors.border,
               }}
@@ -104,7 +132,7 @@ export default function AdminDashboard() {
                 style={{
                   width: 40,
                   height: 40,
-                  borderRadius: 20,
+                  borderRadius: Radius.md,
                   backgroundColor: colors.iconWash,
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -112,17 +140,25 @@ export default function AdminDashboard() {
               >
                 <item.icon size={20} color={colors.primary} />
               </View>
-              <Text style={{ flex: 1, marginLeft: 12, fontSize: 15, fontWeight: '500', color: colors.ink }}>
+              <Text
+                style={{
+                  flex: 1,
+                  marginLeft: Spacing.three,
+                  fontSize: 15,
+                  fontWeight: '500',
+                  color: colors.ink,
+                }}
+              >
                 {item.label}
               </Text>
               {item.badge ? (
                 <View
                   style={{
                     backgroundColor: colors.error,
-                    borderRadius: 9999,
-                    paddingHorizontal: 8,
-                    paddingVertical: 2,
-                    marginRight: 8,
+                    borderRadius: Radius.pill,
+                    paddingHorizontal: Spacing.two,
+                    paddingVertical: Spacing.half,
+                    marginRight: Spacing.two,
                   }}
                 >
                   <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '700' }}>{item.badge}</Text>

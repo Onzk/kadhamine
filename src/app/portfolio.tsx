@@ -1,25 +1,20 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
+import { View, Text, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
-import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Plus,
-  Trash,
   Article,
-  TextAlignLeft,
   Images,
   CheckCircle,
-  PencilSimple,
 } from 'phosphor-react-native';
 
 import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
 import { AppBottomSheet } from '@/components/ui/AppBottomSheet';
 import { AuthField, AuthPrimaryButton } from '@/components/auth/AuthField';
-import { SheetActionsFooter, SheetSingleAction } from '@/components/ui/SheetActions';
-import { CategoryChip } from '@/components/ui/CategoryChip';
+import { FormSelect } from '@/components/ui/FormSelect';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SearchBar } from '@/components/ui/SearchBar';
 import { FlutterFab } from '@/components/ui/FlutterFab';
@@ -27,13 +22,14 @@ import {
   ImagePickerField,
   type ImagePickerValueItem,
 } from '@/components/ui/ImagePickerField';
+import { PortfolioCard } from '@/components/portfolio/PortfolioCard';
 import {
   PortfolioDetailSheet,
   type PortfolioDetailItem,
 } from '@/components/portfolio/PortfolioDetailSheet';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { useAppDialog } from '@/providers/AppDialogProvider';
-import { Radius, Spacing } from '@/theme/tokens';
+import { Spacing } from '@/theme/tokens';
 import { textStyle } from '@/theme/typography';
 import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
@@ -66,10 +62,19 @@ export default function PortfolioScreen() {
   const [editing, setEditing] = useState<EditTarget | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [serviceId, setServiceId] = useState<Id<'services'> | null>(null);
+  const [serviceId, setServiceId] = useState<string | null>(null);
   const [media, setMedia] = useState<ImagePickerValueItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<PortfolioDetailItem | null>(null);
+
+  const serviceOptions = useMemo(
+    () =>
+      (services ?? []).map((item) => ({
+        value: item.service._id,
+        label: item.service.title,
+      })),
+    [services],
+  );
 
   const filtered = useMemo(() => {
     if (!items) return undefined;
@@ -125,6 +130,7 @@ export default function PortfolioScreen() {
     try {
       const mediaType: 'image' | 'video' =
         asset?.mimeType?.startsWith('video/') ? 'video' : 'image';
+      const linkedServiceId = (serviceId as Id<'services'> | null) ?? null;
 
       if (editing) {
         const patch: {
@@ -138,7 +144,7 @@ export default function PortfolioScreen() {
           itemId: editing.itemId,
           title: title.trim(),
           description: description.trim() || undefined,
-          serviceId,
+          serviceId: linkedServiceId,
         };
         if (asset?.storageId && asset.storageId !== editing.storageId) {
           patch.storageId = asset.storageId;
@@ -157,7 +163,7 @@ export default function PortfolioScreen() {
           description: description.trim() || undefined,
           mediaType,
           storageId: asset!.storageId,
-          serviceId: serviceId ?? undefined,
+          serviceId: linkedServiceId ?? undefined,
         });
         resetForm();
         alert({
@@ -238,109 +244,23 @@ export default function PortfolioScreen() {
             />
           ) : (
             filtered?.map((item) => (
-              <Pressable
+              <PortfolioCard
                 key={item._id}
+                item={item}
                 onPress={() => setSelected(item)}
-                style={({ pressed }) => [{ width: '100%' }, { opacity: pressed ? 0.95 : 1 }]}
-              >
-                <View
-                  style={{
-                    backgroundColor: colors.surfaceCard,
-                    borderRadius: Radius.xl,
-                    marginBottom: 12,
-                    overflow: 'hidden',
-                    borderWidth: 0.1,
-                    borderColor: colors.border,
-                  }}
-                >
-                  {item.mediaUrl && item.mediaType === 'image' ? (
-                    <Image
-                      source={{ uri: item.mediaUrl }}
-                      style={{ width: '100%', height: 160 }}
-                      contentFit="cover"
-                    />
-                  ) : null}
-                  <View style={{ padding: 14 }}>
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <Text
-                        style={[
-                          textStyle('body'),
-                          { fontWeight: '600', color: colors.ink, flex: 1 },
-                        ]}
-                      >
-                        {item.title}
-                      </Text>
-                      <View style={{ flexDirection: 'row', gap: 4 }}>
-                        <Pressable
-                          onPress={(e) => {
-                            e?.stopPropagation?.();
-                            openEdit({
-                              itemId: item._id,
-                              title: item.title,
-                              description: item.description,
-                              serviceId: item.serviceId,
-                              mediaUrl: item.mediaUrl,
-                              mediaType: item.mediaType,
-                              storageId: item.storageId,
-                            });
-                          }}
-                          hitSlop={8}
-                          style={({ pressed }) => ({
-                            width: 36,
-                            height: 36,
-                            opacity: pressed ? 0.8 : 1,
-                          })}
-                        >
-                          <View
-                            style={{
-                              width: 36,
-                              height: 36,
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            }}
-                          >
-                            <PencilSimple size={18} color={colors.ink} />
-                          </View>
-                        </Pressable>
-                        <Pressable
-                          onPress={(e) => {
-                            e?.stopPropagation?.();
-                            handleDelete(item._id, item.title);
-                          }}
-                          hitSlop={8}
-                          style={({ pressed }) => ({
-                            width: 36,
-                            height: 36,
-                            opacity: pressed ? 0.8 : 1,
-                          })}
-                        >
-                          <View
-                            style={{
-                              width: 36,
-                              height: 36,
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            }}
-                          >
-                            <Trash size={18} color={colors.error} />
-                          </View>
-                        </Pressable>
-                      </View>
-                    </View>
-                    {item.description ? (
-                      <Text style={{ fontSize: 13, color: colors.body, marginTop: 4 }}>
-                        {item.description}
-                      </Text>
-                    ) : null}
-                  </View>
-                </View>
-              </Pressable>
+                onEdit={() =>
+                  openEdit({
+                    itemId: item._id,
+                    title: item.title,
+                    description: item.description,
+                    serviceId: item.serviceId,
+                    mediaUrl: item.mediaUrl,
+                    mediaType: item.mediaType,
+                    storageId: item.storageId,
+                  })
+                }
+                onDelete={() => handleDelete(item._id, item.title)}
+              />
             ))
           )}
         </View>
@@ -375,38 +295,26 @@ export default function PortfolioScreen() {
             value={description}
             onChangeText={setDescription}
             multiline
-            numberOfLines={2}
+            numberOfLines={4}
             placeholder={t('portfolio.descriptionPlaceholder')}
-            leftIcon={<TextAlignLeft size={20} />}
+            style={{
+              minHeight: 96,
+              textAlignVertical: 'top',
+              ...(Platform.OS === 'android' ? { includeFontPadding: false } : null),
+            }}
           />
 
-          <Text
-            style={[
-              textStyle('body'),
-              { color: colors.ink, fontWeight: '600', marginBottom: Spacing.two },
-            ]}
-          >
-            {t('portfolio.fieldService')}
-          </Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={{ marginBottom: Spacing.three }}
-          >
-            <CategoryChip
-              label={t('portfolio.noService')}
-              selected={serviceId == null}
-              onPress={() => setServiceId(null)}
-            />
-            {services?.map((item) => (
-              <CategoryChip
-                key={item.service._id}
-                label={item.service.title}
-                selected={serviceId === item.service._id}
-                onPress={() => setServiceId(item.service._id)}
-              />
-            ))}
-          </ScrollView>
+          <FormSelect
+            label={t('portfolio.fieldService')}
+            placeholder={t('portfolio.servicePlaceholder')}
+            sheetTitle={t('portfolio.fieldService')}
+            options={serviceOptions}
+            value={serviceId}
+            onChange={setServiceId}
+            clearable
+            clearLabel={t('portfolio.noService')}
+            variant="inline"
+          />
 
           <ImagePickerField
             label={t('portfolio.fieldMedia')}
@@ -418,27 +326,14 @@ export default function PortfolioScreen() {
             style={{ marginBottom: Spacing.three }}
           />
 
-          <SheetActionsFooter style={{ marginTop: Spacing.one }}>
-            <SheetSingleAction>
-              <AuthPrimaryButton
-                title={t('common.save')}
-                onPress={handleSave}
-                loading={loading}
-                disabled={!canSave}
-                tone="ink"
-                flat
-              />
-            </SheetSingleAction>
-            <SheetSingleAction>
-              <AuthPrimaryButton
-                title={t('common.cancel')}
-                onPress={resetForm}
-                disabled={loading}
-                tone="outline"
-                flat
-              />
-            </SheetSingleAction>
-          </SheetActionsFooter>
+          <AuthPrimaryButton
+            title={t('common.save')}
+            onPress={handleSave}
+            loading={loading}
+            disabled={!canSave}
+            tone="orbit"
+            flat
+          />
         </View>
       </AppBottomSheet>
 
@@ -446,7 +341,7 @@ export default function PortfolioScreen() {
         visible={!!selected}
         onClose={() => setSelected(null)}
         item={selected}
-        onOpenService={(id) => router.push(`/service/${id}`)}
+        onOpenService={(sid) => router.push(`/service/${sid}`)}
       />
     </View>
   );

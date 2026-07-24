@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/Badge';
 import { SheetActionRow, SheetActionSlot, SheetActionsFooter } from '@/components/ui/SheetActions';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { useAppDialog } from '@/providers/AppDialogProvider';
-import { Spacing } from '@/theme/tokens';
+import { Radius, Spacing } from '@/theme/tokens';
 import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
 
@@ -132,8 +132,8 @@ export default function AdminUsersScreen() {
               key={user._id}
               style={{
                 backgroundColor: colors.surfaceCard,
-                borderRadius: 20,
-                padding: 16,
+                borderRadius: Radius.lg,
+                padding: Spacing.five,
                 borderWidth: 0.1,
                 borderColor: colors.border,
                 gap: Spacing.three,

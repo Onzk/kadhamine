@@ -47,8 +47,8 @@ interface AuthFieldProps extends TextInputProps {
   isPassword?: boolean;
   showPassword?: boolean;
   onTogglePassword?: () => void;
-  /** Icône préfixe obligatoire (alignée login). */
-  leftIcon: React.ReactNode;
+  /** Icône préfixe (alignée login). Ignorée si multiline. */
+  leftIcon?: React.ReactNode;
   /** Placeholder obligatoire pour guider la saisie. */
   placeholder: string;
   /** `light` = surfaceCard + thin border (login / app). `inverted` = contraste inversé (legacy). */
@@ -66,6 +66,7 @@ export function AuthField({
   leftIcon,
   variant = 'light',
   style,
+  multiline,
   onFocus,
   onBlur,
   value,
@@ -75,6 +76,7 @@ export function AuthField({
   const [focused, setFocused] = useState(false);
   const inverted = getInvertedInputColors(isDark);
   const isLight = variant === 'light';
+  const showLeftIcon = !multiline && Boolean(leftIcon);
 
   const scheme = isLight
     ? {
@@ -107,7 +109,9 @@ export function AuthField({
     lineHeight: 22.4,
     letterSpacing: -0.08,
     paddingVertical: Spacing.three,
-    ...(Platform.OS === 'android' ? { includeFontPadding: false, textAlignVertical: 'center' } : null),
+    ...(Platform.OS === 'android'
+      ? { includeFontPadding: false, textAlignVertical: multiline ? 'top' : 'center' }
+      : null),
   };
 
   return (
@@ -127,6 +131,8 @@ export function AuthField({
       <View
         style={[
           styles.fieldRow,
+          multiline && styles.fieldRowMultiline,
+          showLeftIcon && styles.fieldRowWithIcon,
           {
             backgroundColor: scheme.background,
             borderWidth: scheme.borderWidth,
@@ -135,7 +141,7 @@ export function AuthField({
           },
         ]}
       >
-        {leftIcon ? (
+        {showLeftIcon ? (
           <View style={styles.leftIcon}>
             {React.isValidElement(leftIcon)
               ? React.cloneElement(leftIcon as React.ReactElement<{ color?: string }>, {
@@ -149,6 +155,7 @@ export function AuthField({
           placeholderTextColor={scheme.placeholder}
           selectionColor={isLight ? colors.orbit : scheme.foreground}
           secureTextEntry={isPassword && !showPassword}
+          multiline={multiline}
           onFocus={(e) => {
             setFocused(true);
             onFocus?.(e);
@@ -575,8 +582,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: Spacing.four,
     minHeight: 52,
-    gap: Spacing.twoHalf,
     overflow: 'hidden',
+  },
+  fieldRowMultiline: {
+    alignItems: 'flex-start',
+  },
+  fieldRowWithIcon: {
+    gap: Spacing.twoHalf,
   },
   leftIcon: {
     marginRight: 2,

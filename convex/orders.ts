@@ -54,6 +54,39 @@ export const listMine = query({
   },
 });
 
+/** Orders for a service — provider owner only. */
+export const listByService = query({
+  args: { serviceId: v.id('services') },
+  handler: async (ctx, args) => {
+    const { userId } = await requireAuth(ctx);
+    const service = await ctx.db.get(args.serviceId);
+    if (!service || service.providerId !== userId) {
+      return null;
+    }
+
+    const orders = await ctx.db
+      .query('orders')
+      .withIndex('by_service', (q) => q.eq('serviceId', args.serviceId))
+      .order('desc')
+      .collect();
+
+    return await Promise.all(
+      orders.map(async (order) => {
+        const clientUser = await ctx.db.get(order.clientId);
+        const clientProfile = await ctx.db
+          .query('profiles')
+          .withIndex('by_user', (q) => q.eq('userId', order.clientId))
+          .first();
+        const payment = await ctx.db
+          .query('payments')
+          .withIndex('by_order', (q) => q.eq('orderId', order._id))
+          .first();
+        return { order, clientUser, clientProfile, payment };
+      }),
+    );
+  },
+});
+
 export const create = mutation({
   args: {
     serviceId: v.id('services'),

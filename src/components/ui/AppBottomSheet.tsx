@@ -55,6 +55,12 @@ export interface AppBottomSheetProps {
   scrollable?: boolean;
   showClose?: boolean;
   stickyHeader?: boolean;
+  /**
+   * Masque le titre sticky / en-tête gauche.
+   * Utile pour les alertes centrées (titre dans le body).
+   * Le bouton X reste affiché si `showClose`.
+   */
+  hideHeader?: boolean;
   contentContainerStyle?: StyleProp<ViewStyle>;
 }
 
@@ -174,6 +180,7 @@ export function AppBottomSheet({
   scrollable = true,
   showClose = true,
   stickyHeader = true,
+  hideHeader = false,
   contentContainerStyle,
 }: AppBottomSheetProps) {
   const { colors } = useAppTheme();
@@ -383,7 +390,7 @@ export function AppBottomSheet({
   const sheetLift = keyboardOpen ? keyboardHeight : 0;
   /** Padding bas interne : safe area + marge pour l’action. */
   const sheetBottomPad = systemBottom + Spacing.twelve;
-  const useSticky = scrollable && stickyHeader;
+  const useSticky = scrollable && stickyHeader && !hideHeader;
   const sheetBg = colors.canvas;
 
   const body = (
@@ -393,16 +400,30 @@ export function AppBottomSheet({
           alignSelf: 'stretch',
           width: '100%',
           paddingHorizontal: Spacing.six,
-          paddingBottom: sheetBottomPad,
         },
         contentContainerStyle,
+        // Toujours en dernier — safe area + Spacing.twelve (non surchargeable).
+        { paddingBottom: sheetBottomPad },
       ]}
     >
       {children}
     </View>
   );
 
-  const staticHeader = (
+  const floatingClose = showClose ? (
+    <View
+      style={{
+        position: 'absolute',
+        top: showHandle ? Spacing.two : Spacing.five,
+        right: Spacing.six,
+        zIndex: 10,
+      }}
+    >
+      <SheetCloseButton onPress={requestClose} />
+    </View>
+  ) : null;
+
+  const staticHeader = hideHeader ? null : (
     <View
       style={{
         flexDirection: 'row',
@@ -509,18 +530,7 @@ export function AppBottomSheet({
                   />
                 ) : null}
 
-                {showClose && (!useSticky || !stickyActive) ? (
-                  <View
-                    style={{
-                      position: 'absolute',
-                      top: showHandle ? Spacing.two : Spacing.five,
-                      right: Spacing.six,
-                      zIndex: 10,
-                    }}
-                  >
-                    <SheetCloseButton onPress={requestClose} />
-                  </View>
-                ) : null}
+                {showClose && (!useSticky || !stickyActive) ? floatingClose : null}
 
                 <Animated.ScrollView
                   onScroll={onScroll}
@@ -533,20 +543,22 @@ export function AppBottomSheet({
                   style={{ backgroundColor: sheetBg, maxHeight: scrollMaxHeight }}
                   contentContainerStyle={{ flexGrow: 1 }}
                 >
-                  <SheetHeader
-                    title={title}
-                    subtitle={subtitle}
-                    style={{
-                      paddingTop: useSticky ? Spacing.three : Spacing.two,
-                      ...(showClose ? { paddingRight: 56 } : null),
-                    }}
-                  />
+                  {hideHeader ? null : (
+                    <SheetHeader
+                      title={title}
+                      subtitle={subtitle}
+                      style={{
+                        paddingTop: useSticky ? Spacing.three : Spacing.two,
+                        ...(showClose ? { paddingRight: 56 } : null),
+                      }}
+                    />
+                  )}
                   {body}
                 </Animated.ScrollView>
               </View>
             ) : (
               <>
-                {staticHeader}
+                {hideHeader ? floatingClose : staticHeader}
                 {body}
               </>
             )}

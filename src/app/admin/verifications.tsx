@@ -3,7 +3,7 @@ import { View, Text, ScrollView, Pressable, Modal } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
 import { Image } from 'expo-image';
-import { IdentificationCard, NotePencil, X } from 'phosphor-react-native';
+import { IdentificationCard, X } from 'phosphor-react-native';
 
 import { AuthField, AuthPrimaryButton } from '@/components/auth/AuthField';
 import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
@@ -15,7 +15,7 @@ import { AppBottomSheet } from '@/components/ui/AppBottomSheet';
 import { SheetActionRow, SheetActionSlot, SheetActionsFooter } from '@/components/ui/SheetActions';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { useAppDialog } from '@/providers/AppDialogProvider';
-import { Spacing } from '@/theme/tokens';
+import { Radius, Spacing } from '@/theme/tokens';
 import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
 
@@ -138,8 +138,8 @@ export default function AdminVerificationsScreen() {
               key={request._id}
               style={{
                 backgroundColor: colors.surfaceCard,
-                borderRadius: 20,
-                padding: 16,
+                borderRadius: Radius.lg,
+                padding: Spacing.five,
                 borderWidth: 0.1,
                 borderColor: colors.border,
                 gap: Spacing.three,
@@ -169,7 +169,7 @@ export default function AdminVerificationsScreen() {
                   >
                     <Image
                       source={{ uri: docUrl }}
-                      style={{ width: 120, height: 80, borderRadius: 6 }}
+                      style={{ width: 120, height: 80, borderRadius: Radius.sm }}
                       contentFit="cover"
                     />
                   </Pressable>
@@ -185,7 +185,7 @@ export default function AdminVerificationsScreen() {
                   >
                     <Image
                       source={{ uri: selfieUrl }}
-                      style={{ width: 80, height: 80, borderRadius: 40 }}
+                      style={{ width: 80, height: 80, borderRadius: Radius.pill }}
                       contentFit="cover"
                     />
                   </Pressable>
@@ -241,7 +241,6 @@ export default function AdminVerificationsScreen() {
           placeholder={t('admin.notesPlaceholder')}
           multiline
           numberOfLines={3}
-          leftIcon={<NotePencil size={20} />}
         />
         <SheetActionsFooter>
           <AuthPrimaryButton
@@ -283,7 +282,7 @@ export default function AdminVerificationsScreen() {
               style={{
                 width: 44,
                 height: 44,
-                borderRadius: 22,
+                borderRadius: Radius.md,
                 backgroundColor: '#FFFFFF22',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -295,7 +294,7 @@ export default function AdminVerificationsScreen() {
           {previewUri ? (
             <Image
               source={{ uri: previewUri }}
-              style={{ width: '100%', height: '70%', borderRadius: 12 }}
+              style={{ width: '100%', height: '70%', borderRadius: Radius.lg }}
               contentFit="contain"
             />
           ) : null}

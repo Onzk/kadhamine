@@ -48,6 +48,7 @@ import type { Id } from '../../../convex/_generated/dataModel';
 import { Badge } from '@/components/ui/Badge';
 import { AuthPrimaryButton } from '@/components/auth/AuthField';
 import { AppBottomSheet } from '@/components/ui/AppBottomSheet';
+import { OwnAccountSheet } from '@/components/ui/OwnAccountSheet';
 import { FlutterFab, FLUTTER_FAB } from '@/components/ui/FlutterFab';
 import { SheetActionRow, SheetActionSlot } from '@/components/ui/SheetActions';
 import { StarRating } from '@/components/ui/StarRating';
@@ -394,6 +395,7 @@ export default function ServiceDetailScreen() {
   const [photoIndex, setPhotoIndex] = useState(0);
   const [stickyActive, setStickyActive] = useState(false);
   const [trustSheetOpen, setTrustSheetOpen] = useState(false);
+  const [ownAccountSheet, setOwnAccountSheet] = useState(false);
   const [selectedPortfolio, setSelectedPortfolio] = useState<PortfolioDetailItem | null>(null);
   const scrollY = useSharedValue(0);
   const photoScrollRef = useRef<ScrollView>(null);
@@ -564,6 +566,10 @@ export default function ServiceDetailScreen() {
   const trustFabBottom = footerBlockH + FLUTTER_FAB.edgeMargin;
 
   const handleOrder = async () => {
+    if (user?._id && service.providerId === user._id) {
+      setOwnAccountSheet(true);
+      return;
+    }
     if (!user?._id) {
       requireLogin(t('service.order'));
       return;
@@ -585,6 +591,10 @@ export default function ServiceDetailScreen() {
   };
 
   const handleContact = async () => {
+    if (user?._id && service.providerId === user._id) {
+      setOwnAccountSheet(true);
+      return;
+    }
     if (!user?._id) {
       requireLogin(t('service.contact'));
       return;
@@ -1493,6 +1503,12 @@ export default function ServiceDetailScreen() {
           ) : null}
         </View>
       </AppBottomSheet>
+
+      <OwnAccountSheet
+        visible={ownAccountSheet}
+        onClose={() => setOwnAccountSheet(false)}
+        message={t('common.ownServiceBody')}
+      />
 
       <PortfolioDetailSheet
         visible={!!selectedPortfolio}

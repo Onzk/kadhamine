@@ -7,6 +7,7 @@ import { SheetActionRow, SheetActionSlot, SheetActionsFooter } from '@/component
 import { Text } from '@/components/ui/ThemedText';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { Spacing } from '@/theme/tokens';
+import { textStyle } from '@/theme/typography';
 
 export interface ConfirmationBottomSheetProps {
   visible: boolean;
@@ -18,9 +19,11 @@ export interface ConfirmationBottomSheetProps {
   destructive?: boolean;
   loading?: boolean;
   onConfirm: () => void | Promise<void>;
+  /** Icône optionnelle centrée au-dessus du titre. */
+  icon?: React.ReactNode;
 }
 
-/** Confirmation — annuler ou confirmer une action. */
+/** Confirmation — annuler ou confirmer une action (contenu centré). */
 export function ConfirmationBottomSheet({
   visible,
   onClose,
@@ -31,6 +34,7 @@ export function ConfirmationBottomSheet({
   destructive = false,
   loading = false,
   onConfirm,
+  icon,
 }: ConfirmationBottomSheetProps) {
   const { colors } = useAppTheme();
 
@@ -43,19 +47,54 @@ export function ConfirmationBottomSheet({
       visible={visible}
       onClose={onClose}
       title={title}
+      hideHeader
       scrollable={false}
+      stickyHeader={false}
       showHandle={false}
       showClose={false}
       maxHeightRatio={0.5}
     >
-      <View style={{ alignSelf: 'stretch', width: '100%' }}>
+      <View
+        style={{
+          alignSelf: 'stretch',
+          width: '100%',
+          alignItems: 'center',
+          paddingTop: Spacing.five,
+        }}
+      >
+        {icon ? (
+          <View style={{ marginBottom: Spacing.four, alignItems: 'center' }}>{icon}</View>
+        ) : null}
+
+        <Text
+          style={[
+            textStyle('productDisplay'),
+            {
+              color: colors.ink,
+              textAlign: 'center',
+              marginBottom: message ? Spacing.three : Spacing.five,
+            },
+          ]}
+        >
+          {title}
+        </Text>
+
         {message ? (
-          <Text variant="body" style={{ color: colors.muted, marginBottom: Spacing.five }}>
+          <Text
+            variant="body"
+            style={{
+              color: colors.muted,
+              textAlign: 'center',
+              marginBottom: Spacing.five,
+              lineHeight: 22,
+            }}
+          >
             {message}
           </Text>
         ) : (
           <View style={{ height: Spacing.two }} />
         )}
+
         <SheetActionsFooter>
           <SheetActionRow>
             <SheetActionSlot>

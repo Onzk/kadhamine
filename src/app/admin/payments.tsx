@@ -11,7 +11,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Badge } from '@/components/ui/Badge';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { formatPrice } from '@/types';
-import { Spacing } from '@/theme/tokens';
+import { Radius, Spacing } from '@/theme/tokens';
 import { api } from '../../../convex/_generated/api';
 
 type StatusFilter = 'all' | 'pending' | 'held' | 'released' | 'refunded' | 'failed';
@@ -102,8 +102,8 @@ export default function AdminPaymentsScreen() {
               key={payment._id}
               style={{
                 backgroundColor: colors.surfaceCard,
-                borderRadius: 20,
-                padding: 16,
+                borderRadius: Radius.lg,
+                padding: Spacing.five,
                 borderWidth: 0.1,
                 borderColor: colors.border,
               }}

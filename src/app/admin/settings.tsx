@@ -16,7 +16,7 @@ import { AppBottomSheet } from '@/components/ui/AppBottomSheet';
 import { SheetActionsFooter } from '@/components/ui/SheetActions';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { useAppDialog } from '@/providers/AppDialogProvider';
-import { Spacing } from '@/theme/tokens';
+import { Radius, Spacing } from '@/theme/tokens';
 import { api } from '../../../convex/_generated/api';
 
 export default function AdminSettingsScreen() {
@@ -98,8 +98,8 @@ export default function AdminSettingsScreen() {
         <View
           style={{
             backgroundColor: colors.surfaceCard,
-            borderRadius: 20,
-            padding: 16,
+            borderRadius: Radius.lg,
+            padding: Spacing.five,
             borderWidth: 0.1,
             borderColor: colors.border,
             gap: Spacing.three,

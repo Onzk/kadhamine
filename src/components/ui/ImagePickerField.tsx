@@ -199,7 +199,7 @@ export function ImagePickerField({
                 style={{
                   width: 24,
                   height: 24,
-                  borderRadius: 12,
+                  borderRadius: Radius.pill,
                   backgroundColor: colors.error,
                   alignItems: 'center',
                   justifyContent: 'center',

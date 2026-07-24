@@ -18,8 +18,8 @@ const FIELD_RADIUS = 12;
 interface InputProps extends TextInputProps {
   label?: string;
   error?: string;
-  /** Icône préfixe obligatoire (alignée login). */
-  leftIcon: React.ReactNode;
+  /** Icône préfixe (alignée login). Ignorée si multiline. */
+  leftIcon?: React.ReactNode;
   /** Placeholder obligatoire pour guider la saisie. */
   placeholder: string;
 }
@@ -30,12 +30,14 @@ export function Input({
   leftIcon,
   placeholder,
   style,
+  multiline,
   onFocus,
   onBlur,
   ...props
 }: InputProps) {
   const { colors } = useAppTheme();
   const [focused, setFocused] = useState(false);
+  const showLeftIcon = !multiline && Boolean(leftIcon);
 
   const borderColor = error
     ? colors.error
@@ -50,7 +52,9 @@ export function Input({
     lineHeight: 22.4,
     letterSpacing: -0.08,
     paddingVertical: Spacing.three,
-    ...(Platform.OS === 'android' ? { includeFontPadding: false, textAlignVertical: 'center' } : null),
+    ...(Platform.OS === 'android'
+      ? { includeFontPadding: false, textAlignVertical: multiline ? 'top' : 'center' }
+      : null),
   };
 
   return (
@@ -72,18 +76,18 @@ export function Input({
       <View
         style={{
           flexDirection: 'row',
-          alignItems: 'center',
+          alignItems: multiline ? 'flex-start' : 'center',
           backgroundColor: colors.surfaceCard,
           borderWidth: 0.1,
           borderColor,
           borderRadius: FIELD_RADIUS,
           paddingHorizontal: Spacing.four,
           minHeight: 52,
-          gap: Spacing.twoHalf,
+          gap: showLeftIcon ? Spacing.twoHalf : 0,
           overflow: 'hidden',
         }}
       >
-        {leftIcon ? (
+        {showLeftIcon ? (
           <View style={{ marginRight: 2 }}>
             {React.isValidElement(leftIcon)
               ? React.cloneElement(leftIcon as React.ReactElement<{ color?: string }>, {
@@ -96,6 +100,7 @@ export function Input({
           placeholder={placeholder}
           placeholderTextColor={colors.muted}
           selectionColor={colors.orbit}
+          multiline={multiline}
           onFocus={(e) => {
             setFocused(true);
             onFocus?.(e);

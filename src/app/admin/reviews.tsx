@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { View, Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from 'convex/react';
-import { NotePencil, Star } from 'phosphor-react-native';
+import { Star } from 'phosphor-react-native';
 
 import { AuthField, AuthPrimaryButton } from '@/components/auth/AuthField';
 import { PageScaffold, PAGE_H_PAD } from '@/components/ui/PageHeader';
@@ -13,7 +13,7 @@ import { AppBottomSheet } from '@/components/ui/AppBottomSheet';
 import { SheetActionRow, SheetActionSlot, SheetActionsFooter } from '@/components/ui/SheetActions';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { useAppDialog } from '@/providers/AppDialogProvider';
-import { Spacing } from '@/theme/tokens';
+import { Radius, Spacing } from '@/theme/tokens';
 import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
 
@@ -110,8 +110,8 @@ export default function AdminReviewsScreen() {
               key={review._id}
               style={{
                 backgroundColor: colors.surfaceCard,
-                borderRadius: 20,
-                padding: 16,
+                borderRadius: Radius.lg,
+                padding: Spacing.five,
                 borderWidth: 0.1,
                 borderColor: colors.border,
                 gap: Spacing.two,
@@ -168,7 +168,6 @@ export default function AdminReviewsScreen() {
           placeholder={t('admin.hideReasonPlaceholder')}
           multiline
           numberOfLines={3}
-          leftIcon={<NotePencil size={20} />}
         />
         <SheetActionsFooter>
           <AuthPrimaryButton

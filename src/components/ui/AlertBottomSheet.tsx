@@ -6,23 +6,27 @@ import { AppBottomSheet } from '@/components/ui/AppBottomSheet';
 import { SheetActionsFooter, SheetSingleAction } from '@/components/ui/SheetActions';
 import { Text } from '@/components/ui/ThemedText';
 import { useAppTheme } from '@/providers/ThemeProvider';
-import { Spacing } from '@/theme/tokens';
+import { Radius, Spacing } from '@/theme/tokens';
+import { textStyle } from '@/theme/typography';
 
 export interface AlertBottomSheetProps {
   visible: boolean;
   onClose: () => void;
   title: string;
-  /** Petite description sous le titre (en-tête du sheet). */
+  /** Ligne secondaire sous le titre. */
   subtitle?: string;
   message?: string;
   detail?: string;
   buttonLabel?: string;
   onDismiss?: () => void;
-  /** Icône principale centrée au-dessus du message. */
+  /** Icône principale centrée au-dessus du titre. */
   icon?: React.ReactNode;
 }
 
-/** Message simple — icône optionnelle + un bouton d’action. */
+/**
+ * Alerte post-action — contenu centré :
+ * icône → titre → description → bouton (X en haut à droite).
+ */
 export function AlertBottomSheet({
   visible,
   onClose,
@@ -41,25 +45,36 @@ export function AlertBottomSheet({
     onClose();
   };
 
+  const hasBodyCopy = Boolean(subtitle || message || detail);
+
   return (
     <AppBottomSheet
       visible={visible}
       onClose={onClose}
       title={title}
-      subtitle={subtitle}
+      hideHeader
       scrollable={false}
+      stickyHeader={false}
       showHandle={false}
       showClose
       maxHeightRatio={0.62}
     >
-      <View style={{ alignSelf: 'stretch', width: '100%' }}>
+      <View
+        style={{
+          alignSelf: 'stretch',
+          width: '100%',
+          alignItems: 'center',
+          // Laisse de la place au X flottant quand il n’y a pas d’icône.
+          paddingTop: icon ? Spacing.two : Spacing.eight,
+        }}
+      >
         {icon ? (
-          <View style={{ alignItems: 'center', marginBottom: Spacing.five }}>
+          <View style={{ marginBottom: Spacing.five }}>
             <View
               style={{
                 width: 72,
                 height: 72,
-                borderRadius: 36,
+                borderRadius: Radius.pill,
                 backgroundColor: colors.orbitWash,
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -70,33 +85,62 @@ export function AlertBottomSheet({
           </View>
         ) : null}
 
+        <Text
+          style={[
+            textStyle('productDisplay'),
+            {
+              color: colors.ink,
+              textAlign: 'center',
+              marginBottom: hasBodyCopy ? Spacing.three : Spacing.five,
+            },
+          ]}
+        >
+          {title}
+        </Text>
+
+        {subtitle ? (
+          <Text
+            variant="body"
+            style={{
+              color: colors.muted,
+              textAlign: 'center',
+              marginBottom: message || detail ? Spacing.two : Spacing.five,
+              lineHeight: 22,
+            }}
+          >
+            {subtitle}
+          </Text>
+        ) : null}
+
         {message ? (
           <Text
             variant="body"
             style={{
-              color: colors.ink,
-              marginBottom: detail || icon ? Spacing.three : Spacing.five,
-              textAlign: icon ? 'center' : 'left',
+              color: colors.body,
+              textAlign: 'center',
+              marginBottom: detail ? Spacing.three : Spacing.five,
+              lineHeight: 22,
             }}
           >
             {message}
           </Text>
-        ) : (
-          <View style={{ height: Spacing.two }} />
-        )}
+        ) : null}
 
         {detail ? (
           <Text
             variant="body"
             style={{
               color: colors.muted,
+              textAlign: 'center',
               marginBottom: Spacing.five,
-              textAlign: icon ? 'center' : 'left',
+              lineHeight: 22,
             }}
           >
             {detail}
           </Text>
         ) : null}
+
+        {!hasBodyCopy ? <View style={{ height: Spacing.two }} /> : null}
 
         <SheetActionsFooter>
           <SheetSingleAction>

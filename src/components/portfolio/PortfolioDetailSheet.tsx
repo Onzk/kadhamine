@@ -65,7 +65,6 @@ export function PortfolioDetailSheet({
       scrollable
       stickyHeader
       maxHeightRatio={0.88}
-      contentContainerStyle={{ paddingBottom: Spacing.six }}
     >
       {item ? (
         <View style={{ gap: Spacing.four }}>

@@ -17,7 +17,6 @@ import {
   Bell,
   Headset,
   Crown,
-  ChartBar,
   Wrench,
   Images,
   ShoppingBag,
@@ -27,6 +26,9 @@ import {
   UserFocus,
   Envelope,
   IdentificationCard,
+  Eye,
+  ClipboardText,
+  Star,
 } from 'phosphor-react-native';
 
 import {
@@ -418,51 +420,56 @@ export default function ProfileScreen() {
         />
 
         {isProvider ? (
-          <SettingsSection title={t('profile.sectionProvider')} spaced={false}>
-            <SettingsRow
-              icon={ChartBar}
-              title={t('profile.dashboard')}
-              description={t('profile.dashboardDesc')}
-              onPress={() => router.push('/provider/dashboard')}
-            />
-            <SettingsRow
-              icon={Wrench}
-              title={t('profile.myServices')}
-              description={t('profile.myServicesDesc')}
-              onPress={() => router.push('/provider/services')}
-            />
-            <SettingsRow
-              icon={Images}
-              title={t('service.portfolio')}
-              description={t('profile.portfolioDesc')}
-              onPress={() => router.push('/portfolio')}
-            />
-            {profile?._id ? (
-              <SettingsRow
-                icon={UserFocus}
-                title={t('profile.publicProfile')}
-                description={t('profile.publicProfileDesc')}
-                onPress={() =>
-                  router.push({ pathname: '/provider/[id]', params: { id: profile._id } })
-                }
+          <>
+            <SettingsSection title={t('profile.stats')} spaced={false}>
+              <ProviderStatsGrid
+                viewCount={profile?.viewCount ?? 0}
+                completedOrders={profile?.completedOrders ?? 0}
+                averageRating={profile?.averageRating ?? 0}
+                trustScore={profile?.trustScore ?? 0}
               />
-            ) : null}
-            <SettingsRow
-              icon={ShieldCheck}
-              title={t('profile.verification')}
-              description={t('profile.verificationDesc')}
-              onPress={() => router.push('/verification')}
-            />
-            <SettingsRow
-              icon={Crown}
-              title={t('profile.premium')}
-              description={t('profile.premiumDesc')}
-              onPress={() => router.push('/premium')}
-            />
-          </SettingsSection>
+            </SettingsSection>
+
+            <SettingsSection title={t('profile.sectionProvider')}>
+              <SettingsRow
+                icon={Wrench}
+                title={t('profile.myServices')}
+                description={t('profile.myServicesDesc')}
+                onPress={() => router.push('/provider/services')}
+              />
+              <SettingsRow
+                icon={Images}
+                title={t('service.portfolio')}
+                description={t('profile.portfolioDesc')}
+                onPress={() => router.push('/portfolio')}
+              />
+              {profile?._id ? (
+                <SettingsRow
+                  icon={UserFocus}
+                  title={t('profile.publicProfile')}
+                  description={t('profile.publicProfileDesc')}
+                  onPress={() =>
+                    router.push({ pathname: '/provider/[id]', params: { id: profile._id } })
+                  }
+                />
+              ) : null}
+              <SettingsRow
+                icon={ShieldCheck}
+                title={t('profile.verification')}
+                description={t('profile.verificationDesc')}
+                onPress={() => router.push('/verification')}
+              />
+              <SettingsRow
+                icon={Crown}
+                title={t('profile.premium')}
+                description={t('profile.premiumDesc')}
+                onPress={() => router.push('/premium')}
+              />
+            </SettingsSection>
+          </>
         ) : null}
 
-        <SettingsSection title={t('profile.sectionAccount')} spaced={!isProvider}>
+        <SettingsSection title={t('profile.sectionAccount')} spaced={isProvider}>
           <SettingsRow
             icon={User}
             title={t('profile.personalInfo')}
@@ -712,6 +719,125 @@ interface GuestSheetsProps {
   onLanguageSelect: (code: (typeof SUPPORTED_LANGUAGES)[number]['code']) => void;
   onThemeSelect: (mode: ThemeMode) => void;
   onAppearanceCycle?: () => void;
+}
+
+function ProviderStatsGrid({
+  viewCount,
+  completedOrders,
+  averageRating,
+  trustScore,
+}: {
+  viewCount: number;
+  completedOrders: number;
+  averageRating: number;
+  trustScore: number;
+}) {
+  const { t } = useTranslation();
+  const { colors } = useAppTheme();
+
+  const stats = [
+    {
+      key: 'views',
+      label: t('providerDashboard.statViews'),
+      value: String(viewCount),
+      icon: Eye,
+    },
+    {
+      key: 'orders',
+      label: t('providerDashboard.statOrders'),
+      value: String(completedOrders),
+      icon: ClipboardText,
+    },
+    {
+      key: 'rating',
+      label: t('providerDashboard.statRating'),
+      value: averageRating.toFixed(1),
+      icon: Star,
+    },
+    {
+      key: 'trust',
+      label: t('providerDashboard.statTrust'),
+      value: String(trustScore),
+      icon: ShieldCheck,
+    },
+  ] as const;
+
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        paddingHorizontal: Spacing.four,
+        paddingVertical: Spacing.four,
+      }}
+    >
+      {stats.map((stat, index) => {
+        const Icon = stat.icon;
+        const isLastCol = index % 2 === 1;
+        const isBottomRow = index >= 2;
+        return (
+          <View
+            key={stat.key}
+            style={{
+              width: '50%',
+              paddingRight: isLastCol ? 0 : Spacing.two,
+              paddingLeft: isLastCol ? Spacing.two : 0,
+              paddingBottom: isBottomRow ? 0 : Spacing.four,
+              paddingTop: isBottomRow ? Spacing.two : 0,
+              borderRightWidth: isLastCol ? 0 : 0.1,
+              borderBottomWidth: isBottomRow ? 0 : 0.1,
+              borderColor: colors.borderHairline,
+            }}
+          >
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: Spacing.three,
+              }}
+            >
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: colors.orbitWash,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Icon size={18} color={colors.orbit} weight="fill" />
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text
+                  style={[
+                    textStyle('featureHeading'),
+                    {
+                      color: colors.ink,
+                      fontSize: 22,
+                      lineHeight: 28,
+                    },
+                  ]}
+                >
+                  {stat.value}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: colors.muted,
+                    marginTop: 1,
+                  }}
+                  numberOfLines={1}
+                >
+                  {stat.label}
+                </Text>
+              </View>
+            </View>
+          </View>
+        );
+      })}
+    </View>
+  );
 }
 
 function GuestSheets({
