@@ -56,8 +56,8 @@ function RootContent() {
   return (
     <NavigationThemeProvider value={navTheme}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
-      <AnimatedSplashOverlay />
       <AuthProvider>
+        <AnimatedSplashOverlay />
         <AppDialogProvider>
           {/* No bottom edge: canvas must paint under the system nav; tabs pad themselves. */}
           <AppSafeArea edges={[...safeEdges]}>

@@ -3,18 +3,25 @@ import { StyleSheet } from 'react-native';
 import Animated, { Easing, FadeIn, FadeOut } from 'react-native-reanimated';
 
 import { Logo } from '@/components/brand/Logo';
+import { PremiumRingFrame } from '@/components/ui/PremiumRingFrame';
+import { useAuth } from '@/providers/AuthProvider';
 import { useAppTheme } from '@/providers/ThemeProvider';
 
 const DURATION = 1200;
+const LOGO_SIZE = 120;
 
 export function AnimatedSplashOverlay() {
   const { colors } = useAppTheme();
+  const { user, isLoading } = useAuth();
   const [visible, setVisible] = useState(true);
 
+  const isPremium = !!user?.profile?.isPremium;
+
   useEffect(() => {
+    if (isLoading) return;
     const timer = setTimeout(() => setVisible(false), DURATION);
     return () => clearTimeout(timer);
-  }, []);
+  }, [isLoading]);
 
   if (!visible) return null;
 
@@ -24,7 +31,9 @@ export function AnimatedSplashOverlay() {
       style={[styles.overlay, { backgroundColor: colors.canvas }]}
     >
       <Animated.View entering={FadeIn.duration(450).easing(Easing.out(Easing.cubic))} style={styles.logoWrap}>
-        <Logo size={120} />
+        <PremiumRingFrame size={LOGO_SIZE} isPremium={isPremium}>
+          <Logo size={LOGO_SIZE} />
+        </PremiumRingFrame>
       </Animated.View>
     </Animated.View>
   );
@@ -38,8 +47,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   logoWrap: {
-    width: 160,
-    height: 160,
+    width: 200,
+    height: 200,
     alignItems: 'center',
     justifyContent: 'center',
   },

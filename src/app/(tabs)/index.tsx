@@ -19,6 +19,7 @@ import { ProviderPodium } from '@/components/cards/ProviderPodium';
 import { Logo } from '@/components/brand/Logo';
 import { CategoryHorizontalMasonry } from '@/components/ui/CategoryHorizontalMasonry';
 import { PromoSearchHero, type PromoSlideData } from '@/components/ui/PromoCarousel';
+import { PremiumRingFrame } from '@/components/ui/PremiumRingFrame';
 import { TrustStrip } from '@/components/ui/TrustStrip';
 import { Text } from '@/components/ui/ThemedText';
 import { getWelcomeAlertOptions } from '@/lib/welcomeAlert';
@@ -124,6 +125,7 @@ export default function HomeScreen() {
   const isGuest = !user;
   const firstName = user?.profile?.firstName ?? '';
   const avatarUrl = user?.profile?.avatarUrl;
+  const isPremium = !!user?.profile?.isPremium;
   const initial = (firstName || 'T').charAt(0).toUpperCase();
   const notificationsBadgeLabel =
     typeof unreadNotifications === 'number' && unreadNotifications > 0
@@ -171,23 +173,13 @@ export default function HomeScreen() {
           {isGuest ? (
             <Logo size={44} />
           ) : (
-            <View
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 22,
-                overflow: 'hidden',
-                backgroundColor: colors.ink,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
+            <PremiumRingFrame size={44} isPremium={isPremium} backgroundColor={colors.ink}>
               {avatarUrl ? (
                 <Image source={{ uri: avatarUrl }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
               ) : (
                 <Text style={[textStyle('featureHeading'), { color: colors.onPrimary }]}>{initial}</Text>
               )}
-            </View>
+            </PremiumRingFrame>
           )}
           <View style={{ flex: 1 }}>
             {!isGuest ? (

@@ -5,6 +5,7 @@ import React from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
 import { Badge } from '@/components/ui/Badge';
+import { PremiumRingFrame } from '@/components/ui/PremiumRingFrame';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { Radius, Spacing } from '@/theme/tokens';
 import { textStyle } from '@/theme/typography';
@@ -20,6 +21,10 @@ interface ProfileHeaderProps {
   roleLabel?: string;
   avatarUrl?: string;
   initials: string;
+  isPremium?: boolean;
+  isVerified?: boolean;
+  verifiedLabel?: string;
+  premiumLabel?: string;
   onEditAvatar?: () => void;
   avatarLoading?: boolean;
 }
@@ -30,6 +35,10 @@ export function ProfileHeader({
   roleLabel,
   avatarUrl,
   initials,
+  isPremium = false,
+  isVerified = false,
+  verifiedLabel,
+  premiumLabel,
   onEditAvatar,
   avatarLoading,
 }: ProfileHeaderProps) {
@@ -45,18 +54,7 @@ export function ProfileHeader({
         style={{ width: AVATAR_SIZE, height: AVATAR_SIZE }}
       >
         <View style={{ position: 'relative', width: AVATAR_SIZE, height: AVATAR_SIZE }}>
-          <View
-            style={{
-              width: AVATAR_SIZE,
-              height: AVATAR_SIZE,
-              borderRadius: AVATAR_SIZE / 2,
-              overflow: 'hidden',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderWidth: 0.1,
-              borderColor: colors.borderHairline,
-            }}
-          >
+          <PremiumRingFrame size={AVATAR_SIZE} isPremium={isPremium} hairline>
             {avatarLoading ? (
               <View
                 style={{
@@ -92,7 +90,7 @@ export function ProfileHeader({
                 </Text>
               </LinearGradient>
             )}
-          </View>
+          </PremiumRingFrame>
           {onEditAvatar ? (
             <View
               style={{
@@ -124,9 +122,19 @@ export function ProfileHeader({
         {displayName}
       </Text>
 
-      {roleLabel ? (
-        <View style={{ marginTop: Spacing.two }}>
-          <Badge label={roleLabel} variant="accent" />
+      {roleLabel || (isVerified && verifiedLabel) || (isPremium && premiumLabel) ? (
+        <View
+          style={{
+            marginTop: Spacing.two,
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
+            gap: Spacing.two,
+          }}
+        >
+          {roleLabel ? <Badge label={roleLabel} variant="accent" /> : null}
+          {isVerified && verifiedLabel ? <Badge label={verifiedLabel} variant="verified" /> : null}
+          {isPremium && premiumLabel ? <Badge label={premiumLabel} variant="premium" /> : null}
         </View>
       ) : null}
 

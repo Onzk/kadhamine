@@ -419,6 +419,10 @@ export default function ProfileScreen() {
           roleLabel={roleLabel}
           avatarUrl={profile?.avatarUrl}
           initials={initials}
+          isPremium={!!profile?.isPremium}
+          isVerified={!!profile?.isVerified}
+          verifiedLabel={t('common.verified')}
+          premiumLabel={t('common.premium')}
           onEditAvatar={profile ? () => setAvatarSheet(true) : undefined}
           avatarLoading={avatarLoading}
         />

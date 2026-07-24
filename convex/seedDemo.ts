@@ -8,10 +8,12 @@
  *   npx convex run seedDemo:updateDemoGeoPositionsDev '{"spread":"ndjamena"}'
  *   npx convex run seedDemo:updateDemoGeoPositionsDev '{"spread":"wide"}'
  *   npx convex run seedDemo:disperseDemoServicePositionsDev
+ *   npx convex run seedDemo:updateDemoAvatarsDev
  *   (wide / disperse = disque ≤ 50 km autour de N'Djamena ; ndjamena = cluster ≤ 22 km)
  *   (internal: seedDemo:updateDemoGeoPositions / seedDemo:disperseDemoServicePositions)
  *
  * Images Unsplash vérifiées le 2026-07-22 (HEAD → 200, content-type image/*).
+ * Avatars jeunes africain(e)s vérifiés le 2026-07-24 (HEAD → 200).
  * Mot de passe des comptes démo : Demo2026! (non créés dans authAccounts — données browse-only).
  */
 
@@ -106,12 +108,6 @@ const IMG = {
   traduction: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=800&q=80',
   formation: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=800&q=80',
   artisanat: 'https://images.unsplash.com/photo-1452860606245-08befc0ff44b?w=800&q=80',
-  avatarWoman: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=80',
-  avatarWoman2: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=200&q=80',
-  avatarWoman3: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&q=80',
-  avatarMan: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80',
-  avatarMan2: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=200&q=80',
-  avatarMan3: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&q=80',
   chatSample: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=600&q=80',
   portfolio1: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800&q=80',
   portfolio2: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80',
@@ -242,10 +238,65 @@ const LAST_NAMES = [
   'Saleh', 'Moussa', 'Ali', 'Khalil', 'Adam', 'Zakaria', 'Haroun', 'Tahir',
 ];
 
-const AVATARS = [
-  IMG.avatarWoman, IMG.avatarWoman2, IMG.avatarWoman3,
-  IMG.avatarMan, IMG.avatarMan2, IMG.avatarMan3,
-];
+/** Portraits uniques — sélection `.tmp-avatars/men` & `women` (vérifiés HEAD 200). */
+const AVATAR_MEN = [
+  'https://images.unsplash.com/photo-1463453091185-61582044d556?w=200&q=80',
+  'https://images.unsplash.com/photo-1484517186945-df8151a1a871?w=200&q=80',
+  'https://images.unsplash.com/photo-1506277886164-e25aa3f4ef7f?w=200&q=80',
+  'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&q=80',
+  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80',
+  'https://images.unsplash.com/photo-1518882570151-157128e78fa1?w=200&q=80',
+  'https://images.unsplash.com/photo-1519164497992-65f6b58a2981?w=200&q=80',
+  'https://images.unsplash.com/photo-1522529599102-193c0d76b5b6?w=200&q=80',
+  'https://images.unsplash.com/photo-1523477800337-966dbabe060b?w=200&q=80',
+  'https://images.unsplash.com/photo-1524660988542-c440de9c0fde?w=200&q=80',
+  'https://images.unsplash.com/photo-1531299983330-093763e1d963?w=200&q=80',
+  'https://images.unsplash.com/photo-1531384441138-2736e62e0919?w=200&q=80',
+  'https://images.unsplash.com/photo-1540222797359-e9b786124d4b?w=200&q=80',
+  'https://images.unsplash.com/photo-1546525848-3ce03ca516f6?w=200&q=80',
+  'https://images.unsplash.com/photo-1563721572772-fbf713fff374?w=200&q=80',
+  'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=200&q=80',
+  'https://images.unsplash.com/photo-1589635823089-774fca28fe13?w=200&q=80',
+  'https://images.unsplash.com/photo-1596389662344-80f794f1ca99?w=200&q=80',
+  'https://images.unsplash.com/photo-1596529257881-85dfcdc8f880?w=200&q=80',
+  'https://images.unsplash.com/photo-1605980776566-0486c3ac7617?w=200&q=80',
+  'https://images.unsplash.com/photo-1612299320930-31e3506614df?w=200&q=80',
+  'https://images.unsplash.com/photo-1614023342667-6f060e9d1e04?w=200&q=80',
+  'https://images.unsplash.com/photo-1625181796571-7f0d4571ab12?w=200&q=80',
+  'https://images.unsplash.com/photo-1630952588138-941bc6baf18c?w=200&q=80',
+  'https://images.unsplash.com/photo-1638802126176-ca7352b39fa6?w=200&q=80',
+  'https://images.unsplash.com/photo-1669655247654-986ab4a652d5?w=200&q=80',
+  'https://images.unsplash.com/photo-1693070288850-80a2e13295d6?w=200&q=80',
+  'https://images.unsplash.com/photo-1706059922960-c2d6612a966c?w=200&q=80',
+  'https://images.unsplash.com/photo-1759300063434-482e4d65f9bf?w=200&q=80',
+] as const;
+
+const AVATAR_WOMEN = [
+  'https://images.unsplash.com/photo-1508002366005-75a695ee2d17?w=200&q=80',
+  'https://images.unsplash.com/photo-1521511189395-b82252213754?w=200&q=80',
+  'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=200&q=80',
+  'https://images.unsplash.com/photo-1530785602389-07594beb8b73?w=200&q=80',
+  'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=200&q=80',
+  'https://images.unsplash.com/photo-1548142813-c348350df52b?w=200&q=80',
+  'https://images.unsplash.com/photo-1563132337-f159f484226c?w=200&q=80',
+  'https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?w=200&q=80',
+  'https://images.unsplash.com/photo-1573166953836-06864dc70a21?w=200&q=80',
+  'https://images.unsplash.com/photo-1573496358961-3c82861ab8f4?w=200&q=80',
+  'https://images.unsplash.com/photo-1573496527892-904f897eb744?w=200&q=80',
+  'https://images.unsplash.com/photo-1589156280159-27698a70f29e?w=200&q=80',
+  'https://images.unsplash.com/photo-1611432579402-7037e3e2c1e4?w=200&q=80',
+  'https://images.unsplash.com/photo-1611432579699-484f7990b127?w=200&q=80',
+  'https://images.unsplash.com/photo-1632765866070-3fadf25d3d5b?w=200&q=80',
+  'https://images.unsplash.com/photo-1709810529099-0ce6102692df?w=200&q=80',
+  'https://images.unsplash.com/photo-1714667156704-38240d998c09?w=200&q=80',
+  'https://images.unsplash.com/photo-1726860770613-b26116089081?w=200&q=80',
+] as const;
+
+/** Unique avatar by gender; returns undefined when pool exhausted (no photo). */
+function avatarForGender(gender: 'male' | 'female', index: number): string | undefined {
+  const pool = gender === 'female' ? AVATAR_WOMEN : AVATAR_MEN;
+  return index < pool.length ? pool[index]! : undefined;
+}
 
 const PORTFOLIO_IMAGES = [
   IMG.portfolio1, IMG.portfolio2, IMG.portfolio3, IMG.portfolio4,
@@ -661,20 +712,26 @@ async function runSeed(ctx: MutationCtx, force: boolean) {
     price: number;
   }> = [];
   const profileIds: Id<'profiles'>[] = [adminProfileId];
+  let avatarMaleIdx = 0;
+  let avatarFemaleIdx = 0;
 
   // --- 15 clients (toutes villes + quelques doublons) ---
   for (let i = 0; i < 15; i++) {
     const city = CITIES[i % CITIES.length]!;
     const isFemale = i % 3 !== 0;
+    const gender = isFemale ? ('female' as const) : ('male' as const);
     const firstName = pick(isFemale ? FEMALE_NAMES : MALE_NAMES, i);
     const lastName = pick(LAST_NAMES, i + 3);
     const email = `client.${slugify(firstName)}.${slugify(lastName)}${i}${DEMO_DOMAIN}`;
+    const avatarUrl = isFemale
+      ? avatarForGender('female', avatarFemaleIdx++)
+      : avatarForGender('male', avatarMaleIdx++);
 
     const userId = await ctx.db.insert('users', {
       name: `${firstName} ${lastName}`,
       email,
       phone: `+23566${String(100000 + i).slice(-6)}`,
-      image: pick(AVATARS, i),
+      ...(avatarUrl ? { image: avatarUrl } : {}),
       role: 'client',
       status: i === 14 ? 'suspended' : 'active',
       language: i % 4 === 0 ? 'ar' : i % 4 === 1 ? 'sara' : 'fr',
@@ -688,11 +745,11 @@ async function runSeed(ctx: MutationCtx, force: boolean) {
       userId,
       firstName,
       lastName,
-      gender: isFemale ? 'female' : 'male',
+      gender,
       city: city.city,
       region: city.region,
       phone: `+23566${String(100000 + i).slice(-6)}`,
-      avatarUrl: pick(AVATARS, i),
+      ...(avatarUrl ? { avatarUrl } : {}),
       bio: i % 2 === 0 ? `Cliente active à ${city.city}, à la recherche de talents locaux.` : undefined,
       skills: [],
       availability: 'available',
@@ -717,9 +774,13 @@ async function runSeed(ctx: MutationCtx, force: boolean) {
     const catDef = CATEGORY_DEFS[i % CATEGORY_DEFS.length]!;
     const city = CITIES[(i + 2) % CITIES.length]!;
     const isFemale = i % 2 === 0;
+    const gender = isFemale ? ('female' as const) : ('male' as const);
     const firstName = pick(isFemale ? FEMALE_NAMES : MALE_NAMES, i + 5);
     const lastName = pick(LAST_NAMES, i);
     const email = `provider.${slugify(catDef.slug)}.${i}${DEMO_DOMAIN}`;
+    const avatarUrl = isFemale
+      ? avatarForGender('female', avatarFemaleIdx++)
+      : avatarForGender('male', avatarMaleIdx++);
 
     const isVerified = i % 5 !== 4;
     const isPremium = i % 4 === 0;
@@ -731,7 +792,7 @@ async function runSeed(ctx: MutationCtx, force: boolean) {
       name: `${firstName} ${lastName}`,
       email,
       phone: `+23577${String(200000 + i).slice(-6)}`,
-      image: pick(AVATARS, i + 2),
+      ...(avatarUrl ? { image: avatarUrl } : {}),
       role: 'provider',
       status: isRejected ? 'rejected' : isPending ? 'pending' : 'active',
       language: 'fr',
@@ -746,12 +807,12 @@ async function runSeed(ctx: MutationCtx, force: boolean) {
       userId,
       firstName,
       lastName,
-      gender: isFemale ? 'female' : 'male',
+      gender,
       city: city.city,
       region: city.region,
       phone: `+23577${String(200000 + i).slice(-6)}`,
       bio: `${catDef.nameFr} à ${city.city}. ${experienceYears} ans d'expérience, clients satisfaits.`,
-      avatarUrl: pick(AVATARS, i + 1),
+      ...(avatarUrl ? { avatarUrl } : {}),
       skills: [...catDef.skills],
       experienceYears,
       hourlyRate: 2000 + (i % 8) * 1500,
@@ -1301,4 +1362,74 @@ export const disperseDemoServicePositions = internalMutation({
 export const disperseDemoServicePositionsDev = mutation({
   args: {},
   handler: async (ctx) => runDisperseDemoServicePositions(ctx),
+});
+
+/**
+ * Re-patch avatarUrl / users.image with unique African portraits (by gender).
+ * - Only profiles that already have avatarUrl (skip empty + uploaded storage avatars).
+ * - Women beyond AVATAR_WOMEN length → avatar cleared (null).
+ *
+ *   npx convex run seedDemo:updateDemoAvatarsDev
+ */
+async function runUpdateDemoAvatars(ctx: MutationCtx) {
+  const ts = now();
+  const profiles = await ctx.db.query('profiles').collect();
+  const withUrl = profiles.filter((p) => p.avatarUrl && !p.avatarStorageId);
+
+  const males = withUrl.filter((p) => p.gender === 'male');
+  const females = withUrl.filter((p) => p.gender === 'female');
+  const other = withUrl.filter((p) => p.gender !== 'male' && p.gender !== 'female');
+
+  let menAssigned = 0;
+  let womenAssigned = 0;
+  let womenCleared = 0;
+
+  for (let i = 0; i < males.length; i++) {
+    const profile = males[i]!;
+    const url = avatarForGender('male', i);
+    if (!url) {
+      await ctx.db.patch(profile._id, { avatarUrl: undefined, updatedAt: ts });
+      await ctx.db.patch(profile.userId, { image: undefined, updatedAt: ts });
+      continue;
+    }
+    await ctx.db.patch(profile._id, { avatarUrl: url, updatedAt: ts });
+    await ctx.db.patch(profile.userId, { image: url, updatedAt: ts });
+    menAssigned++;
+  }
+
+  for (let i = 0; i < females.length; i++) {
+    const profile = females[i]!;
+    const url = avatarForGender('female', i);
+    if (!url) {
+      await ctx.db.patch(profile._id, { avatarUrl: undefined, updatedAt: ts });
+      await ctx.db.patch(profile.userId, { image: undefined, updatedAt: ts });
+      womenCleared++;
+      continue;
+    }
+    await ctx.db.patch(profile._id, { avatarUrl: url, updatedAt: ts });
+    await ctx.db.patch(profile.userId, { image: url, updatedAt: ts });
+    womenAssigned++;
+  }
+
+  return {
+    updated: true,
+    message:
+      'Avatars démo mis à jour (uniques par genre). Femmes au-delà du pool → photo retirée.',
+    menAssigned,
+    womenAssigned,
+    womenCleared,
+    menPool: AVATAR_MEN.length,
+    womenPool: AVATAR_WOMEN.length,
+    skippedNoGender: other.length,
+  };
+}
+
+export const updateDemoAvatars = internalMutation({
+  args: {},
+  handler: async (ctx) => runUpdateDemoAvatars(ctx),
+});
+
+export const updateDemoAvatarsDev = mutation({
+  args: {},
+  handler: async (ctx) => runUpdateDemoAvatars(ctx),
 });

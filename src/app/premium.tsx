@@ -125,12 +125,12 @@ export default function PremiumScreen() {
                 width: 52,
                 height: 52,
                 borderRadius: Radius.sm,
-                backgroundColor: BrandColors.gold + '33',
+                backgroundColor: colors.accent + '33',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <Crown size={28} color={BrandColors.gold} weight="fill" />
+              <Crown size={28} color={colors.accent} weight="fill" />
             </View>
             <Text
               style={{
@@ -153,7 +153,7 @@ export default function PremiumScreen() {
                   fontSize: 32,
                   lineHeight: 36,
                   letterSpacing: -0.64,
-                  color: BrandColors.gold,
+                  color: colors.accent,
                   marginTop: Spacing.one,
                 }}
               >
@@ -222,12 +222,12 @@ export default function PremiumScreen() {
                     width: 28,
                     height: 28,
                     borderRadius: Radius.sm,
-                    backgroundColor: BrandColors.gold + '33',
+                    backgroundColor: colors.accent + '33',
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
                 >
-                  <Check size={16} color={BrandColors.gold} weight="bold" />
+                  <Check size={16} color={colors.accent} weight="bold" />
                 </View>
                 <Text style={[textStyle('body'), { color: colors.body, flex: 1, fontSize: 15 }]}>
                   {benefit}
@@ -259,9 +259,8 @@ export default function PremiumScreen() {
             title={t('premium.subscribe')}
             onPress={handleSubscribe}
             loading={loading}
-            tone="ink"
-            backgroundColor={isDark ? '#FFFFFF' : undefined}
-            textColor={isDark ? BrandColors.ink : undefined}
+            backgroundColor={colors.accent}
+            textColor={colors.onAccent}
             flat
           />
         </View>
