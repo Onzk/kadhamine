@@ -1,11 +1,11 @@
-# TalentTchad — Cahier des Charges (CDC)
+# Kadhamine — Cahier des Charges (CDC)
 
 | Champ | Valeur |
 |--------|--------|
-| Projet | TalentTchad |
+| Projet | **Kadhamine** (ex-TalentTchad) |
 | Document | Cahier des charges fonctionnel, technique et UI |
-| Version | 2.0 |
-| Date | 2026-07-19 |
+| Version | 2.7 |
+| Date | 2026-07-25 |
 | Statut | Validé (cadrage produit) |
 | Pays cible | Tchad |
 | Remplace / complète | `docs/DRAFT.md` (intentions métier) — **ce CDC fait foi** |
@@ -16,17 +16,44 @@
 
 ### 1.1 Contexte
 
-Au Tchad, de nombreux jeunes ont des compétences monnayables (dev, design, couture, coiffure, photo, réparation, traduction, tutorat, artisanat…) mais manquent de visibilité, d’accès clients et d’outils numériques adaptés (langue, mobile money, connectivité).
+Au Tchad, une large part de la jeunesse possède déjà des savoir-faire monnayables — développement, design, couture, coiffure, photographie, réparation, traduction, tutorat, artisanat, et bien d’autres. Ces compétences existent, souvent solides, mais restent **peu visibles** : pas de vitrine crédible, peu de canaux pour trouver des clients, peu d’outils numériques pensés pour le contexte local (langues, mobile money, connectivité irrégulière, confiance entre inconnus).
 
-### 1.2 Solution
+Le résultat est un **gaspillage de potentiel économique** : des talents sous-employés ou cantonnés au bouche-à-oreille, des clients qui peinent à trouver un prestataire de confiance, et une économie informelle difficile à structurer.
 
-**TalentTchad** est une application mobile qui met en relation :
+### 1.2 Impact positif recherché (jeunesse tchadienne)
+
+**Kadhamine** vise un impact concret sur la population jeune (cible indicative 18–35 ans) :
+
+| Effet | Description |
+|-------|-------------|
+| **Visibilité** | Chaque prestataire dispose d’un profil public, d’un portfolio et de services trouvables par catégorie, ville et mot-clé — au-delà du réseau personnel. |
+| **Revenus** | La plateforme facilite la prise de commandes, le suivi et le paiement (FedaPay / mobile money ou hors plateforme), pour transformer une compétence en activité rémunérée plus régulière. |
+| **Confiance** | Vérification d’identité, avis liés aux paiements aboutis, badges Premium / vérifié : réduire le risque perçu entre client et prestataire. |
+| **Inclusion linguistique** | Interface en **français**, **arabe tchadien** et **Sara**, pour que l’outil ne soit pas réservé aux seuls bilingues FR. |
+| **Emploi & dignité** | Offrir une alternative crédible au chômage et au sous-emploi en valorisant le travail indépendant et les métiers du quotidien, pas seulement le « digital ». |
+| **Écosystème local** | Relier particuliers, entreprises et ONG à une offre de services locale, en gardant la valeur économique au Tchad. |
+
+En bref : **donner aux jeunes tchadiens les moyens de se faire connaître, de vendre leurs services et de construire une réputation professionnelle** — avec un téléphone, sans barrière technique inutile.
+
+### 1.3 Ambition de l’équipe Kadhamine
+
+L’équipe **Kadhamine** veut accomplir, avec ce produit :
+
+1. **À court terme** — livrer un MVP fiable et utilisable au Tchad : inscription simple, mise en relation réelle, commandes, messagerie, notation honnête, paiements prêts (sandbox puis live), modération admin.
+2. **À moyen terme** — faire de Kadhamine le **réflexe** pour trouver ou proposer un service de confiance dans les principales villes ; faire grandir la base d’utilisateurs, finaliser le paiement live et le Premium payant, industrialiser les vérifications d’identité.
+3. **À long terme** — étendre le modèle à l’**Afrique centrale**, en restant ancré dans les réalités locales (langues, mobile money, UX mobile-first).
+
+La boussole produit : **utilité quotidienne pour les jeunes**, pas une vitrine tech. Chaque fonctionnalité du CDC doit servir la découverte, la confiance ou la transaction.
+
+### 1.4 Solution
+
+**Kadhamine** est une application mobile qui met en relation :
 
 - des **prestataires** (jeunes talents) ;
 - des **clients** (particuliers, entreprises, ONG) ;
 - un **administrateur** (modération et configuration).
 
-### 1.3 Objectifs
+### 1.5 Objectifs opérationnels
 
 | Horizon | Objectif |
 |---------|----------|
@@ -34,7 +61,7 @@ Au Tchad, de nombreux jeunes ont des compétences monnayables (dev, design, cout
 | Moyen terme | Croissance utilisateurs, paiement live, premium payant, vérifications à l’échelle |
 | Long terme | Extension Afrique centrale |
 
-### 1.4 Stack retenue (fait foi)
+### 1.6 Stack retenue (fait foi)
 
 > La stack Django / Flutter mentionnée dans `DRAFT.md` est **abandonnée**.
 
@@ -698,7 +725,7 @@ Le MVP est **conforme** si :
 | FedaPay | Agrégateur de paiement (mobile money, etc.) |
 | Premium | Abonnement prestataire : mise en avant + badge |
 | Vérifié | Identité validée par admin |
-| Hors plateforme | Paiement convenu hors TalentTchad |
+| Hors plateforme | Paiement convenu hors Kadhamine |
 | Phosphor | Librairie d’icônes `phosphor-react-native` |
 | XAF / FCFA | Franc CFA |
 
@@ -729,7 +756,8 @@ Le MVP est **conforme** si :
 | 2.4 | 2026-07-24 | Notation : avis obligatoire au paiement in-app (tags + isValid) ; notes prestataire→client ; expressions à la saisie |
 | 2.5 | 2026-07-24 | Annulation/refus : paiement interdit ; avis prestataire→client si terminée ou acceptée puis annulée ; CTA Payer sur card client |
 | 2.6 | 2026-07-24 | Libération fonds automatique : succès FedaPay → `released` ; hors plateforme auto-`released` après 24 h ; suppression validation client (`orders.validate`) |
+| 2.7 | 2026-07-25 | Rebrand **Kadhamine** ; impact jeunesse tchadienne + ambition équipe (§1.2–1.3) |
 
 ---
 
-**TalentTchad © 2026 — Document confidentiel — Version 2.6**
+**Kadhamine © 2026 — Document confidentiel — Version 2.7**
