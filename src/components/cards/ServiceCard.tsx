@@ -1,5 +1,6 @@
 import { Enter } from '@/components/ui/Enter';
 import { Text } from '@/components/ui/ThemedText';
+import type { WithEnterIndex } from '@/components/ui/enterIndex';
 import { CategoryIcon } from '@/lib/categoryIcons';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { Radius, Spacing } from '@/theme/tokens';
@@ -13,7 +14,7 @@ import { Pressable, View } from 'react-native';
 
 const LIST_THUMB = 80;
 
-interface ServiceCardProps {
+interface ServiceCardProps extends WithEnterIndex {
   title: string;
   description: string;
   price?: number;
@@ -36,8 +37,6 @@ interface ServiceCardProps {
   layout?: 'card' | 'list';
   /** Chevron à droite (tooltip carte / incitation au clic). */
   showChevron?: boolean;
-  /** Index for staggered enter animation. */
-  enterIndex?: number;
 }
 
 /**

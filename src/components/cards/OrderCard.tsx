@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Enter } from '@/components/ui/Enter';
 import { Text } from '@/components/ui/ThemedText';
+import type { WithEnterIndex } from '@/components/ui/enterIndex';
 import { OrderStatusBadge, orderDisplayStatus } from '@/components/orders/OrderStatusBadge';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { BorderWidth, Radius, Spacing } from '@/theme/tokens';
@@ -61,7 +62,7 @@ export function orderNeedsPayment(args: {
   return false;
 }
 
-export type OrderCardProps = {
+export type OrderCardProps = WithEnterIndex & {
   title: string;
   status: string;
   agreedPrice?: number | null;
@@ -77,8 +78,6 @@ export type OrderCardProps = {
   showPay?: boolean;
   onPay?: () => void;
   onPress?: () => void;
-  /** Index for staggered enter animation. */
-  enterIndex?: number;
 };
 
 /**

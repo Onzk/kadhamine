@@ -15,6 +15,7 @@ import type { Id } from '../../../convex/_generated/dataModel';
 import { SafeImage } from '@/components/errors/SafeImage';
 import { Enter } from '@/components/ui/Enter';
 import { Text } from '@/components/ui/ThemedText';
+import type { WithEnterIndex } from '@/components/ui/enterIndex';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { BorderWidth, Radius, Spacing } from '@/theme/tokens';
 import { fontFamily, textStyle } from '@/theme/typography';
@@ -96,15 +97,13 @@ function MediaPlaceholder({
   );
 }
 
-interface PortfolioCardProps {
+interface PortfolioCardProps extends WithEnterIndex {
   item: PortfolioCardItem;
   onPress: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
   /** Grille compacte (profil public) vs liste (gestion). */
   compact?: boolean;
-  /** Index for staggered enter animation. */
-  enterIndex?: number;
 }
 
 /** Carte présentation d’une réalisation portfolio. */
@@ -352,7 +351,7 @@ export function PortfolioCard({
               }}
             >
               {imageUri ? (
-                <Image
+                <SafeImage
                   source={{ uri: imageUri }}
                   style={{ width: '100%', height: '100%' }}
                   contentFit="cover"

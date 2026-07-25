@@ -846,7 +846,7 @@ export default function ProviderDetailScreen() {
               </Text>
             ) : (
               <View style={{ gap: Spacing.three }}>
-                {services.map((service) => {
+                {services.map((service, index) => {
                   const catLabel = categoryLabel(service.category, i18n.language);
                   return (
                     <ServiceCard
@@ -868,6 +868,7 @@ export default function ProviderDetailScreen() {
                       categoryLabel={catLabel ?? undefined}
                       onPress={() => router.push(`/service/${service._id}`)}
                       showChevron
+                      enterIndex={index}
                     />
                   );
                 })}
@@ -886,11 +887,12 @@ export default function ProviderDetailScreen() {
                   gap: Spacing.two,
                 }}
               >
-                {portfolioItems.map((item) => (
+                {portfolioItems.map((item, index) => (
                   <View key={item._id} style={{ width: '48%', flexGrow: 1 }}>
                     <PortfolioCard
                       item={item}
                       compact
+                      enterIndex={index}
                       onPress={() => setSelectedPortfolio(item)}
                     />
                   </View>

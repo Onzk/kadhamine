@@ -174,7 +174,7 @@ export default function ProviderServicesListScreen() {
               actionVariant="outline"
             />
           ) : (
-            filtered.map((service) => {
+            filtered.map((service, index) => {
               const catLabel = categoryLabel(service.category, i18n.language);
               return (
                 <ServiceCard
@@ -196,6 +196,7 @@ export default function ProviderServicesListScreen() {
                   categoryLabel={catLabel ?? undefined}
                   onPress={() => router.push(`/service/${service._id}`)}
                   showChevron
+                  enterIndex={index}
                 />
               );
             })

@@ -17,12 +17,13 @@ type EnterProps = {
  * Apparition fluide native (no-op web) — pages, listes, cards.
  */
 export function Enter({ children, style, variant = 'item', index = 0 }: EnterProps) {
+  const stagger = Number.isFinite(index) ? Math.max(0, index) : 0;
   const entering =
     variant === 'page'
       ? Motion.page()
       : variant === 'fade'
         ? Motion.fade(0)
-        : Motion[variant](index);
+        : Motion[variant](stagger);
 
   return (
     <NativeOnlyAnimatedView entering={entering} style={style}>

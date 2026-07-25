@@ -2,17 +2,16 @@ import React from 'react';
 import { Text, View } from 'react-native';
 
 import { Enter } from '@/components/ui/Enter';
+import type { WithEnterIndex } from '@/components/ui/enterIndex';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { Radius, Spacing } from '@/theme/tokens';
 import { textStyle } from '@/theme/typography';
 
-interface SettingsSectionProps {
+interface SettingsSectionProps extends WithEnterIndex {
   title?: string;
   children: React.ReactNode;
   /** Extra margin above the section. Default true. */
   spaced?: boolean;
-  /** Stagger index for enter animation. */
-  enterIndex?: number;
 }
 
 export function SettingsSection({
