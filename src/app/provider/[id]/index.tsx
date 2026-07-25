@@ -281,7 +281,8 @@ function MetaChip({
 }
 
 export default function ProviderDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const rawId = useLocalSearchParams<{ id?: string | string[] }>().id;
+  const id = Array.isArray(rawId) ? rawId[0] : rawId;
   const { t, i18n } = useTranslation();
   const { colors, isDark } = useAppTheme();
   const { alert, confirm } = useAppDialog();
@@ -293,17 +294,22 @@ export default function ProviderDetailScreen() {
   const [selectedPortfolio, setSelectedPortfolio] = useState<PortfolioDetailItem | null>(null);
   const [stickyActive, setStickyActive] = useState(false);
   const scrollY = useSharedValue(0);
+  const stickyGate = useSharedValue(0);
+
+  const profileId =
+    typeof id === 'string' && id.length > 0 ? (id as Id<'profiles'>) : null;
 
   const data = useQuery(
     api.profiles.getPublicProvider,
-    id ? { profileId: id as Id<'profiles'> } : 'skip',
+    profileId ? { profileId } : 'skip',
   );
   const incrementView = useMutation(api.profiles.incrementView);
   const getOrCreateConversation = useMutation(api.messages.getOrCreate);
 
   useEffect(() => {
-    if (id) incrementView({ profileId: id as Id<'profiles'> }).catch(() => {});
-  }, [id, incrementView]);
+    if (!profileId) return;
+    incrementView({ profileId }).catch(() => {});
+  }, [profileId, incrementView]);
 
   const footerPad = Math.max(insets.bottom, Spacing.two) + Spacing.three;
   const footerBlockH = ACTION_BTN_H + Spacing.three + footerPad;
@@ -321,7 +327,7 @@ export default function ProviderDetailScreen() {
   const handleShare = async () => {
     if (!data?.profile) return;
     const { profile, services } = data;
-    const name = `${profile.firstName} ${profile.lastName}`.trim();
+    const name = `${profile.firstName ?? ''} ${profile.lastName ?? ''}`.trim();
     try {
       await shareContent(
         buildProviderShare(
@@ -331,11 +337,11 @@ export default function ProviderDetailScreen() {
             bio: profile.bio,
             city: profile.city,
             region: profile.region,
-            averageRating: profile.averageRating,
-            reviewCount: profile.reviewCount,
-            completedOrders: profile.completedOrders,
+            averageRating: profile.averageRating ?? 0,
+            reviewCount: profile.reviewCount ?? 0,
+            completedOrders: profile.completedOrders ?? 0,
             servicesCount: services?.length ?? 0,
-            skills: profile.skills,
+            skills: profile.skills ?? [],
             isVerified: !!profile.isVerified,
             isPremium: !!profile.isPremium,
           },
@@ -376,14 +382,19 @@ export default function ProviderDetailScreen() {
   };
 
   const handleOpenServices = () => {
-    if (!id) return;
-    router.push(`/provider/${id}/services`);
+    if (!profileId) return;
+    router.push(`/provider/${profileId}/services`);
   };
 
   const onScroll = useAnimatedScrollHandler({
     onScroll: (e) => {
+      'worklet';
       scrollY.value = e.contentOffset.y;
-      runOnJS(setStickyActive)(e.contentOffset.y > STICKY_THRESHOLD - 8);
+      const next = e.contentOffset.y > STICKY_THRESHOLD - 8 ? 1 : 0;
+      if (stickyGate.value !== next) {
+        stickyGate.value = next;
+        runOnJS(setStickyActive)(next === 1);
+      }
     },
   });
 
@@ -395,6 +406,16 @@ export default function ProviderDetailScreen() {
       Extrapolation.CLAMP,
     ),
   }));
+
+  if (!profileId) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.canvas, alignItems: 'center', justifyContent: 'center', padding: PAGE_H_PAD }}>
+        <Text style={[textStyle('featureHeading'), { color: colors.ink, textAlign: 'center' }]}>
+          {t('provider.notFound')}
+        </Text>
+      </View>
+    );
+  }
 
   if (data === undefined) {
     return (
@@ -465,11 +486,11 @@ export default function ProviderDetailScreen() {
     );
   }
 
-  const { profile, services, portfolio, reviews } = data;
-  const fullName = `${profile.firstName} ${profile.lastName}`;
-  const initial = profile.firstName.charAt(0).toUpperCase();
+  const { profile, services = [], portfolio = [], reviews = [] } = data;
+  const fullName = `${profile.firstName ?? ''} ${profile.lastName ?? ''}`.trim() || t('provider.title');
+  const initial = (profile.firstName || fullName || '?').charAt(0).toUpperCase();
   const locationLabel = [profile.city, profile.region].filter(Boolean).join(', ');
-  const portfolioItems = portfolio.filter((item) => item.mediaUrl);
+  const portfolioItems = (portfolio ?? []).filter((item) => item.mediaUrl);
   const availabilityKey =
     profile.availability === 'available' ||
     profile.availability === 'busy' ||
@@ -481,7 +502,7 @@ export default function ProviderDetailScreen() {
     <View style={{ flex: 1, backgroundColor: colors.canvas }}>
       <StickyTopBar
         title={fullName}
-        rating={profile.averageRating}
+        rating={profile.averageRating ?? 0}
         isPremium={!!profile.isPremium}
         isVerified={!!profile.isVerified}
         premiumLabel={t('common.premium')}
@@ -680,15 +701,15 @@ export default function ProviderDetailScreen() {
               <Badge label={t(availabilityKey)} variant="accent" />
             </View>
 
-            {(profile.averageRating > 0 || profile.reviewCount > 0) && (
+            {(profile.averageRating ?? 0) > 0 || (profile.reviewCount ?? 0) > 0 ? (
               <View style={{ marginTop: Spacing.three, alignItems: 'center', gap: 6 }}>
-                <StarRating rating={profile.averageRating} size={18} />
+                <StarRating rating={profile.averageRating ?? 0} size={18} />
                 <Text style={[textStyle('caption'), { color: colors.muted }]}>
-                  {formatRating(profile.averageRating)} · {profile.reviewCount}{' '}
+                  {formatRating(profile.averageRating ?? 0)} · {profile.reviewCount ?? 0}{' '}
                   {t('service.reviews').toLowerCase()}
                 </Text>
               </View>
-            )}
+            ) : null}
           </View>
 
           {/* Bio */}
@@ -736,7 +757,7 @@ export default function ProviderDetailScreen() {
                 label={t('service.hourlyRate', { price: formatPrice(profile.hourlyRate) })}
               />
             ) : null}
-            {profile.completedOrders > 0 ? (
+            {profile.completedOrders != null && profile.completedOrders > 0 ? (
               <MetaChip
                 icon={<Package size={13} color={colors.ink} weight="bold" />}
                 label={t('service.completedOrders', { count: profile.completedOrders })}
@@ -755,7 +776,7 @@ export default function ProviderDetailScreen() {
           </View>
 
           {/* Skills */}
-          {profile.skills?.length > 0 ? (
+          {profile.skills && profile.skills.length > 0 ? (
             <View style={{ marginBottom: Spacing.five }}>
               <SectionLabel>{t('service.skills')}</SectionLabel>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two }}>
@@ -794,7 +815,7 @@ export default function ProviderDetailScreen() {
                   color: colors.ink,
                 }}
               >
-                {profile.trustScore}/100
+                {profile.trustScore ?? 0}/100
               </Text>
             </View>
             <View
@@ -807,7 +828,7 @@ export default function ProviderDetailScreen() {
             >
               <View
                 style={{
-                  width: `${Math.max(0, Math.min(100, profile.trustScore))}%`,
+                  width: `${Math.max(0, Math.min(100, profile.trustScore ?? 0))}%`,
                   height: '100%',
                   borderRadius: 4,
                   backgroundColor: colors.orbit,

@@ -247,7 +247,7 @@ export const getPublicProvider = query({
           createdAt: review.createdAt,
           providerResponse: review.providerResponse,
           clientName: clientProfile
-            ? `${clientProfile.firstName} ${clientProfile.lastName.charAt(0)}.`
+            ? `${clientProfile.firstName} ${(clientProfile.lastName || '').charAt(0)}.`.trim()
             : null,
         };
       }),

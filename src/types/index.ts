@@ -84,5 +84,7 @@ export function formatPrice(amount: number, currency = 'XAF'): string {
 }
 
 export function formatRating(rating: number): string {
-  return rating.toFixed(1);
+  const n = Number(rating);
+  if (!Number.isFinite(n)) return '0.0';
+  return n.toFixed(1);
 }

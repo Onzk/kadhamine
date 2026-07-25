@@ -31,7 +31,8 @@ function categoryLabel(
 }
 
 export default function ProviderServicesListScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const rawId = useLocalSearchParams<{ id?: string | string[] }>().id;
+  const id = Array.isArray(rawId) ? rawId[0] : rawId;
   const { t, i18n } = useTranslation();
   const { colors } = useAppTheme();
   const router = useRouter();
@@ -40,9 +41,12 @@ export default function ProviderServicesListScreen() {
   const [search, setSearch] = useState('');
   const [categoryKey, setCategoryKey] = useState(ALL_KEY);
 
+  const profileId =
+    typeof id === 'string' && id.length > 0 ? (id as Id<'profiles'>) : null;
+
   const data = useQuery(
     api.profiles.getPublicProvider,
-    id ? { profileId: id as Id<'profiles'> } : 'skip',
+    profileId ? { profileId } : 'skip',
   );
 
   const profile = data?.profile ?? null;
