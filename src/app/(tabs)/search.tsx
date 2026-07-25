@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { View, Pressable, Text, type TextInput } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { View, Pressable, Text } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -125,18 +125,8 @@ export default function SearchScreen() {
   const [useDistance, setUseDistance] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>();
   const [sortSheetOpen, setSortSheetOpen] = useState(false);
-  const searchInputRef = useRef<TextInput>(null);
 
   const categories = useQuery(api.categories.list, { activeOnly: true });
-
-  useFocusEffect(
-    useCallback(() => {
-      const timer = setTimeout(() => {
-        searchInputRef.current?.focus();
-      }, 120);
-      return () => clearTimeout(timer);
-    }, []),
-  );
 
   useFocusEffect(
     useCallback(() => {
@@ -211,11 +201,9 @@ export default function SearchScreen() {
           >
             <View style={{ flex: 1, minWidth: 0 }}>
               <SearchBar
-                ref={searchInputRef}
                 value={search}
                 onChangeText={setSearch}
                 placeholder={t('home.searchPlaceholder')}
-                autoFocus
               />
             </View>
             <Pressable

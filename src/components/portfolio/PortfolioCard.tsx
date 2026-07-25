@@ -103,6 +103,8 @@ interface PortfolioCardProps {
   onDelete?: () => void;
   /** Grille compacte (profil public) vs liste (gestion). */
   compact?: boolean;
+  /** Index for staggered enter animation. */
+  enterIndex?: number;
 }
 
 /** Carte présentation d’une réalisation portfolio. */
@@ -112,6 +114,7 @@ export function PortfolioCard({
   onEdit,
   onDelete,
   compact = false,
+  enterIndex = 0,
 }: PortfolioCardProps) {
   const { t, i18n } = useTranslation();
   const { colors } = useAppTheme();

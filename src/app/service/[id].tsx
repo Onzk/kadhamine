@@ -18,15 +18,12 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
-  Easing,
   Extrapolation,
   interpolate,
   runOnJS,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
-  withRepeat,
-  withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
 import {
@@ -86,7 +83,6 @@ const VERIFIED_ON_MEDIA_BG = '#16A34A';
 const TRUST_FG = '#FFFFFF';
 const TRUST_ICON_SIZE = 24;
 /** Une rotation complète lente (~8 s). */
-const TRUST_SPIN_MS = 8000;
 const TRUST_FAB_SIZE = 56;
 const TRUST_FAB_RADIUS = 16;
 const TRUST_FAB_EDGE = 16;
@@ -104,20 +100,6 @@ function TrustFab({
   onPress: () => void;
   bottom: number;
 }) {
-  const rotation = useSharedValue(0);
-
-  useEffect(() => {
-    rotation.value = withRepeat(
-      withTiming(360, { duration: TRUST_SPIN_MS, easing: Easing.linear }),
-      -1,
-      false,
-    );
-  }, [rotation]);
-
-  const spinStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${rotation.value}deg` }],
-  }));
-
   return (
     <View
       pointerEvents="box-none"
@@ -148,7 +130,7 @@ function TrustFab({
             justifyContent: 'center',
           }}
         >
-          <Animated.View style={spinStyle}>{icon}</Animated.View>
+          {icon}
         </View>
       </Pressable>
     </View>
